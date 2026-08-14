@@ -31,6 +31,7 @@ export default function App() {
   const [maxGuesses, setMaxGuesses] = useState(6);
   const [debugAnswer, setDebugAnswer] = useState(null);
   const [debugOpen, setDebugOpen] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(null);
   const isDev = import.meta.env.DEV || import.meta.env.VITE_DEBUG === "true";
 
   const currentRow = guesses.length;
@@ -54,6 +55,7 @@ export default function App() {
       setLetterStatuses({});
       setLetterStatuses({});
       setDebugAnswer(null);
+      setAvatarUrl(data.avatarUrl || null);
       if (isDev) {
         getDebugAnswer(data.sessionId).then(d => setDebugAnswer(d.answer)).catch(() => {});
       }
@@ -80,6 +82,7 @@ export default function App() {
             if (data.status === "won" || data.status === "lost") {
               setShowResult(true);
             }
+            setAvatarUrl(data.avatarUrl || null);
             // Rebuild letter statuses from restored guesses
             if (data.guesses?.length) {
               const priority = { correct: 3, present: 2, absent: 1 };
@@ -368,6 +371,32 @@ export default function App() {
           wordLength={wordLength}
           maxGuesses={maxGuesses}
         />
+
+        {/* Blurred photo hint — shown after first guess */}
+        {avatarUrl && guesses.length >= 1 && (() => {
+          const proxyUrl = `${BASE_URL}/api/avatar?url=${encodeURIComponent(avatarUrl)}`;
+          // blur starts at 28px, decreases by 4px per guess after the first, min 16px
+          const blurPx = Math.max(16, 28 - (guesses.length - 1) * 4);
+          return (
+            <Box
+              w="72px" h="72px"
+              borderRadius="full"
+              overflow="hidden"
+              mt={2} mb={1}
+              flexShrink={0}
+              border="2px solid #3a3a3c"
+            >
+              <Box
+                as="img"
+                src={proxyUrl}
+                w="100%" h="100%"
+                objectFit="cover"
+                display="block"
+                style={{ filter: `blur(${blurPx}px)`, transform: "scale(1.2)" }}
+              />
+            </Box>
+          );
+        })()}
 
         {/* Keyboard */}
         <Keyboard onKey={handleKey} letterStatuses={letterStatuses} />
