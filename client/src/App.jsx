@@ -1,11 +1,17 @@
 import { useState, useEffect, useCallback } from "react";
-import { Box, VStack, Text, Heading, Button } from "@chakra-ui/react";
+import { Box, VStack, Text, Heading, Button, Avatar, HStack } from "@chakra-ui/react";
 import Board from "./components/Board";
 import Keyboard from "./components/Keyboard";
 import EmployeeCard from "./components/EmployeeCard";
+import Leaderboard from "./components/Leaderboard";
 import { startGame, submitGuess, getDebugAnswer } from "./api";
+import { useAuth } from "./useAuth";
+
+const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 
 export default function App() {
+  const { user, logout, getToken } = useAuth();
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [sessionId, setSessionId] = useState(null);
   const [guesses, setGuesses] = useState([]);
   const [currentGuess, setCurrentGuess] = useState("");
@@ -25,7 +31,8 @@ export default function App() {
 
   async function newGame(options = {}) {
     try {
-      const data = await startGame(options);
+      const token = getToken();
+      const data = await startGame(options, token);
       setSessionId(data.sessionId);
       setWordLength(data.wordLength);
       setMaxGuesses(data.maxGuesses);
@@ -77,7 +84,7 @@ export default function App() {
         return;
       }
       try {
-        const data = await submitGuess(sessionId, currentGuess);
+        const data = await submitGuess(sessionId, currentGuess, getToken());
         const newGuesses = [...guesses, { guess: data.guess, result: data.result }];
         setGuesses(newGuesses);
         setCurrentGuess("");
@@ -187,12 +194,58 @@ export default function App() {
         </Box>
       )}
 
+      {showLeaderboard && <Leaderboard onClose={() => setShowLeaderboard(false)} />}
+
       {/* Header */}
-      <Box w="100%" maxW="520px" borderBottom="1px solid" borderColor="#3a3a3c" py={3} textAlign="center">
-        <Heading size="lg" letterSpacing="0.2em" color="white" fontWeight="bold">
-          PERMITDLE
-        </Heading>
-        <Text fontSize="xs" color="#818384" mt={1}>Guess today's Permitflow employee</Text>
+      <Box w="100%" maxW="520px" borderBottom="1px solid" borderColor="#3a3a3c" py={3} px={4}>
+        <HStack justifyContent="space-between" alignItems="center">
+          {/* Leaderboard button */}
+          <Box
+            as="button" onClick={() => setShowLeaderboard(true)}
+            color="#818384" fontSize="xl" cursor="pointer" title="Leaderboard"
+            _hover={{ color: "white" }} transition="color 0.15s"
+          >🏆</Box>
+
+          {/* Title */}
+          <Box textAlign="center">
+            <Heading size="lg" letterSpacing="0.2em" color="white" fontWeight="bold">
+              PERMITDLE
+            </Heading>
+            <Text fontSize="xs" color="#818384">Guess today's Permitflow employee</Text>
+          </Box>
+
+          {/* Auth */}
+          {user === undefined ? (
+            <Box w="32px" />
+          ) : user ? (
+            <Box position="relative" role="group">
+              <Avatar.Root size="sm" cursor="pointer" title={user.name}>
+                <Avatar.Image src={user.avatar} />
+                <Avatar.Fallback>{user.name?.[0]}</Avatar.Fallback>
+              </Avatar.Root>
+              <Box
+                position="absolute" right={0} top="110%" bg="#1a1a1b"
+                border="1px solid #3a3a3c" borderRadius="md" p={2} minW="120px"
+                display="none" _groupHover={{ display: "block" }} zIndex={10}
+              >
+                <Text color="#818384" fontSize="xs" mb={1} noOfLines={1}>{user.email}</Text>
+                <Box
+                  as="button" color="#ff4444" fontSize="xs" cursor="pointer"
+                  onClick={logout} w="100%" textAlign="left"
+                >Sign out</Box>
+              </Box>
+            </Box>
+          ) : (
+            <Box
+              as="a" href={`${BASE_URL}/auth/google`}
+              bg="#538d4e" color="white" px={3} py={1} borderRadius="md"
+              fontSize="xs" fontWeight="bold" textDecoration="none"
+              _hover={{ bg: "#4a7a45" }} transition="bg 0.15s"
+            >
+              Sign in
+            </Box>
+          )}
+        </HStack>
       </Box>
 
       <VStack gap={0} w="100%" maxW="520px" px={3}>

@@ -2,11 +2,16 @@ import axios from "axios";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 
-// word: specific word (company name mode)
-// length: pick random word of that length
-// daily: use today's Permitflow name
-export async function startGame({ word, length, daily } = {}) {
-  const res = await axios.post(`${BASE_URL}/api/game/start`, { word, length, daily });
+function authHeaders(token) {
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+export async function startGame({ word, length, daily } = {}, token) {
+  const res = await axios.post(
+    `${BASE_URL}/api/game/start`,
+    { word, length, daily },
+    { headers: authHeaders(token) }
+  );
   return res.data;
 }
 
@@ -15,8 +20,12 @@ export async function getDaily() {
   return res.data;
 }
 
-export async function submitGuess(sessionId, guess) {
-  const res = await axios.post(`${BASE_URL}/api/game/${sessionId}/guess`, { guess });
+export async function submitGuess(sessionId, guess, token) {
+  const res = await axios.post(
+    `${BASE_URL}/api/game/${sessionId}/guess`,
+    { guess },
+    { headers: authHeaders(token) }
+  );
   return res.data;
 }
 
