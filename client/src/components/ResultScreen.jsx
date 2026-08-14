@@ -27,10 +27,9 @@ function TileRow({ guess, result, delay = 0 }) {
         return (
           <motion.div
             key={i}
-            initial={{ rotateX: 90, opacity: 0 }}
-            animate={{ rotateX: 0, opacity: 1 }}
-            transition={{ delay: delay + i * 0.08, duration: 0.35, ease: "easeOut" }}
-            style={{ perspective: 200 }}
+            initial={{ opacity: 0, scale: 0.7 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: delay + i * 0.06, duration: 0.25, ease: "easeOut" }}
           >
             <Box
               w="44px" h="44px"
