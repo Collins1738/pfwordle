@@ -25,7 +25,7 @@ export default function App() {
   const [maxGuesses, setMaxGuesses] = useState(6);
   const [debugAnswer, setDebugAnswer] = useState(null);
   const [debugOpen, setDebugOpen] = useState(false);
-  const isDev = import.meta.env.DEV;
+  const isDev = import.meta.env.DEV || import.meta.env.VITE_DEBUG === "true";
 
   const currentRow = guesses.length;
 
