@@ -1,9 +1,13 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
+const passport = require("passport");
 const { getRandomWordOfLength, isValidWord, VALID_BY_LENGTH } = require("./words");
 const { EMPLOYEE_MAP } = require("./names");
+const { migrate, pool } = require("./db");
+const { setupAuth, requireAuth } = require("./auth");
 
 // Feature flag: "first" = first names only, "full" = full names (first + last)
 const NAME_MODE = "first";
@@ -72,8 +76,13 @@ function getEmployeeInfo(firstName) {
 }
 
 const app = express();
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
+app.use(passport.initialize());
+setupAuth(app);
+
+// Run DB migrations on startup
+migrate().catch(console.error);
 
 // In-memory game sessions: sessionId -> { word, guesses, status, wordLength }
 const sessions = new Map();
@@ -88,42 +97,62 @@ app.get("/api/daily", (req, res) => {
   res.json({ wordLength: name.length, date: new Date().toISOString().slice(0, 10) });
 });
 
-// POST /api/game/start — start a new game
-// Body: { word?: string }  — if provided, use that word (company name mode)
-//       { length?: number } — if provided, pick random word of that length (default 5)
-app.post("/api/game/start", (req, res) => {
+// POST /api/game/start — start a new game (daily mode always used for logged-in users)
+app.post("/api/game/start", async (req, res) => {
   const sessionId = generateSessionId();
+  const today = new Date().toISOString().slice(0, 10);
   let word;
 
-  // daily mode: use today's Permitflow name
-  if (req.body && req.body.daily) {
-    word = getAnswerWord(getDailyName());
-  } else if (req.body && req.body.word) {
-    word = req.body.word.toUpperCase().trim();
-    if (!/^[A-Z]{3,8}$/.test(word)) {
-      return res.status(400).json({ error: "Word must be 3–8 letters" });
-    }
-  } else if (!word) {
-    // Random Permitflow name
-    const randomFirst = PERMITFLOW_NAMES[Math.floor(Math.random() * PERMITFLOW_NAMES.length)];
-    word = getAnswerWord(randomFirst);
+  // always daily mode
+  word = getAnswerWord(getDailyName());
+
+  // If user is logged in, check if they already played today
+  const authHeader = req.headers.authorization;
+  let userId = null;
+  if (authHeader?.startsWith("Bearer ")) {
+    try {
+      const jwt = require("jsonwebtoken");
+      const decoded = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET || "dev-secret-change-me");
+      userId = decoded.id;
+
+      // Check for existing game today
+      const { rows } = await pool.query(
+        "SELECT * FROM games WHERE user_id = $1 AND date = $2",
+        [userId, today]
+      );
+      if (rows.length > 0 && rows[0].status !== "playing") {
+        return res.status(400).json({ error: "You already played today!", alreadyPlayed: true, status: rows[0].status });
+      }
+
+      // Create/get game record
+      const gameRes = await pool.query(
+        `INSERT INTO games (user_id, date, word, status)
+         VALUES ($1, $2, $3, 'playing')
+         ON CONFLICT (user_id, date) DO UPDATE SET word = EXCLUDED.word
+         RETURNING id`,
+        [userId, today, word]
+      );
+      sessions.set(sessionId, {
+        word,
+        wordLength: word.length,
+        guesses: [],
+        status: "playing",
+        maxGuesses: Math.max(6, word.length),
+        userId,
+        gameId: gameRes.rows[0].id,
+        startedAt: Date.now(),
+      });
+      return res.json({ sessionId, wordLength: word.length, maxGuesses: Math.max(6, word.length) });
+    } catch { /* fall through to anonymous */ }
   }
 
-  const maxGuesses = Math.max(6, word.length); // more guesses for longer words
-
-  sessions.set(sessionId, {
-    word,
-    wordLength: word.length,
-    guesses: [],
-    status: "playing",
-    maxGuesses,
-  });
-
+  const maxGuesses = Math.max(6, word.length);
+  sessions.set(sessionId, { word, wordLength: word.length, guesses: [], status: "playing", maxGuesses });
   res.json({ sessionId, wordLength: word.length, maxGuesses });
 });
 
 // POST /api/game/:sessionId/guess
-app.post("/api/game/:sessionId/guess", (req, res) => {
+app.post("/api/game/:sessionId/guess", async (req, res) => {
   const { sessionId } = req.params;
   const { guess } = req.body;
 
@@ -154,6 +183,24 @@ app.post("/api/game/:sessionId/guess", (req, res) => {
 
   if (won) session.status = "won";
   if (lost) session.status = "lost";
+
+  // Persist to DB if logged-in game
+  if (session.gameId) {
+    try {
+      await pool.query(
+        "INSERT INTO guesses (game_id, guess, result) VALUES ($1, $2, $3)",
+        [session.gameId, upperGuess, JSON.stringify(result)]
+      );
+      if (session.status !== "playing") {
+        const durationSeconds = Math.round((Date.now() - session.startedAt) / 1000);
+        await pool.query(
+          `UPDATE games SET status = $1, guess_count = $2, duration_seconds = $3, completed_at = NOW()
+           WHERE id = $4`,
+          [session.status, session.guesses.length, durationSeconds, session.gameId]
+        );
+      }
+    } catch (e) { console.error("DB save error:", e.message); }
+  }
 
   const employee = session.status !== "playing" ? getEmployeeInfo(session.word) : null;
 
@@ -260,6 +307,70 @@ function evaluateGuess(guess, target) {
 
   return result;
 }
+
+// GET /api/leaderboard/daily — today's leaderboard
+app.get("/api/leaderboard/daily", async (req, res) => {
+  const today = new Date().toISOString().slice(0, 10);
+  try {
+    const { rows } = await pool.query(
+      `SELECT u.name, u.avatar_url, g.guess_count, g.duration_seconds, g.status
+       FROM games g JOIN users u ON u.id = g.user_id
+       WHERE g.date = $1 AND g.status IN ('won', 'lost')
+       ORDER BY g.status DESC, g.guess_count ASC, g.duration_seconds ASC
+       LIMIT 50`,
+      [today]
+    );
+    res.json(rows);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/leaderboard/alltime — all-time leaderboard
+app.get("/api/leaderboard/alltime", async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT u.name, u.avatar_url,
+              COUNT(*) FILTER (WHERE g.status = 'won') AS wins,
+              COUNT(*) FILTER (WHERE g.status = 'lost') AS losses,
+              ROUND(AVG(g.guess_count) FILTER (WHERE g.status = 'won'), 1) AS avg_guesses,
+              COUNT(*) AS total_games
+       FROM games g JOIN users u ON u.id = g.user_id
+       WHERE g.status IN ('won', 'lost')
+       GROUP BY u.id, u.name, u.avatar_url
+       ORDER BY wins DESC, avg_guesses ASC
+       LIMIT 50`
+    );
+    res.json(rows);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/stats — personal stats for logged-in user
+app.get("/api/stats", requireAuth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT
+         COUNT(*) FILTER (WHERE status = 'won') AS wins,
+         COUNT(*) FILTER (WHERE status = 'lost') AS losses,
+         ROUND(AVG(guess_count) FILTER (WHERE status = 'won'), 1) AS avg_guesses,
+         COUNT(*) AS total_games
+       FROM games WHERE user_id = $1`,
+      [req.user.id]
+    );
+    // Guess distribution
+    const { rows: dist } = await pool.query(
+      `SELECT guess_count, COUNT(*) AS count
+       FROM games WHERE user_id = $1 AND status = 'won'
+       GROUP BY guess_count ORDER BY guess_count`,
+      [req.user.id]
+    );
+    res.json({ ...rows[0], distribution: dist });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
 // Serve built React client in production
 const clientBuild = path.join(__dirname, "../client/dist");
