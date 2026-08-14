@@ -153,6 +153,9 @@ app.get("/api/game/resume", async (req, res) => {
   // Update session_id in DB
   await pool.query("UPDATE games SET session_id = $1 WHERE id = $2", [sessionId, game.id]);
 
+  const empInfoResume = getEmployeeInfo(word);
+  const avatarUrlResume = Array.isArray(empInfoResume) ? empInfoResume[0]?.avatarUrl : empInfoResume?.avatarUrl || "";
+
   res.json({
     hasGame: true,
     sessionId,
@@ -160,6 +163,7 @@ app.get("/api/game/resume", async (req, res) => {
     maxGuesses,
     status: game.status,
     guesses: guessHistory,
+    avatarUrl: avatarUrlResume,
   });
 });
 
@@ -224,13 +228,17 @@ app.post("/api/game/start", async (req, res) => {
         mode,
         startedAt: Date.now(),
       });
-      return res.json({ sessionId, wordLength: word.length, maxGuesses: Math.max(6, word.length), mode });
+      const empInfo = getEmployeeInfo(word);
+      const avatarUrl = Array.isArray(empInfo) ? empInfo[0]?.avatarUrl : empInfo?.avatarUrl || "";
+      return res.json({ sessionId, wordLength: word.length, maxGuesses: Math.max(6, word.length), mode, avatarUrl });
     } catch { /* fall through to anonymous */ }
   }
 
   const maxGuesses = Math.max(6, word.length);
   sessions.set(sessionId, { word, wordLength: word.length, guesses: [], status: "playing", maxGuesses });
-  res.json({ sessionId, wordLength: word.length, maxGuesses });
+  const empInfoAnon = getEmployeeInfo(word);
+  const avatarUrlAnon = Array.isArray(empInfoAnon) ? empInfoAnon[0]?.avatarUrl : empInfoAnon?.avatarUrl || "";
+  res.json({ sessionId, wordLength: word.length, maxGuesses, avatarUrl: avatarUrlAnon });
 });
 
 // POST /api/game/:sessionId/guess
