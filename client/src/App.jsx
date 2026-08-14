@@ -16,6 +16,7 @@ export default function App() {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [mode, setMode] = useState("daily"); // "daily" | "practice"
   const [sessionId, setSessionId] = useState(null);
   const [guesses, setGuesses] = useState([]);
   const [currentGuess, setCurrentGuess] = useState("");
@@ -37,7 +38,7 @@ export default function App() {
   async function newGame(options = {}) {
     try {
       const token = getToken();
-      const data = await startGame(options, token);
+      const data = await startGame({ ...options, mode }, token);
       setSessionId(data.sessionId);
       setWordLength(data.wordLength);
       setMaxGuesses(data.maxGuesses);
@@ -93,7 +94,7 @@ export default function App() {
           }
         } catch { /* fall through */ }
       }
-      newGame({});
+      newGame({ mode });
     }
     init();
   }, [user]);
@@ -168,6 +169,26 @@ export default function App() {
   return (
     <Box minH="100vh" bg="#121213" display="flex" flexDir="column" alignItems="center">
       {showResult && (status === "won" || status === "lost") && (
+      {/* Mode toggle bar */}
+      <Box w="100%" maxW="520px" display="flex" borderBottom="1px solid" borderColor="#3a3a3c">
+        {["daily", "practice"].map(m => (
+          <Box
+            key={m} flex={1} textAlign="center" py={2} cursor="pointer"
+            bg={mode === m ? "#242425" : "transparent"}
+            color={mode === m ? "white" : "#818384"}
+            fontWeight={mode === m ? "bold" : "normal"}
+            fontSize="sm" letterSpacing="0.05em" textTransform="capitalize"
+            borderBottom={mode === m ? "2px solid #538d4e" : "2px solid transparent"}
+            transition="all 0.15s"
+            onClick={() => {
+              if (mode !== m) { setMode(m); newGame({ mode: m }); }
+            }}
+          >
+            {m === "daily" ? "📅 Daily" : "🎯 Practice"}
+          </Box>
+        ))}
+      </Box>
+
         <ResultScreen
           won={status === "won"}
           answer={answer}
@@ -244,7 +265,7 @@ export default function App() {
       )}
 
       {showLeaderboard && <Leaderboard onClose={() => setShowLeaderboard(false)} />}
-      {showStats && <StatsModal onClose={() => setShowStats(false)} token={getToken()} maxGuesses={maxGuesses} />}
+      {showStats && <StatsModal onClose={() => setShowStats(false)} token={getToken()} maxGuesses={maxGuesses} mode={mode} />}
 
       {/* Header */}
       <Box w="100%" maxW="520px" borderBottom="1px solid" borderColor="#3a3a3c" py={3} px={4}>

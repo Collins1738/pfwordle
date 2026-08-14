@@ -14,13 +14,13 @@ function StatBox({ value, label }) {
   );
 }
 
-export default function StatsModal({ onClose, token, maxGuesses = 6 }) {
+export default function StatsModal({ onClose, token, maxGuesses = 6, mode = "daily" }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!token) { setLoading(false); return; }
-    axios.get(`${BASE_URL}/api/stats`, { headers: { Authorization: `Bearer ${token}` } })
+    axios.get(`${BASE_URL}/api/stats?mode=${mode}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => setStats(r.data))
       .catch(() => setStats(null))
       .finally(() => setLoading(false));
@@ -48,7 +48,7 @@ export default function StatsModal({ onClose, token, maxGuesses = 6 }) {
           <Box bg="#1a1a1b" border="1px solid #3a3a3c" borderRadius="xl" p={6}>
             <HStack justifyContent="space-between" mb={5}>
               <Text fontSize="sm" fontWeight="bold" color="white" letterSpacing="0.12em" textTransform="uppercase">
-                Statistics
+                {mode === "practice" ? "🎯 Practice Stats" : "📅 Daily Stats"}
               </Text>
               <Box as="button" color="#818384" onClick={onClose} fontSize="lg" cursor="pointer" lineHeight={1}>✕</Box>
             </HStack>

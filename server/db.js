@@ -32,6 +32,9 @@ async function migrate() {
     -- Add session_id column if it doesn't exist (idempotent)
     ALTER TABLE games ADD COLUMN IF NOT EXISTS session_id TEXT;
 
+    -- Add mode column (daily | practice)
+    ALTER TABLE games ADD COLUMN IF NOT EXISTS mode TEXT NOT NULL DEFAULT 'daily';
+
     CREATE TABLE IF NOT EXISTS guesses (
       id SERIAL PRIMARY KEY,
       game_id INTEGER REFERENCES games(id) ON DELETE CASCADE,

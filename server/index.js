@@ -125,7 +125,7 @@ app.get("/api/game/resume", async (req, res) => {
      ) FILTER (WHERE gu.id IS NOT NULL) AS guesses
      FROM games g
      LEFT JOIN guesses gu ON gu.game_id = g.id
-     WHERE g.user_id = $1 AND g.date = $2
+     WHERE g.user_id = $1 AND g.date = $2 AND g.mode = 'daily'
      GROUP BY g.id`,
     [userId, today]
   );
@@ -169,14 +169,20 @@ app.get("/api/daily", (req, res) => {
   res.json({ wordLength: name.length, date: new Date().toISOString().slice(0, 10) });
 });
 
-// POST /api/game/start — start a new game (daily mode always used for logged-in users)
+// POST /api/game/start — start a new game
 app.post("/api/game/start", async (req, res) => {
   const sessionId = generateSessionId();
   const today = new Date().toISOString().slice(0, 10);
+  const mode = req.body?.mode === "practice" ? "practice" : "daily";
   let word;
 
-  // always daily mode
-  word = getAnswerWord(getDailyName());
+  if (mode === "practice") {
+    // Random Permitflow name
+    const randomFirst = PERMITFLOW_NAMES[Math.floor(Math.random() * PERMITFLOW_NAMES.length)];
+    word = getAnswerWord(randomFirst);
+  } else {
+    word = getAnswerWord(getDailyName());
+  }
 
   // If user is logged in, check if they already played today
   const authHeader = req.headers.authorization;
@@ -188,14 +194,25 @@ app.post("/api/game/start", async (req, res) => {
       userId = decoded.id;
 
       // Create/get game record
-      const gameRes = await pool.query(
-        `INSERT INTO games (user_id, date, word, status, session_id)
-         VALUES ($1, $2, $3, 'playing', $4)
-         ON CONFLICT (user_id, date) DO UPDATE
-           SET session_id = EXCLUDED.session_id
-         RETURNING id, status, started_at`,
-        [userId, today, word, sessionId]
-      );
+      let gameRes;
+      if (mode === "daily") {
+        gameRes = await pool.query(
+          `INSERT INTO games (user_id, date, word, status, session_id, mode)
+           VALUES ($1, $2, $3, 'playing', $4, 'daily')
+           ON CONFLICT (user_id, date) DO UPDATE
+             SET session_id = EXCLUDED.session_id, word = EXCLUDED.word
+           RETURNING id, status, started_at`,
+          [userId, today, word, sessionId]
+        );
+      } else {
+        gameRes = await pool.query(
+          `INSERT INTO games (user_id, date, word, status, session_id, mode)
+           VALUES ($1, $2, $3, 'playing', $4, 'practice')
+           RETURNING id, status, started_at`,
+          [userId, today, word, sessionId]
+        );
+      }
+      const gameId = gameRes.rows[0].id;
       sessions.set(sessionId, {
         word,
         wordLength: word.length,
@@ -203,10 +220,11 @@ app.post("/api/game/start", async (req, res) => {
         status: "playing",
         maxGuesses: Math.max(6, word.length),
         userId,
-        gameId: gameRes.rows[0].id,
+        gameId,
+        mode,
         startedAt: Date.now(),
       });
-      return res.json({ sessionId, wordLength: word.length, maxGuesses: Math.max(6, word.length) });
+      return res.json({ sessionId, wordLength: word.length, maxGuesses: Math.max(6, word.length), mode });
     } catch { /* fall through to anonymous */ }
   }
 
@@ -417,6 +435,7 @@ app.get("/api/leaderboard/alltime", async (req, res) => {
 
 // GET /api/stats — personal stats for logged-in user
 app.get("/api/stats", requireAuth, async (req, res) => {
+  const mode = req.query.mode === "practice" ? "practice" : "daily";
   try {
     const { rows } = await pool.query(
       `SELECT
@@ -424,24 +443,24 @@ app.get("/api/stats", requireAuth, async (req, res) => {
          COUNT(*) FILTER (WHERE status = 'won') AS wins,
          COUNT(*) FILTER (WHERE status = 'lost') AS losses,
          ROUND(AVG(guess_count) FILTER (WHERE status = 'won'), 1) AS avg_guesses
-       FROM games WHERE user_id = $1`,
-      [req.user.id]
+       FROM games WHERE user_id = $1 AND mode = $2`,
+      [req.user.id, mode]
     );
 
     // Guess distribution (1–8)
     const { rows: dist } = await pool.query(
       `SELECT guess_count, COUNT(*) AS count
-       FROM games WHERE user_id = $1 AND status = 'won'
+       FROM games WHERE user_id = $1 AND status = 'won' AND mode = $2
        GROUP BY guess_count ORDER BY guess_count`,
-      [req.user.id]
+      [req.user.id, mode]
     );
 
-    // Streak: one win per day counts; check consecutive days
+    // Streak: only meaningful for daily mode
     const { rows: winDays } = await pool.query(
       `SELECT DISTINCT date FROM games
-       WHERE user_id = $1 AND status = 'won'
+       WHERE user_id = $1 AND status = 'won' AND mode = $2
        ORDER BY date DESC`,
-      [req.user.id]
+      [req.user.id, mode]
     );
 
     let currentStreak = 0, maxStreak = 0, streak = 0;
