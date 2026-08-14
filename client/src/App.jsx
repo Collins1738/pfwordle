@@ -23,6 +23,7 @@ export default function App() {
   const [answer, setAnswer] = useState(null);
   const [message, setMessage] = useState("");
   const [employee, setEmployee] = useState(null);
+  const [duration, setDuration] = useState(null);
   const [letterStatuses, setLetterStatuses] = useState({});
   const [wordLength, setWordLength] = useState(5);
   const [maxGuesses, setMaxGuesses] = useState(6);
@@ -45,6 +46,7 @@ export default function App() {
       setShowResult(false);
       setAnswer(null);
       setEmployee(null);
+      setDuration(null);
       setMessage("");
       setLetterStatuses({});
       setDebugAnswer(null);
@@ -98,6 +100,7 @@ export default function App() {
           setStatus(data.status);
           setAnswer(data.answer);
           setEmployee(data.employee || null);
+          setDuration(data.durationSeconds ?? null);
           setMessage("");
           setShowResult(false);
           setTimeout(() => setShowResult(true), flipDelay * 1000);
@@ -133,6 +136,7 @@ export default function App() {
           guesses={guesses}
           maxGuesses={maxGuesses}
           employee={employee}
+          durationSeconds={duration}
           onPlayAgain={() => newGame({})}
         />
       )}

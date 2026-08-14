@@ -1,12 +1,22 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Box, Text, Button, VStack, HStack } from "@chakra-ui/react";
 
-// Score out of 1000 based on guess count
-function calcScore(guessCount, maxGuesses, won) {
+// Score out of 1000 based on guess count + time bonus
+function calcScore(guessCount, maxGuesses, won, durationSeconds) {
   if (!won) return 0;
-  const perfect = 1000;
+  const perfect = 900;
   const deductPerGuess = Math.floor(perfect / maxGuesses);
-  return Math.max(100, perfect - (guessCount - 1) * deductPerGuess);
+  const base = Math.max(50, perfect - (guessCount - 1) * deductPerGuess);
+
+  let timeBonus = 0;
+  if (durationSeconds != null) {
+    if (durationSeconds < 60)   timeBonus = 100;
+    else if (durationSeconds < 300)  timeBonus = 75;
+    else if (durationSeconds < 600)  timeBonus = 50;
+    else if (durationSeconds < 1800) timeBonus = 25;
+  }
+
+  return Math.min(1000, base + timeBonus);
 }
 
 function scoreLabel(score) {
@@ -48,9 +58,18 @@ function TileRow({ guess, result, delay = 0 }) {
   );
 }
 
-export default function ResultScreen({ won, answer, guesses, maxGuesses, employee, onPlayAgain }) {
+function timeBonusLabel(durationSeconds) {
+  if (durationSeconds == null) return null;
+  if (durationSeconds < 60)   return "+100 ⚡ under 1 min";
+  if (durationSeconds < 300)  return "+75 🔥 under 5 min";
+  if (durationSeconds < 600)  return "+50 💨 under 10 min";
+  if (durationSeconds < 1800) return "+25 ⏱️ under 30 min";
+  return null;
+}
+
+export default function ResultScreen({ won, answer, guesses, maxGuesses, employee, durationSeconds, onPlayAgain }) {
   const accentColor = won ? "#538d4e" : "#b59f3b";
-  const score = calcScore(guesses.length, maxGuesses, won);
+  const score = calcScore(guesses.length, maxGuesses, won, durationSeconds);
   const { label: scoreLabel_, color: scoreColor } = scoreLabel(score);
   const finalGuess = guesses[guesses.length - 1];
 
@@ -142,6 +161,11 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, employe
                 <Text fontSize="xs" color="#555" mt={2}>
                   {guesses.length} guess{guesses.length !== 1 ? "es" : ""}
                 </Text>
+                {won && timeBonusLabel(durationSeconds) && (
+                  <Text fontSize="xs" color="#f5c518" mt={1} fontWeight="semibold">
+                    {timeBonusLabel(durationSeconds)}
+                  </Text>
+                )}
               </Box>
             </motion.div>
           )}

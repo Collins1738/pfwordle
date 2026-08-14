@@ -205,6 +205,9 @@ app.post("/api/game/:sessionId/guess", async (req, res) => {
   }
 
   const employee = session.status !== "playing" ? getEmployeeInfo(session.word) : null;
+  const durationSeconds = session.status !== "playing" && session.startedAt
+    ? Math.round((Date.now() - session.startedAt) / 1000)
+    : null;
 
   res.json({
     guess: upperGuess,
@@ -213,6 +216,7 @@ app.post("/api/game/:sessionId/guess", async (req, res) => {
     status: session.status,
     ...(session.status !== "playing" ? { answer: session.word } : {}),
     ...(employee ? { employee } : {}),
+    ...(durationSeconds != null ? { durationSeconds } : {}),
   });
 });
 
