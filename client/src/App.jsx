@@ -168,7 +168,6 @@ export default function App() {
 
   return (
     <Box minH="100vh" bg="#121213" display="flex" flexDir="column" alignItems="center">
-      {showResult && (status === "won" || status === "lost") && (
       {/* Mode toggle bar */}
       <Box w="100%" maxW="520px" display="flex" borderBottom="1px solid" borderColor="#3a3a3c">
         {["daily", "practice"].map(m => (
@@ -189,6 +188,7 @@ export default function App() {
         ))}
       </Box>
 
+      {showResult && (status === "won" || status === "lost") && (
         <ResultScreen
           won={status === "won"}
           answer={answer}
