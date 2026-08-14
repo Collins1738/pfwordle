@@ -171,6 +171,7 @@ export default function App() {
           employee={employee}
           durationSeconds={duration}
           onPlayAgain={() => newGame({})}
+          onShowStats={() => { setShowResult(false); setShowStats(true); }}
         />
       )}
       {/* DEV floater */}

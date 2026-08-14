@@ -67,7 +67,7 @@ function timeBonusLabel(durationSeconds) {
   return null;
 }
 
-export default function ResultScreen({ won, answer, guesses, maxGuesses, employee, durationSeconds, onPlayAgain }) {
+export default function ResultScreen({ won, answer, guesses, maxGuesses, employee, durationSeconds, onPlayAgain, onShowStats }) {
   const accentColor = won ? "#538d4e" : "#b59f3b";
   const score = calcScore(guesses.length, maxGuesses, won, durationSeconds);
   const { label: scoreLabel_, color: scoreColor } = scoreLabel(score);
@@ -236,7 +236,7 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, employe
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: won ? 1.5 : 0.9 }}
-            style={{ width: "100%" }}
+            style={{ width: "100%", display: "flex", flexDirection: "column", gap: "10px" }}
           >
             <Button
               w="100%" bg={accentColor} color="white"
@@ -246,6 +246,17 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, employe
             >
               Play Again
             </Button>
+            {onShowStats && (
+              <Button
+                w="100%" bg="transparent" color="#818384"
+                size="md" borderRadius="xl"
+                border="1px solid #3a3a3c"
+                onClick={onShowStats}
+                _hover={{ bg: "#1a1a1b", color: "white" }}
+              >
+                📊 My Stats
+              </Button>
+            )}
           </motion.div>
 
         </VStack>
