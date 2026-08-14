@@ -1,5 +1,8 @@
 node_modules/
-dist/
-.env
+client/node_modules/
+server/node_modules/
+client/dist/
 .DS_Store
 *.log
+# Keep .env.production (needed for build), ignore local .env
+client/.env

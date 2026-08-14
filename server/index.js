@@ -261,5 +261,14 @@ function evaluateGuess(guess, target) {
   return result;
 }
 
+// Serve built React client in production
+const clientBuild = path.join(__dirname, "../client/dist");
+if (fs.existsSync(clientBuild)) {
+  app.use(express.static(clientBuild));
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(clientBuild, "index.html"));
+  });
+}
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Wordle server running on port ${PORT}`));
