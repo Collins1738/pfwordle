@@ -6,6 +6,7 @@ import EmployeeCard from "./components/EmployeeCard";
 import Leaderboard from "./components/Leaderboard";
 import ResultScreen from "./components/ResultScreen";
 import StatsModal from "./components/StatsModal";
+import HomePage from "./components/HomePage";
 import { startGame, submitGuess, getDebugAnswer, resumeGame } from "./api";
 import { useAuth } from "./useAuth";
 
@@ -13,6 +14,7 @@ const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 
 export default function App() {
   const { user, logout, getToken } = useAuth();
+  const [screen, setScreen] = useState("home"); // "home" | "game"
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -64,44 +66,48 @@ export default function App() {
     }
   }
 
+  // Try to resume a daily game in progress when auth resolves
   useEffect(() => {
-    // Wait until auth is resolved, then try resume or start fresh
     if (user === undefined) return; // still loading auth
-    async function init() {
+    async function tryResume() {
       const token = getToken();
-      if (token) {
-        try {
-          const data = await resumeGame(token);
-          if (data.hasGame) {
-            setSessionId(data.sessionId);
-            setWordLength(data.wordLength);
-            setMaxGuesses(data.maxGuesses);
-            setGuesses(data.guesses || []);
-            setCurrentGuess("");
-            setStatus(data.status);
-            if (data.status === "won" || data.status === "lost") {
-              setShowResult(true);
-            }
-            setAvatarUrl(data.avatarUrl || null);
-            // Rebuild letter statuses from restored guesses
-            if (data.guesses?.length) {
-              const priority = { correct: 3, present: 2, absent: 1 };
-              const updated = {};
-              data.guesses.forEach(({ result }) => {
-                result?.forEach(({ letter, status: s }) => {
-                  if (!updated[letter] || priority[s] > (priority[updated[letter]] ?? 0)) updated[letter] = s;
-                });
-              });
-              setLetterStatuses(updated);
-            }
-            return;
+      if (!token) return;
+      try {
+        const data = await resumeGame(token);
+        if (data.hasGame) {
+          setSessionId(data.sessionId);
+          setWordLength(data.wordLength);
+          setMaxGuesses(data.maxGuesses);
+          setGuesses(data.guesses || []);
+          setCurrentGuess("");
+          setStatus(data.status);
+          if (data.status === "won" || data.status === "lost") {
+            setShowResult(true);
           }
-        } catch { /* fall through */ }
-      }
-      newGame({ mode });
+          setAvatarUrl(data.avatarUrl || null);
+          if (data.guesses?.length) {
+            const priority = { correct: 3, present: 2, absent: 1 };
+            const updated = {};
+            data.guesses.forEach(({ result }) => {
+              result?.forEach(({ letter, status: s }) => {
+                if (!updated[letter] || priority[s] > (priority[updated[letter]] ?? 0)) updated[letter] = s;
+              });
+            });
+            setLetterStatuses(updated);
+          }
+          setMode("daily");
+          setScreen("game");
+        }
+      } catch { /* no game in progress, stay on home */ }
     }
-    init();
+    tryResume();
   }, [user]);
+
+  async function handleHomePlay(selectedMode) {
+    setMode(selectedMode);
+    await newGame({ mode: selectedMode });
+    setScreen("game");
+  }
 
   const updateLetterStatuses = useCallback((newGuesses) => {
     const priority = { correct: 3, present: 2, absent: 1 };
@@ -169,6 +175,10 @@ export default function App() {
   }, [handleKey]);
 
   const msgColor = status === "won" ? "#538d4e" : status === "lost" ? "#b59f3b" : "white";
+
+  if (screen === "home") {
+    return <HomePage onPlay={handleHomePlay} />;
+  }
 
   return (
     <Box minH="100vh" bg="#121213" display="flex" flexDir="column" alignItems="center">
