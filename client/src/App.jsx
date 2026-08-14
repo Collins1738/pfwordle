@@ -66,45 +66,41 @@ export default function App() {
     }
   }
 
-  // Try to resume a daily game in progress when auth resolves
-  useEffect(() => {
-    if (user === undefined) return; // still loading auth
-    async function tryResume() {
-      const token = getToken();
-      if (!token) return;
-      try {
-        const data = await resumeGame(token);
-        if (data.hasGame) {
-          setSessionId(data.sessionId);
-          setWordLength(data.wordLength);
-          setMaxGuesses(data.maxGuesses);
-          setGuesses(data.guesses || []);
-          setCurrentGuess("");
-          setStatus(data.status);
-          if (data.status === "won" || data.status === "lost") {
-            setShowResult(true);
-          }
-          setAvatarUrl(data.avatarUrl || null);
-          if (data.guesses?.length) {
-            const priority = { correct: 3, present: 2, absent: 1 };
-            const updated = {};
-            data.guesses.forEach(({ result }) => {
-              result?.forEach(({ letter, status: s }) => {
-                if (!updated[letter] || priority[s] > (priority[updated[letter]] ?? 0)) updated[letter] = s;
-              });
-            });
-            setLetterStatuses(updated);
-          }
-          setMode("daily");
-          setScreen("game");
-        }
-      } catch { /* no game in progress, stay on home */ }
-    }
-    tryResume();
-  }, [user]);
-
   async function handleHomePlay(selectedMode) {
     setMode(selectedMode);
+    // Try to resume a daily game in progress; otherwise start fresh
+    if (selectedMode === "daily") {
+      const token = getToken();
+      if (token) {
+        try {
+          const data = await resumeGame(token);
+          if (data.hasGame) {
+            setSessionId(data.sessionId);
+            setWordLength(data.wordLength);
+            setMaxGuesses(data.maxGuesses);
+            setGuesses(data.guesses || []);
+            setCurrentGuess("");
+            setStatus(data.status);
+            if (data.status === "won" || data.status === "lost") {
+              setShowResult(true);
+            }
+            setAvatarUrl(data.avatarUrl || null);
+            if (data.guesses?.length) {
+              const priority = { correct: 3, present: 2, absent: 1 };
+              const updated = {};
+              data.guesses.forEach(({ result }) => {
+                result?.forEach(({ letter, status: s }) => {
+                  if (!updated[letter] || priority[s] > (priority[updated[letter]] ?? 0)) updated[letter] = s;
+                });
+              });
+              setLetterStatuses(updated);
+            }
+            setScreen("game");
+            return;
+          }
+        } catch { /* fall through to new game */ }
+      }
+    }
     await newGame({ mode: selectedMode });
     setScreen("game");
   }
