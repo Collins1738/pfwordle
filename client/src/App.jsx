@@ -4,6 +4,7 @@ import Board from "./components/Board";
 import Keyboard from "./components/Keyboard";
 import EmployeeCard from "./components/EmployeeCard";
 import Leaderboard from "./components/Leaderboard";
+import ResultScreen from "./components/ResultScreen";
 import { startGame, submitGuess, getDebugAnswer } from "./api";
 import { useAuth } from "./useAuth";
 
@@ -16,7 +17,7 @@ export default function App() {
   const [guesses, setGuesses] = useState([]);
   const [currentGuess, setCurrentGuess] = useState("");
   const [status, setStatus] = useState("idle");
-  const [showCard, setShowCard] = useState(false);
+  const [showResult, setShowResult] = useState(false);
   const [answer, setAnswer] = useState(null);
   const [message, setMessage] = useState("");
   const [employee, setEmployee] = useState(null);
@@ -39,7 +40,7 @@ export default function App() {
       setGuesses([]);
       setCurrentGuess("");
       setStatus("playing");
-      setShowCard(false);
+      setShowResult(false);
       setAnswer(null);
       setEmployee(null);
       setMessage("");
@@ -96,8 +97,8 @@ export default function App() {
           setAnswer(data.answer);
           setEmployee(data.employee || null);
           setMessage("");
-          setShowCard(false);
-          setTimeout(() => setShowCard(true), flipDelay * 1000);
+          setShowResult(false);
+          setTimeout(() => setShowResult(true), flipDelay * 1000);
         }
       } catch (e) {
         setMessage(e?.response?.data?.error || "Invalid guess");
@@ -123,11 +124,13 @@ export default function App() {
 
   return (
     <Box minH="100vh" bg="#121213" display="flex" flexDir="column" alignItems="center">
-      {showCard && (status === "won" || status === "lost") && (
-        <EmployeeCard
+      {showResult && (status === "won" || status === "lost") && (
+        <ResultScreen
+          won={status === "won"}
           answer={answer}
+          guesses={guesses}
+          maxGuesses={maxGuesses}
           employee={employee}
-          status={status}
           onPlayAgain={() => newGame({})}
         />
       )}
