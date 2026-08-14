@@ -38,7 +38,8 @@ export default function App() {
   async function newGame(options = {}) {
     try {
       const token = getToken();
-      const data = await startGame({ ...options, mode }, token);
+      const effectiveMode = options.mode ?? mode;
+      const data = await startGame({ mode: effectiveMode, ...options }, token);
       setSessionId(data.sessionId);
       setWordLength(data.wordLength);
       setMaxGuesses(data.maxGuesses);
