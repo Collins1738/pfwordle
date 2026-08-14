@@ -354,21 +354,77 @@ app.get("/api/stats", requireAuth, async (req, res) => {
   try {
     const { rows } = await pool.query(
       `SELECT
+         COUNT(*) AS total_games,
          COUNT(*) FILTER (WHERE status = 'won') AS wins,
          COUNT(*) FILTER (WHERE status = 'lost') AS losses,
-         ROUND(AVG(guess_count) FILTER (WHERE status = 'won'), 1) AS avg_guesses,
-         COUNT(*) AS total_games
+         ROUND(AVG(guess_count) FILTER (WHERE status = 'won'), 1) AS avg_guesses
        FROM games WHERE user_id = $1`,
       [req.user.id]
     );
-    // Guess distribution
+
+    // Guess distribution (1–8)
     const { rows: dist } = await pool.query(
       `SELECT guess_count, COUNT(*) AS count
        FROM games WHERE user_id = $1 AND status = 'won'
        GROUP BY guess_count ORDER BY guess_count`,
       [req.user.id]
     );
-    res.json({ ...rows[0], distribution: dist });
+
+    // Streak: one win per day counts; check consecutive days
+    const { rows: winDays } = await pool.query(
+      `SELECT DISTINCT date FROM games
+       WHERE user_id = $1 AND status = 'won'
+       ORDER BY date DESC`,
+      [req.user.id]
+    );
+
+    let currentStreak = 0, maxStreak = 0, streak = 0;
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+
+    if (winDays.length > 0) {
+      const dates = winDays.map(r => r.date.toISOString?.().slice(0, 10) ?? r.date);
+      // Current streak
+      let prev = null;
+      for (let i = 0; i < dates.length; i++) {
+        const d = dates[i];
+        if (i === 0) {
+          if (d !== today && d !== yesterday) break; // streak broken
+          streak = 1;
+        } else {
+          const prevDate = new Date(prev);
+          const curDate = new Date(d);
+          const diffDays = Math.round((prevDate - curDate) / 86400000);
+          if (diffDays === 1) { streak++; }
+          else break;
+        }
+        prev = d;
+      }
+      currentStreak = streak;
+
+      // Max streak
+      streak = 1;
+      for (let i = 1; i < dates.length; i++) {
+        const prevDate = new Date(dates[i - 1]);
+        const curDate = new Date(dates[i]);
+        const diffDays = Math.round((prevDate - curDate) / 86400000);
+        if (diffDays === 1) { streak++; }
+        else { maxStreak = Math.max(maxStreak, streak); streak = 1; }
+      }
+      maxStreak = Math.max(maxStreak, streak);
+    }
+
+    const total = parseInt(rows[0].total_games);
+    const wins = parseInt(rows[0].wins);
+    res.json({
+      played: total,
+      wins,
+      winPct: total > 0 ? Math.round((wins / total) * 100) : 0,
+      currentStreak,
+      maxStreak,
+      avgGuesses: rows[0].avg_guesses,
+      distribution: dist,
+    });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

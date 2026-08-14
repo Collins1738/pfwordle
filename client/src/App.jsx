@@ -5,6 +5,7 @@ import Keyboard from "./components/Keyboard";
 import EmployeeCard from "./components/EmployeeCard";
 import Leaderboard from "./components/Leaderboard";
 import ResultScreen from "./components/ResultScreen";
+import StatsModal from "./components/StatsModal";
 import { startGame, submitGuess, getDebugAnswer } from "./api";
 import { useAuth } from "./useAuth";
 
@@ -13,6 +14,7 @@ const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 export default function App() {
   const { user, logout, getToken } = useAuth();
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showStats, setShowStats] = useState(false);
   const [sessionId, setSessionId] = useState(null);
   const [guesses, setGuesses] = useState([]);
   const [currentGuess, setCurrentGuess] = useState("");
@@ -198,16 +200,24 @@ export default function App() {
       )}
 
       {showLeaderboard && <Leaderboard onClose={() => setShowLeaderboard(false)} />}
+      {showStats && <StatsModal onClose={() => setShowStats(false)} token={getToken()} maxGuesses={maxGuesses} />}
 
       {/* Header */}
       <Box w="100%" maxW="520px" borderBottom="1px solid" borderColor="#3a3a3c" py={3} px={4}>
         <HStack justifyContent="space-between" alignItems="center">
-          {/* Leaderboard button */}
-          <Box
-            as="button" onClick={() => setShowLeaderboard(true)}
-            color="#818384" fontSize="xl" cursor="pointer" title="Leaderboard"
-            _hover={{ color: "white" }} transition="color 0.15s"
-          >🏆</Box>
+          {/* Left icons */}
+          <HStack gap={2}>
+            <Box
+              as="button" onClick={() => setShowLeaderboard(true)}
+              color="#818384" fontSize="xl" cursor="pointer" title="Leaderboard"
+              _hover={{ color: "white" }} transition="color 0.15s"
+            >🏆</Box>
+            <Box
+              as="button" onClick={() => setShowStats(true)}
+              color="#818384" fontSize="xl" cursor="pointer" title="My Stats"
+              _hover={{ color: "white" }} transition="color 0.15s"
+            >📊</Box>
+          </HStack>
 
           {/* Title */}
           <Box textAlign="center">
