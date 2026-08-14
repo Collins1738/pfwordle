@@ -265,7 +265,7 @@ function evaluateGuess(guess, target) {
 const clientBuild = path.join(__dirname, "../client/dist");
 if (fs.existsSync(clientBuild)) {
   app.use(express.static(clientBuild));
-  app.get("*", (req, res) => {
+  app.get("/*splat", (req, res) => {
     res.sendFile(path.join(clientBuild, "index.html"));
   });
 }
