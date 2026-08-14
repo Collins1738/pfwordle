@@ -45,15 +45,29 @@ function getDailyName() {
   return PERMITFLOW_NAMES[seed % PERMITFLOW_NAMES.length];
 }
 
+// Parse a CSV line respecting quoted fields
+function parseCSVLine(line) {
+  const result = [];
+  let cur = "", inQuote = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') { inQuote = !inQuote; continue; }
+    if (ch === "," && !inQuote) { result.push(cur); cur = ""; continue; }
+    cur += ch;
+  }
+  result.push(cur);
+  return result;
+}
+
 // Build a lookup map from first name → roster row (avatar, department, slackTitle)
 const rosterByFirst = {};
 try {
   const rosterRaw = fs.readFileSync(path.join(__dirname, "roster.csv"), "utf8").replace(/\r/g, "");
   const rosterLines = rosterRaw.trim().split("\n");
-  const rHeaders = rosterLines[0].split(",");
+  const rHeaders = parseCSVLine(rosterLines[0]);
   const ri = (h) => rHeaders.indexOf(h);
   for (let i = 1; i < rosterLines.length; i++) {
-    const parts = rosterLines[i].split(",");
+    const parts = parseCSVLine(rosterLines[i]);
     const name = parts[ri("name")]?.trim();
     if (!name) continue;
     const firstName = name.split(" ")[0].toUpperCase();
@@ -254,12 +268,12 @@ app.get("/api/employees", (req, res) => {
   try {
     const raw = fs.readFileSync(path.join(__dirname, "roster.csv"), "utf8");
     const lines = raw.trim().replace(/\r/g, "").split("\n");
-    const headers = lines[0].split(",");
+    const headers = parseCSVLine(lines[0]);
     const idx = (h) => headers.indexOf(h);
     const employees = [];
     const seen = new Set();
     for (let i = 1; i < lines.length; i++) {
-      const parts = lines[i].split(",");
+      const parts = parseCSVLine(lines[i]);
       const name = parts[idx("name")]?.trim();
       const email = parts[idx("email")]?.trim();
       if (!name || seen.has(email)) continue;
