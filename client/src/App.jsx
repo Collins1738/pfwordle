@@ -73,6 +73,9 @@ export default function App() {
             setGuesses(data.guesses || []);
             setCurrentGuess("");
             setStatus(data.status);
+            if (data.status === "won" || data.status === "lost") {
+              setShowResult(true);
+            }
             // Rebuild letter statuses from restored guesses
             if (data.guesses?.length) {
               const priority = { correct: 3, present: 2, absent: 1 };
