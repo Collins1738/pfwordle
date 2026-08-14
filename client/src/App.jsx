@@ -15,6 +15,7 @@ export default function App() {
   const { user, logout, getToken } = useAuth();
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [sessionId, setSessionId] = useState(null);
   const [guesses, setGuesses] = useState([]);
   const [currentGuess, setCurrentGuess] = useState("");
@@ -274,22 +275,44 @@ export default function App() {
           {user === undefined ? (
             <Box w="32px" />
           ) : user ? (
-            <Box position="relative" role="group">
-              <Avatar.Root size="sm" cursor="pointer" title={user.name}>
+            <Box position="relative">
+              <Avatar.Root
+                size="sm" cursor="pointer"
+                onClick={() => setShowUserMenu(o => !o)}
+                title={user.name}
+                outline={showUserMenu ? "2px solid #538d4e" : "none"}
+                borderRadius="full"
+              >
                 <Avatar.Image src={user.avatar} />
                 <Avatar.Fallback>{user.name?.[0]}</Avatar.Fallback>
               </Avatar.Root>
-              <Box
-                position="absolute" right={0} top="110%" bg="#1a1a1b"
-                border="1px solid #3a3a3c" borderRadius="md" p={2} minW="120px"
-                display="none" _groupHover={{ display: "block" }} zIndex={10}
-              >
-                <Text color="#818384" fontSize="xs" mb={1} noOfLines={1}>{user.email}</Text>
-                <Box
-                  as="button" color="#ff4444" fontSize="xs" cursor="pointer"
-                  onClick={logout} w="100%" textAlign="left"
-                >Sign out</Box>
-              </Box>
+              {showUserMenu && (
+                <>
+                  {/* backdrop to close on outside click */}
+                  <Box position="fixed" inset={0} zIndex={9} onClick={() => setShowUserMenu(false)} />
+                  <Box
+                    position="absolute" right={0} top="calc(100% + 8px)"
+                    bg="#1a1a1b" border="1px solid #3a3a3c" borderRadius="lg"
+                    p={3} minW="160px" zIndex={10} boxShadow="0 4px 20px rgba(0,0,0,0.5)"
+                  >
+                    <Text color="white" fontSize="sm" fontWeight="semibold" noOfLines={1} mb={0.5}>
+                      {user.name}
+                    </Text>
+                    <Text color="#818384" fontSize="xs" noOfLines={1} mb={3}>{user.email}</Text>
+                    <Box
+                      as="button" w="100%" textAlign="center"
+                      bg="#2a1a1a" border="1px solid #5a2a2a"
+                      borderRadius="md" py={1.5} px={3}
+                      color="#ff6b6b" fontSize="xs" fontWeight="semibold"
+                      cursor="pointer"
+                      onClick={() => { logout(); setShowUserMenu(false); }}
+                      _hover={{ bg: "#3a1a1a" }}
+                    >
+                      Sign out
+                    </Box>
+                  </Box>
+                </>
+              )}
             </Box>
           ) : (
             <Box
