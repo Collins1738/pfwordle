@@ -49,6 +49,7 @@ export default function App() {
       setDuration(null);
       setMessage("");
       setLetterStatuses({});
+      setLetterStatuses({});
       setDebugAnswer(null);
       if (isDev) {
         getDebugAnswer(data.sessionId).then(d => setDebugAnswer(d.answer)).catch(() => {});
