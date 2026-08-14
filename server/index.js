@@ -105,6 +105,64 @@ function generateSessionId() {
   return Math.random().toString(36).slice(2, 10);
 }
 
+// GET /api/game/resume — restore an in-progress game for logged-in user
+app.get("/api/game/resume", async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith("Bearer ")) return res.status(401).json({ error: "Unauthorized" });
+
+  let userId;
+  try {
+    const jwt = require("jsonwebtoken");
+    const decoded = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET || "dev-secret-change-me");
+    userId = decoded.id;
+  } catch { return res.status(401).json({ error: "Invalid token" }); }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const { rows } = await pool.query(
+    `SELECT g.*, array_agg(
+       json_build_object('guess', gu.guess, 'result', gu.result)
+       ORDER BY gu.id
+     ) FILTER (WHERE gu.id IS NOT NULL) AS guesses
+     FROM games g
+     LEFT JOIN guesses gu ON gu.game_id = g.id
+     WHERE g.user_id = $1 AND g.date = $2
+     GROUP BY g.id`,
+    [userId, today]
+  );
+
+  if (!rows.length) return res.json({ hasGame: false });
+
+  const game = rows[0];
+  const guessHistory = game.guesses || [];
+  const word = game.word;
+  const maxGuesses = Math.max(6, word.length);
+
+  // Rebuild in-memory session
+  const sessionId = generateSessionId();
+  sessions.set(sessionId, {
+    word,
+    wordLength: word.length,
+    guesses: guessHistory,
+    status: game.status,
+    maxGuesses,
+    userId,
+    gameId: game.id,
+    startedAt: new Date(game.started_at).getTime(),
+  });
+
+  // Update session_id in DB
+  await pool.query("UPDATE games SET session_id = $1 WHERE id = $2", [sessionId, game.id]);
+
+  res.json({
+    hasGame: true,
+    sessionId,
+    wordLength: word.length,
+    maxGuesses,
+    status: game.status,
+    guesses: guessHistory,
+  });
+});
+
 // GET /api/daily — returns today's name (for display/hint, not the answer directly)
 app.get("/api/daily", (req, res) => {
   const name = getDailyName();
@@ -131,8 +189,12 @@ app.post("/api/game/start", async (req, res) => {
 
       // Create/get game record
       const gameRes = await pool.query(
-        `INSERT INTO games (user_id, date, word, status) VALUES ($1, $2, $3, 'playing') RETURNING id`,
-        [userId, today, word]
+        `INSERT INTO games (user_id, date, word, status, session_id)
+         VALUES ($1, $2, $3, 'playing', $4)
+         ON CONFLICT (user_id, date) DO UPDATE
+           SET session_id = EXCLUDED.session_id
+         RETURNING id, status, started_at`,
+        [userId, today, word, sessionId]
       );
       sessions.set(sessionId, {
         word,

@@ -6,7 +6,7 @@ import EmployeeCard from "./components/EmployeeCard";
 import Leaderboard from "./components/Leaderboard";
 import ResultScreen from "./components/ResultScreen";
 import StatsModal from "./components/StatsModal";
-import { startGame, submitGuess, getDebugAnswer } from "./api";
+import { startGame, submitGuess, getDebugAnswer, resumeGame } from "./api";
 import { useAuth } from "./useAuth";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "";
@@ -58,7 +58,40 @@ export default function App() {
     }
   }
 
-  useEffect(() => { newGame({}); }, []);
+  useEffect(() => {
+    // Wait until auth is resolved, then try resume or start fresh
+    if (user === undefined) return; // still loading auth
+    async function init() {
+      const token = getToken();
+      if (token) {
+        try {
+          const data = await resumeGame(token);
+          if (data.hasGame) {
+            setSessionId(data.sessionId);
+            setWordLength(data.wordLength);
+            setMaxGuesses(data.maxGuesses);
+            setGuesses(data.guesses || []);
+            setCurrentGuess("");
+            setStatus(data.status);
+            // Rebuild letter statuses from restored guesses
+            if (data.guesses?.length) {
+              const priority = { correct: 3, present: 2, absent: 1 };
+              const updated = {};
+              data.guesses.forEach(({ result }) => {
+                result?.forEach(({ letter, status: s }) => {
+                  if (!updated[letter] || priority[s] > (priority[updated[letter]] ?? 0)) updated[letter] = s;
+                });
+              });
+              setLetterStatuses(updated);
+            }
+            return;
+          }
+        } catch { /* fall through */ }
+      }
+      newGame({});
+    }
+    init();
+  }, [user]);
 
   const updateLetterStatuses = useCallback((newGuesses) => {
     const priority = { correct: 3, present: 2, absent: 1 };

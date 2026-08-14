@@ -29,6 +29,9 @@ async function migrate() {
       UNIQUE(user_id, date)
     );
 
+    -- Add session_id column if it doesn't exist (idempotent)
+    ALTER TABLE games ADD COLUMN IF NOT EXISTS session_id TEXT;
+
     CREATE TABLE IF NOT EXISTS guesses (
       id SERIAL PRIMARY KEY,
       game_id INTEGER REFERENCES games(id) ON DELETE CASCADE,

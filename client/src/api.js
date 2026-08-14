@@ -38,3 +38,8 @@ export async function getDebugAnswer(sessionId) {
   const res = await axios.get(`${BASE_URL}/api/game/${sessionId}/debug`);
   return res.data;
 }
+
+export async function resumeGame(token) {
+  const res = await axios.get(`${BASE_URL}/api/game/resume`, { headers: authHeaders(token) });
+  return res.data;
+}
