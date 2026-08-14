@@ -129,21 +129,9 @@ app.post("/api/game/start", async (req, res) => {
       const decoded = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET || "dev-secret-change-me");
       userId = decoded.id;
 
-      // Check for existing game today
-      const { rows } = await pool.query(
-        "SELECT * FROM games WHERE user_id = $1 AND date = $2",
-        [userId, today]
-      );
-      if (rows.length > 0 && rows[0].status !== "playing") {
-        return res.status(400).json({ error: "You already played today!", alreadyPlayed: true, status: rows[0].status });
-      }
-
       // Create/get game record
       const gameRes = await pool.query(
-        `INSERT INTO games (user_id, date, word, status)
-         VALUES ($1, $2, $3, 'playing')
-         ON CONFLICT (user_id, date) DO UPDATE SET word = EXCLUDED.word
-         RETURNING id`,
+        `INSERT INTO games (user_id, date, word, status) VALUES ($1, $2, $3, 'playing') RETURNING id`,
         [userId, today, word]
       );
       sessions.set(sessionId, {
