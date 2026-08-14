@@ -171,6 +171,7 @@ export default function App() {
           answer={answer}
           guesses={guesses}
           maxGuesses={maxGuesses}
+          wordLength={wordLength}
           employee={employee}
           durationSeconds={duration}
           onPlayAgain={() => newGame({})}

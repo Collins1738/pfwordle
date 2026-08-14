@@ -67,7 +67,7 @@ function timeBonusLabel(durationSeconds) {
   return null;
 }
 
-export default function ResultScreen({ won, answer, guesses, maxGuesses, employee, durationSeconds, onPlayAgain, onShowStats }) {
+export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLength, employee, durationSeconds, onPlayAgain, onShowStats }) {
   const accentColor = won ? "#538d4e" : "#b59f3b";
   const score = calcScore(guesses.length, maxGuesses, won, durationSeconds);
   const { label: scoreLabel_, color: scoreColor } = scoreLabel(score);
@@ -125,18 +125,35 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, employe
             )}
           </motion.div>
 
-          {/* All guesses */}
+          {/* All rows — filled guesses + empty rows */}
           <VStack gap={1}>
-            {guesses.map((g, rowIdx) => (
-              <motion.div
-                key={rowIdx}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 + rowIdx * 0.05 }}
-              >
-                <TileRow guess={g.guess} result={g.result} delay={0.35 + rowIdx * 0.06} />
-              </motion.div>
-            ))}
+            {Array.from({ length: maxGuesses }, (_, rowIdx) => {
+              const g = guesses[rowIdx];
+              return (
+                <motion.div
+                  key={rowIdx}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3 + rowIdx * 0.05 }}
+                >
+                  {g ? (
+                    <TileRow guess={g.guess} result={g.result} delay={0.35 + rowIdx * 0.06} />
+                  ) : (
+                    <HStack gap={1} justify="center">
+                      {Array.from({ length: wordLength }, (_, i) => (
+                        <Box
+                          key={i}
+                          w="44px" h="44px"
+                          bg="transparent"
+                          border="2px solid #3a3a3c"
+                          borderRadius="md"
+                        />
+                      ))}
+                    </HStack>
+                  )}
+                </motion.div>
+              );
+            })}
           </VStack>
 
           {/* Score */}
