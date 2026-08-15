@@ -429,9 +429,13 @@ app.get("/api/leaderboard/daily", async (req, res) => {
   const today = new Date().toISOString().slice(0, 10);
   try {
     const { rows } = await pool.query(
-      `SELECT u.name, u.avatar_url, g.guess_count, g.duration_seconds, g.status
-       FROM games g JOIN users u ON u.id = g.user_id
+      `SELECT u.name, u.avatar_url, g.id AS game_id, g.guess_count, g.duration_seconds, g.status, g.score,
+              COALESCE(json_agg(json_build_object('guess', gu.guess, 'result', gu.result) ORDER BY gu.id) FILTER (WHERE gu.id IS NOT NULL), '[]') AS guesses
+       FROM games g
+       JOIN users u ON u.id = g.user_id
+       LEFT JOIN guesses gu ON gu.game_id = g.id
        WHERE g.date = $1 AND g.mode = 'daily' AND g.status IN ('won', 'lost')
+       GROUP BY u.name, u.avatar_url, g.id, g.guess_count, g.duration_seconds, g.status
        ORDER BY g.status DESC, g.guess_count ASC, g.duration_seconds ASC
        LIMIT 50`,
       [today]

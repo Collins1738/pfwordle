@@ -149,9 +149,13 @@ export default function App({ mode = "daily" }) {
               setGuesses(res.guesses || []);
               setCurrentGuess("");
               setStatus(res.status);
-              if (res.status === "won" || res.status === "lost") setShowResult(true);
-              if (res.guesses?.length) restoreLetterStatuses(res.guesses);
-              return;
+              if (res.status === "won" || res.status === "lost") {
+                // Practice game already complete — clear and start fresh
+                localStorage.removeItem("practiceSessionId");
+              } else {
+                if (res.guesses?.length) restoreLetterStatuses(res.guesses);
+                return;
+              }
             }
           } catch (e) {
             console.log("[practice resume] failed:", e.message);
@@ -259,7 +263,7 @@ export default function App({ mode = "daily" }) {
           instant={resumedComplete.current}
           onPlayAgain={mode === "practice" ? () => newGame({}) : null}
           onPractice={null}
-          onShowStats={mode === "practice" ? () => { setShowResult(false); navigate(`/stats?mode=${mode}`); } : null}
+          onShowStats={null}
         />
       )}
 
@@ -331,11 +335,7 @@ export default function App({ mode = "daily" }) {
               color={t.muted} cursor="pointer" title="Leaderboard" display="flex" alignItems="center"
               _hover={{ color: t.accent }} transition="color 0.15s"
             ><Trophy size={20} weight="duotone" /></Box>
-            <Box
-              as="button" onClick={() => navigate(`/stats?mode=${mode}`)}
-              color={t.muted} cursor="pointer" title="My Stats" display="flex" alignItems="center"
-              _hover={{ color: t.accent }} transition="color 0.15s"
-            ><ChartBar size={20} weight="duotone" /></Box>
+
             {isDevAccount && (
               <Box
                 as="button"
