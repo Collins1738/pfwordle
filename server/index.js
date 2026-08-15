@@ -14,9 +14,9 @@ function calcScore(guessCount, maxGuesses, durationSeconds) {
   const deductPerGuess = Math.floor(perfect / maxGuesses);
   const base = Math.max(50, perfect - (guessCount - 1) * deductPerGuess);
   let timeBonus = 0;
-  if (durationSeconds < 60)        timeBonus = 100;
-  else if (durationSeconds < 300)  timeBonus = 75;
-  else if (durationSeconds < 600)  timeBonus = 50;
+  if (durationSeconds < 60)        timeBonus = 300;
+  else if (durationSeconds < 300)  timeBonus = 200;
+  else if (durationSeconds < 600)  timeBonus = 75;
   else if (durationSeconds < 1800) timeBonus = 25;
   return Math.min(1000, base + timeBonus);
 }
@@ -176,6 +176,8 @@ app.get("/api/game/resume", async (req, res) => {
     status: game.status,
     guesses: guessHistory,
     avatarUrl: avatarUrlResume,
+    employee: game.status !== "playing" ? empInfoResume : null,
+    answer: game.status !== "playing" ? word : undefined,
   });
 });
 
@@ -326,13 +328,16 @@ app.post("/api/game/:sessionId/guess", async (req, res) => {
 app.get("/api/game/:sessionId", (req, res) => {
   const session = sessions.get(req.params.sessionId);
   if (!session) return res.status(404).json({ error: "Session not found" });
+  const empInfo = getEmployeeInfo(session.word);
+  const avatarUrl = Array.isArray(empInfo) ? empInfo[0]?.avatarUrl : empInfo?.avatarUrl || "";
   res.json({
     guesses: session.guesses,
     guessCount: session.guesses.length,
     maxGuesses: session.maxGuesses,
     wordLength: session.wordLength,
     status: session.status,
-    ...(session.status !== "playing" ? { answer: session.word } : {}),
+    avatarUrl,
+    ...(session.status !== "playing" ? { answer: session.word, employee: empInfo } : {}),
   });
 });
 

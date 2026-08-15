@@ -36,6 +36,7 @@ export default function App({ mode = "daily" }) {
   const [debugOpen, setDebugOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [blurDraining, setBlurDraining] = useState(false);
+  const [shakingRow, setShakingRow] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
   const [initializing, setInitializing] = useState(true);
   const resumedComplete = useRef(false); // true when result screen shown via resume (skip animation)
@@ -128,6 +129,8 @@ export default function App({ mode = "daily" }) {
               setStatus(data.status);
               if (data.status === "won" || data.status === "lost") { setShowResult(true); resumedComplete.current = true; }
               setAvatarUrl(data.avatarUrl || null);
+              if (data.employee) setEmployee(data.employee);
+              if (data.answer) setAnswer(data.answer);
               if (data.guesses?.length) restoreLetterStatuses(data.guesses);
               return;
             }
@@ -149,6 +152,7 @@ export default function App({ mode = "daily" }) {
               setGuesses(res.guesses || []);
               setCurrentGuess("");
               setStatus(res.status);
+              setAvatarUrl(res.avatarUrl || null);
               if (res.status === "won" || res.status === "lost") {
                 // Practice game already complete — clear and start fresh
                 localStorage.removeItem("practiceSessionId");
@@ -224,7 +228,12 @@ export default function App({ mode = "daily" }) {
           }
         }
       } catch (e) {
-        setMessage(e?.response?.data?.error || "Invalid guess");
+        const msg = e?.response?.data?.error || "Invalid guess";
+        setMessage(msg);
+        if (msg.toLowerCase().includes("valid word") || msg.toLowerCase().includes("invalid")) {
+          setShakingRow(true);
+          setTimeout(() => setShakingRow(false), 500);
+        }
       }
       return;
     }
@@ -442,7 +451,7 @@ export default function App({ mode = "daily" }) {
                   style={{
                     filter: `blur(${blurPx}px)`,
                     transform: "scale(1.3)",
-                    transition: blurDraining ? "filter 1s ease-out" : "none",
+                    transition: blurDraining ? "filter 1s ease-out" : "filter 0.6s ease-out",
                   }}
                 />
                 {isBlacked && (
@@ -463,6 +472,7 @@ export default function App({ mode = "daily" }) {
             wordLength={wordLength}
             maxGuesses={maxGuesses}
             celebratingRow={celebrating ? guesses.length - 1 : -1}
+            shakingRow={shakingRow ? currentRow : -1}
           />
         )}
 

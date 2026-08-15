@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, Heading, Text, VStack, Avatar, HStack, Skeleton, SkeletonCircle } from "@chakra-ui/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CalendarDots } from "@phosphor-icons/react";
+import { CalendarDots, CheckCircle, XCircle } from "@phosphor-icons/react";
 import { t } from "../theme";
 import { useAuth } from "../useAuth";
 import { resumeGame } from "../api";
@@ -17,6 +17,7 @@ export default function HomePage() {
   const isDevAccount = user && DEV_ACCOUNTS.includes(user.email);
 
   const [dailyStatus, setDailyStatus] = useState(null); // null | "playing" | "won" | "lost"
+  const [authMenuOpen, setAuthMenuOpen] = useState(false);
   const [shaking, setShaking] = useState(false);
   const [toast, setToast] = useState(false);
   const toastTimer = useRef(null);
@@ -134,13 +135,13 @@ export default function HomePage() {
   })();
 
   const dailyLabel = dailyStatus === "won"
-    ? { text: "✅ Done", color: t.accent }
+    ? { icon: <CheckCircle size={14} weight="duotone" />, color: "#22c55e" }
     : dailyStatus === "lost"
-    ? { text: "❌ Failed", color: t.present }
+    ? { icon: <XCircle size={14} weight="duotone" />, color: t.present }
     : dailyStatus === "playing"
     ? { text: "▶️ In progress", color: "#f5c518" }
     : user
-    ? { text: `🕐 ${hoursUntilMidnight}`, color: t.muted }
+    ? { text: `${hoursUntilMidnight}`, color: t.muted }
     : null;
 
   const devModeOn = localStorage.getItem("devMode") === "true" || (isDevAccount && localStorage.getItem("devMode") === null);
@@ -261,25 +262,31 @@ export default function HomePage() {
               transition={{ duration: 0.45 }}
               style={{ width: "100%" }}
             >
+              {(() => {
+                const done = dailyStatus === "won" || dailyStatus === "lost";
+                return (
               <Box
                 as="button"
                 w="100%"
                 py={3}
                 borderRadius={t.radiusMd}
-                bg={t.accent}
-                color={t.white}
+                bg={done ? t.border : t.accent}
+                color={done ? t.muted : t.white}
                 fontSize="lg"
                 fontWeight="700"
                 fontFamily={t.font}
                 cursor="pointer"
-                boxShadow={`0 4px 0 ${t.accentDark}`}
-                transition="all 0.1s"
-                _hover={{ transform: "translateY(-2px)", boxShadow: `0 6px 0 ${t.accentDark}` }}
-                _active={{ transform: "translateY(3px)", boxShadow: `0 1px 0 ${t.accentDark}` }}
+                boxShadow={done ? `0 4px 0 ${t.border}` : `0 4px 0 ${t.accentDark}`}
+                transition="all 0.3s ease"
+                opacity={done ? 0.7 : 1}
+                _hover={{ transform: "translateY(-2px)", boxShadow: done ? `0 6px 0 ${t.border}` : `0 6px 0 ${t.accentDark}` }}
+                _active={{ transform: "translateY(3px)", boxShadow: done ? `0 1px 0 ${t.border}` : `0 1px 0 ${t.accentDark}` }}
                 onClick={handleDailyClick}
               >
                 <CalendarDots size={20} weight="duotone" style={{ display: "inline", marginRight: 8, verticalAlign: "middle" }} />Daily
               </Box>
+                );
+              })()}
             </motion.div>
             {dailyLabel && (
               <Box
@@ -287,9 +294,9 @@ export default function HomePage() {
                 bg={t.surface} border={`1px solid ${t.border}`}
                 borderRadius={t.radiusFull} px={2} py={0.5}
               >
-                <Text fontSize="xs" fontWeight="700" color={dailyLabel.color} fontFamily={t.font}>
-                  {dailyLabel.text}
-                </Text>
+                <Box color={dailyLabel.color} display="flex" alignItems="center" fontFamily={t.font} fontSize="xs" fontWeight="700">
+                  {dailyLabel.icon || dailyLabel.text}
+                </Box>
               </Box>
             )}
           </Box>
@@ -423,24 +430,55 @@ export default function HomePage() {
           {user === undefined ? (
             <Skeleton h="36px" w="160px" borderRadius="full" />
           ) : user ? (
-            <HStack gap={2} bg={t.surface} border={`1px solid ${t.border}`} borderRadius={t.radiusFull} px={3} py={1.5}>
-              <Avatar.Root size="xs">
-                <Avatar.Image src={user.avatar} />
-                <Avatar.Fallback>{user.name?.[0]}</Avatar.Fallback>
-              </Avatar.Root>
-              <Text fontSize="sm" color={t.text} fontFamily={t.font} fontWeight="600">
-                {(() => {
-                  const parts = (user.name || "").trim().split(" ");
-                  return parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1][0]}.` : parts[0];
-                })()}
-              </Text>
-              <Text
-                fontSize="xs" color={t.muted} fontFamily={t.font} cursor="pointer"
-                _hover={{ color: t.text }} onClick={logout}
+            <Box position="relative">
+              <HStack
+                gap={2} bg={t.surface} border={`1px solid ${t.border}`} borderRadius={t.radiusFull}
+                px={3} py={1.5} cursor="pointer"
+                onClick={() => setAuthMenuOpen(o => !o)}
               >
-                · sign out
-              </Text>
-            </HStack>
+                <Avatar.Root size="xs">
+                  <Avatar.Image src={user.avatar} />
+                  <Avatar.Fallback>{user.name?.[0]}</Avatar.Fallback>
+                </Avatar.Root>
+                <Text fontSize="sm" color={t.text} fontFamily={t.font} fontWeight="600">
+                  {(() => {
+                    const parts = (user.name || "").trim().split(" ");
+                    return parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1][0]}.` : parts[0];
+                  })()}
+                </Text>
+              </HStack>
+              {authMenuOpen && (
+                <>
+                  <Box position="fixed" inset={0} zIndex={9} onClick={() => setAuthMenuOpen(false)} />
+                  <Box
+                    position="absolute" top="0" left="calc(100% + 8px)"
+                    bg={t.surface} border={`1px solid ${t.border}`} borderRadius="xl"
+                    p={3} zIndex={10} boxShadow="0 4px 20px rgba(0,100,200,0.1)" minW="140px" textAlign="center"
+                  >
+                    <Box
+                      as="button" w="100%"
+                      bg={t.bg} border={`1px solid ${t.border}`} borderRadius={t.radius}
+                      py={1.5} px={3} color={t.text} fontSize="xs" fontWeight="700"
+                      fontFamily={t.font} cursor="pointer" mb={1.5}
+                      onClick={() => { setAuthMenuOpen(false); navigate("/stats?mode=daily"); }}
+                      _hover={{ bg: t.border }}
+                    >
+                      My Stats
+                    </Box>
+                    <Box
+                      as="button" w="100%"
+                      bg="#fff0f0" border="1px solid #ffcccc" borderRadius={t.radius}
+                      py={1.5} px={3} color="#e05252" fontSize="xs" fontWeight="700"
+                      fontFamily={t.font} cursor="pointer"
+                      onClick={() => { logout(); setAuthMenuOpen(false); }}
+                      _hover={{ bg: "#ffe0e0" }}
+                    >
+                      Sign out
+                    </Box>
+                  </Box>
+                </>
+              )}
+            </Box>
           ) : (
             <Box
               as="a" href={`${BASE_URL}/auth/google`}
