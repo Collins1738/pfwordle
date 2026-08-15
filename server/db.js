@@ -26,7 +26,7 @@ async function migrate() {
       duration_seconds INTEGER,
       started_at TIMESTAMPTZ DEFAULT NOW(),
       completed_at TIMESTAMPTZ,
-      UNIQUE(user_id, date)
+      UNIQUE(user_id, date, mode)
     );
 
     -- Add session_id column if it doesn't exist (idempotent)
@@ -34,6 +34,10 @@ async function migrate() {
 
     -- Add mode column (daily | practice)
     ALTER TABLE games ADD COLUMN IF NOT EXISTS mode TEXT NOT NULL DEFAULT 'daily';
+
+    -- Fix: drop old unique constraint (daily only), add partial index for daily uniqueness
+    ALTER TABLE games DROP CONSTRAINT IF EXISTS games_user_id_date_key;
+    CREATE UNIQUE INDEX IF NOT EXISTS games_user_daily_unique ON games (user_id, date) WHERE mode = 'daily';
 
     CREATE TABLE IF NOT EXISTS guesses (
       id SERIAL PRIMARY KEY,

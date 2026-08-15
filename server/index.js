@@ -178,6 +178,7 @@ app.post("/api/game/start", async (req, res) => {
   const sessionId = generateSessionId();
   const today = new Date().toISOString().slice(0, 10);
   const mode = req.body?.mode === "practice" ? "practice" : "daily";
+  console.log(`[game/start] mode=${mode} hasAuth=${!!req.headers.authorization}`);
   let word;
 
   if (mode === "practice") {
@@ -203,7 +204,7 @@ app.post("/api/game/start", async (req, res) => {
         gameRes = await pool.query(
           `INSERT INTO games (user_id, date, word, status, session_id, mode)
            VALUES ($1, $2, $3, 'playing', $4, 'daily')
-           ON CONFLICT (user_id, date) DO UPDATE
+           ON CONFLICT (user_id, date) WHERE mode = 'daily' DO UPDATE
              SET session_id = EXCLUDED.session_id, word = EXCLUDED.word
            RETURNING id, status, started_at`,
           [userId, today, word, sessionId]
@@ -231,7 +232,7 @@ app.post("/api/game/start", async (req, res) => {
       const empInfo = getEmployeeInfo(word);
       const avatarUrl = Array.isArray(empInfo) ? empInfo[0]?.avatarUrl : empInfo?.avatarUrl || "";
       return res.json({ sessionId, wordLength: word.length, maxGuesses: Math.max(6, word.length), mode, avatarUrl });
-    } catch { /* fall through to anonymous */ }
+    } catch (err) { console.error("[game/start] auth/db error:", err.message); /* fall through to anonymous */ }
   }
 
   const maxGuesses = Math.max(6, word.length);
