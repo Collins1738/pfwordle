@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Box, Text, Button, VStack, HStack } from "@chakra-ui/react";
+import { useNavigate } from "react-router-dom";
 import { t } from "../theme";
 
 // Score out of 1000 based on guess count + time bonus
@@ -45,12 +46,12 @@ function TileRow({ guess, result, delay = 0 }) {
             transition={{ delay: delay + i * 0.06, duration: 0.25, ease: "easeOut" }}
           >
             <Box
-              w="44px" h="44px"
+              w="30px" h="30px"
               bg={bg}
-              borderRadius={t.radius}
+              borderRadius="6px"
               display="flex" alignItems="center" justifyContent="center"
             >
-              <Text color={t.white} fontWeight="700" fontFamily={t.font} fontSize="lg" letterSpacing="0.05em">
+              <Text color={t.white} fontWeight="700" fontFamily={t.font} fontSize="sm" letterSpacing="0.05em">
                 {letter}
               </Text>
             </Box>
@@ -70,7 +71,8 @@ function timeBonusLabel(durationSeconds) {
   return null;
 }
 
-export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLength, employee, durationSeconds, onPlayAgain, onShowStats }) {
+export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLength, employee, durationSeconds, onPlayAgain, onShowStats, onPractice }) {
+  const navigate = useNavigate();
   const accentColor = won ? t.accent : t.present;
   const score = calcScore(guesses.length, maxGuesses, won, durationSeconds);
   const { label: scoreLabelText, color: scoreColor } = getScoreLabel(score);
@@ -146,10 +148,10 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
                       {Array.from({ length: wordLength }, (_, i) => (
                         <Box
                           key={i}
-                          w="44px" h="44px"
+                          w="30px" h="30px"
                           bg="transparent"
                           border={`2px solid ${t.border}`}
-                          borderRadius={t.radius}
+                          borderRadius="6px"
                         />
                       ))}
                     </HStack>
@@ -259,15 +261,48 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
             transition={{ delay: won ? 1.5 : 0.9 }}
             style={{ width: "100%", display: "flex", flexDirection: "column", gap: "10px" }}
           >
+            {onPlayAgain ? (
+              <Button
+                w="100%" bg={accentColor} color={t.white}
+                size="lg" borderRadius={t.radiusMd}
+                fontFamily={t.font} fontWeight="700"
+                boxShadow={`0 4px 0 ${accentColor}cc`}
+                onClick={onPlayAgain}
+                _hover={{ opacity: 0.9, transform: "translateY(-1px)" }}
+              >
+                Play Again
+              </Button>
+            ) : (
+              <Box
+                w="100%" textAlign="center" py={3}
+                bg={t.bg} border={`1px solid ${t.border}`} borderRadius={t.radiusMd}
+              >
+                <Text fontFamily={t.font} fontWeight="600" color={t.muted} fontSize="sm">
+                  🕛 Come back tomorrow for the next one!
+                </Text>
+              </Box>
+            )}
+            {onPractice && (
+              <Button
+                w="100%" bg={t.surface} color={t.text}
+                size="md" borderRadius={t.radiusMd}
+                fontFamily={t.font} fontWeight="600"
+                border={`2px solid ${t.border}`}
+                onClick={onPractice}
+                _hover={{ bg: t.bg }}
+              >
+                🎯 Practice Mode
+              </Button>
+            )}
             <Button
-              w="100%" bg={accentColor} color={t.white}
-              size="lg" borderRadius={t.radiusMd}
-              fontFamily={t.font} fontWeight="700"
-              boxShadow={`0 4px 0 ${accentColor}cc`}
-              onClick={onPlayAgain}
-              _hover={{ opacity: 0.9, transform: "translateY(-1px)" }}
+              w="100%" bg={t.surface} color={t.muted}
+              size="md" borderRadius={t.radiusMd}
+              fontFamily={t.font} fontWeight="600"
+              border={`2px solid ${t.border}`}
+              onClick={() => navigate("/")}
+              _hover={{ bg: t.bg, color: t.text }}
             >
-              Play Again
+              🏠 Home
             </Button>
             {onShowStats && (
               <Button

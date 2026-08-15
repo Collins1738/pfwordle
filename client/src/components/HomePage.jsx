@@ -1,13 +1,32 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, Heading, Text, VStack, Avatar, HStack } from "@chakra-ui/react";
 import { t } from "../theme";
 import { useAuth } from "../useAuth";
+import { resumeGame } from "../api";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, getToken } = useAuth();
+  const [dailyStatus, setDailyStatus] = useState(null); // null | "playing" | "won" | "lost"
+
+  useEffect(() => {
+    const token = getToken();
+    if (!token) return;
+    resumeGame(token)
+      .then(data => { if (data.hasGame) setDailyStatus(data.status); })
+      .catch(() => {});
+  }, [user]);
+
+  const dailyLabel = dailyStatus === "won"
+    ? { text: "✅ Completed", color: t.accent }
+    : dailyStatus === "lost"
+    ? { text: "❌ Failed", color: t.present }
+    : dailyStatus === "playing"
+    ? { text: "▶️ In progress", color: "#f5c518" }
+    : null;
 
   return (
     <Box
@@ -36,24 +55,38 @@ export default function HomePage() {
         </VStack>
 
         <VStack gap={4} w="100%">
-          <Box
-            as="button"
-            w="100%"
-            py={5}
-            borderRadius={t.radiusMd}
-            bg={t.accent}
-            color={t.white}
-            fontSize="xl"
-            fontWeight="700"
-            fontFamily={t.font}
-            cursor="pointer"
-            boxShadow={`0 5px 0 ${t.accentDark}`}
-            transition="all 0.1s"
-            _hover={{ transform: "translateY(-2px)", boxShadow: `0 7px 0 ${t.accentDark}` }}
-            _active={{ transform: "translateY(3px)", boxShadow: `0 2px 0 ${t.accentDark}` }}
-            onClick={() => navigate("/daily")}
-          >
-            📅 Play Daily
+          {/* Daily button */}
+          <Box position="relative" w="100%">
+            <Box
+              as="button"
+              w="100%"
+              py={5}
+              borderRadius={t.radiusMd}
+              bg={t.accent}
+              color={t.white}
+              fontSize="xl"
+              fontWeight="700"
+              fontFamily={t.font}
+              cursor="pointer"
+              boxShadow={`0 5px 0 ${t.accentDark}`}
+              transition="all 0.1s"
+              _hover={{ transform: "translateY(-2px)", boxShadow: `0 7px 0 ${t.accentDark}` }}
+              _active={{ transform: "translateY(3px)", boxShadow: `0 2px 0 ${t.accentDark}` }}
+              onClick={() => navigate("/daily")}
+            >
+              📅 Daily
+            </Box>
+            {dailyLabel && (
+              <Box
+                position="absolute" top="-10px" right="12px"
+                bg={t.surface} border={`1px solid ${t.border}`}
+                borderRadius={t.radiusFull} px={2} py={0.5}
+              >
+                <Text fontSize="xs" fontWeight="700" color={dailyLabel.color} fontFamily={t.font}>
+                  {dailyLabel.text}
+                </Text>
+              </Box>
+            )}
           </Box>
 
           <Box
