@@ -369,7 +369,7 @@ export default function App() {
           )}
           {!message && avatarUrl && guesses.length >= 1 && (() => {
             const proxyUrl = `${BASE_URL}/api/avatar?url=${encodeURIComponent(avatarUrl)}`;
-            const blurPx = Math.max(16, 28 - (guesses.length - 1) * 4);
+            const blurPx = guesses.length === 1 ? 8 : Math.max(0, 6 - guesses.length);
             return (
               <Box w="36px" h="36px" borderRadius="full" overflow="hidden" border="2px solid #3a3a3c" flexShrink={0}>
                 <Box
