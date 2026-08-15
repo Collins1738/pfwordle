@@ -1,9 +1,13 @@
 import { useNavigate } from "react-router-dom";
-import { Box, Heading, Text, VStack } from "@chakra-ui/react";
+import { Box, Heading, Text, VStack, Avatar, HStack } from "@chakra-ui/react";
 import { t } from "../theme";
+import { useAuth } from "../useAuth";
+
+const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 
 export default function HomePage() {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   return (
     <Box
@@ -77,6 +81,40 @@ export default function HomePage() {
         <Text fontSize="sm" color={t.muted} fontFamily={t.font} mt={2}>
           Daily resets at midnight · Practice anytime
         </Text>
+
+        {/* Auth strip */}
+        <Box mt={4} w="100%" display="flex" justifyContent="center">
+          {user === undefined ? null : user ? (
+            <HStack gap={2} bg={t.surface} border={`1px solid ${t.border}`} borderRadius={t.radiusFull} px={3} py={1.5}>
+              <Avatar.Root size="xs">
+                <Avatar.Image src={user.avatar} />
+                <Avatar.Fallback>{user.name?.[0]}</Avatar.Fallback>
+              </Avatar.Root>
+              <Text fontSize="sm" color={t.text} fontFamily={t.font} fontWeight="600">
+                {(() => {
+                  const parts = (user.name || "").trim().split(" ");
+                  return parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1][0]}.` : parts[0];
+                })()}
+              </Text>
+              <Text
+                fontSize="xs" color={t.muted} fontFamily={t.font} cursor="pointer"
+                _hover={{ color: t.text }} onClick={logout}
+              >
+                · sign out
+              </Text>
+            </HStack>
+          ) : (
+            <Box
+              as="a" href={`${BASE_URL}/auth/google`}
+              bg={t.accent} color={t.white} px={4} py={2} borderRadius={t.radiusFull}
+              fontFamily={t.font} fontSize="sm" fontWeight="700" textDecoration="none"
+              boxShadow={`0 3px 0 ${t.accentDark}`}
+              _hover={{ opacity: 0.9 }}
+            >
+              Sign in
+            </Box>
+          )}
+        </Box>
       </VStack>
     </Box>
   );

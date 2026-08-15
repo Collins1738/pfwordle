@@ -35,7 +35,7 @@ export default function App({ mode = "daily" }) {
   const [blurDraining, setBlurDraining] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
 
-  const DEV_ACCOUNTS = ["tobechikeluba@gmail.com"];
+  const DEV_ACCOUNTS = ["tobechikeluba@gmail.com", "collins.chikeluba@permitflow.com"];
   const isDevAccount = user && DEV_ACCOUNTS.includes(user.email);
   const [devMode, setDevMode] = useState(false);
   // Default dev mode ON for dev accounts — sync when user loads
@@ -44,6 +44,13 @@ export default function App({ mode = "daily" }) {
   }, [isDevAccount]);
 
   const isDev = devMode;
+
+  // Fetch debug answer whenever dev mode is toggled on and we have a session
+  useEffect(() => {
+    if (devMode && sessionId && !debugAnswer) {
+      getDebugAnswer(sessionId).then(d => setDebugAnswer(d.answer)).catch(() => {});
+    }
+  }, [devMode, sessionId]);
 
   const currentRow = guesses.length;
 
@@ -373,12 +380,13 @@ export default function App({ mode = "daily" }) {
               {message}
             </Box>
           )}
-          {!message && avatarUrl && guesses.length >= 1 && (() => {
+          {!message && avatarUrl && (() => {
             const proxyUrl = `${BASE_URL}/api/avatar?url=${encodeURIComponent(avatarUrl)}`;
+            const isBlacked = guesses.length === 0 && !blurDraining;
             const naturalBlur = guesses.length === 1 ? 8 : Math.max(0, 6 - guesses.length);
             const blurPx = blurDraining ? 0 : naturalBlur;
             return (
-              <Box w="36px" h="36px" borderRadius="full" overflow="hidden" border={`2px solid ${t.accent}`} flexShrink={0}>
+              <Box w="36px" h="36px" borderRadius="full" overflow="hidden" border={`2px solid ${t.accent}`} flexShrink={0} position="relative">
                 <Box
                   as="img" src={proxyUrl} w="100%" h="100%" objectFit="cover" display="block"
                   style={{
@@ -387,6 +395,9 @@ export default function App({ mode = "daily" }) {
                     transition: blurDraining ? "filter 1s ease-out" : "none",
                   }}
                 />
+                {isBlacked && (
+                  <Box position="absolute" inset={0} bg="black" borderRadius="full" />
+                )}
               </Box>
             );
           })()}
