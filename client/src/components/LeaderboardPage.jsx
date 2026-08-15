@@ -221,18 +221,23 @@ export default function LeaderboardPage() {
                       </HStack>
                       {!isWeekly && row.status === "won" && (
                         <HStack gap={1.5} mt={0.5}>
-                          {row.score != null && (
-                            <Box bg={t.accent + "18"} borderRadius="full" px={1.5} py={0.5}>
-                              <Text fontSize="9px" color={t.accent} fontFamily={t.font} fontWeight="700">{row.score}pts</Text>
-                            </Box>
-                          )}
-                          {row.duration_seconds != null && (
-                            <Text fontSize="9px" color={t.muted} fontFamily={t.font}>
-                              {row.duration_seconds < 60   ? `⚡${row.duration_seconds}s`
-                             : row.duration_seconds < 3600 ? `⏱${Math.floor(row.duration_seconds/60)}m`
-                             :                               `⏱${Math.floor(row.duration_seconds/3600)}h`}
-                            </Text>
-                          )}
+                          {row.duration_seconds != null && (() => {
+                            const d = row.duration_seconds;
+                            const tier = d < 60
+                              ? { label: "< 1 min", color: t.accent, bg: t.accent + "28" }
+                              : d < 300
+                              ? { label: "< 5 mins", color: t.accent, bg: t.accent + "18" }
+                              : d < 600
+                              ? { label: "< 10 mins", color: t.muted, bg: t.border + "66" }
+                              : d < 1800
+                              ? { label: "< 30 mins", color: t.muted, bg: t.bg }
+                              : null;
+                            return tier ? (
+                              <Box bg={tier.bg} borderRadius="full" px={1.5} py={0.5}>
+                                <Text fontSize="9px" color={tier.color} fontFamily={t.font} fontWeight="700">{tier.label}</Text>
+                              </Box>
+                            ) : null;
+                          })()}
                         </HStack>
                       )}
                     </VStack>
@@ -245,9 +250,14 @@ export default function LeaderboardPage() {
                       </Text>
                     )}
                     {!isWeekly && row.guesses?.length > 0 && (
-                      <Box flexShrink={0} opacity={0.75}>
-                        <MiniBoard guesses={row.guesses} maxGuesses={maxGuesses} wordLength={wordLength} size={5} />
-                      </Box>
+                      <VStack gap={0.5} align="center" flexShrink={0}>
+                        <Box opacity={0.75}>
+                          <MiniBoard guesses={row.guesses} maxGuesses={maxGuesses} wordLength={wordLength} size={5} />
+                        </Box>
+                        {row.score != null && (
+                          <Text fontSize="9px" color={t.accent} fontFamily={t.font} fontWeight="700">{row.score}pts</Text>
+                        )}
+                      </VStack>
                     )}
                   </HStack>
                 );

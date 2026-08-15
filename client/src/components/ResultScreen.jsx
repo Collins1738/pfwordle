@@ -13,9 +13,9 @@ function calcScore(guessCount, maxGuesses, won, durationSeconds) {
 
   let timeBonus = 0;
   if (durationSeconds != null) {
-    if (durationSeconds < 60)        timeBonus = 100;
-    else if (durationSeconds < 300)  timeBonus = 75;
-    else if (durationSeconds < 600)  timeBonus = 50;
+    if (durationSeconds < 60)        timeBonus = 300;
+    else if (durationSeconds < 300)  timeBonus = 200;
+    else if (durationSeconds < 600)  timeBonus = 75;
     else if (durationSeconds < 1800) timeBonus = 25;
   }
 
@@ -65,9 +65,10 @@ function TileRow({ guess, result, delay = 0 }) {
 
 function timeBonusLabel(durationSeconds) {
   if (durationSeconds == null) return null;
-  if (durationSeconds < 60)        return "+100 ⚡ under 1 min";
-  if (durationSeconds < 300)       return "+75 🔥 under 5 min";
-  if (durationSeconds < 600)       return "+50 💨 under 10 min";
+  
+  if (durationSeconds < 60)        return "+300 ⚡ under 1 min";
+  if (durationSeconds < 300)       return "+200 🔥 under 5 min";
+  if (durationSeconds < 600)       return "+75 💨 under 10 min";
   if (durationSeconds < 1800)      return "+25 ⏱️ under 30 min";
   return null;
 }
@@ -107,7 +108,7 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
           borderBottom="1px solid" borderColor={t.border}
           bg={t.surface} py={3} textAlign="center"
         >
-          <Text fontSize="lg" letterSpacing="0.1em" color={t.text} fontWeight="700" fontFamily={t.font}>
+          <Text fontSize="lg" letterSpacing="0.1em" color={t.text} fontWeight="700" fontFamily={t.font} cursor="pointer" onClick={() => navigate("/")}>
             PERMITDLE
           </Text>
         </Box>
@@ -131,36 +132,99 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
             )}
           </motion.div>
 
-          {/* All guess rows + empty rows */}
-          <VStack gap={1}>
-            {Array.from({ length: maxGuesses }, (_, rowIdx) => {
-              const g = guesses[rowIdx];
-              return (
-                <motion.div
-                  key={rowIdx}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.3 + rowIdx * 0.05 }}
+          {/* Tiles + Employee card side by side */}
+          <HStack gap={4} align="flex-start" w="100%">
+            {/* Guess grid */}
+            <VStack gap={1} flexShrink={0}>
+              {Array.from({ length: maxGuesses }, (_, rowIdx) => {
+                const g = guesses[rowIdx];
+                return (
+                  <motion.div
+                    key={rowIdx}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 + rowIdx * 0.05 }}
+                  >
+                    {g ? (
+                      <TileRow guess={g.guess} result={g.result} delay={0.35 + rowIdx * 0.06} />
+                    ) : (
+                      <HStack gap={1} justify="center">
+                        {Array.from({ length: wordLength }, (_, i) => (
+                          <Box
+                            key={i}
+                            w="22px" h="22px"
+                            bg="transparent"
+                            border={`2px solid ${t.border}`}
+                            borderRadius="4px"
+                          />
+                        ))}
+                      </HStack>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </VStack>
+
+            {/* Employee card */}
+            {emp && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: won ? 1.2 : 0.6, duration: 0.4 }}
+                style={{ flex: 1, minWidth: 0 }}
+              >
+                <Box
+                  w="100%" bg={t.surface}
+                  border="1px solid" borderColor={t.border}
+                  borderRadius="xl" overflow="hidden"
                 >
-                  {g ? (
-                    <TileRow guess={g.guess} result={g.result} delay={0.35 + rowIdx * 0.06} />
-                  ) : (
-                    <HStack gap={1} justify="center">
-                      {Array.from({ length: wordLength }, (_, i) => (
-                        <Box
-                          key={i}
-                          w="22px" h="22px"
-                          bg="transparent"
-                          border={`2px solid ${t.border}`}
-                          borderRadius="4px"
+                  <Box
+                    h="60px" bg={accentColor}
+                    display="flex" alignItems="flex-end" justifyContent="center"
+                    position="relative"
+                  >
+                    <Box
+                      position="absolute" bottom="-28px"
+                      w="56px" h="56px" borderRadius="full"
+                      overflow="hidden"
+                      border={`3px solid ${t.surface}`}
+                    >
+                      {emp.avatarUrl ? (
+                        <img
+                          src={`/api/avatar?url=${encodeURIComponent(emp.avatarUrl)}`}
+                          alt={emp.fullName}
+                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
                         />
-                      ))}
-                    </HStack>
-                  )}
-                </motion.div>
-              );
-            })}
-          </VStack>
+                      ) : (
+                        <Box w="100%" h="100%" bg={accentColor}
+                          display="flex" alignItems="center" justifyContent="center">
+                          <Text fontSize="xl" fontWeight="bold" color={t.white}>
+                            {emp.fullName?.[0]}
+                          </Text>
+                        </Box>
+                      )}
+                    </Box>
+                  </Box>
+                  <VStack gap={1} pt="36px" pb={3} px={2} textAlign="center">
+                    <Text fontSize="sm" fontWeight="700" fontFamily={t.font} color={t.text} noOfLines={1}>{emp.fullName}</Text>
+                    {(emp.slackTitle || emp.title) && (
+                      <Text fontSize="10px" color={t.muted} noOfLines={2}>{emp.slackTitle || emp.title}</Text>
+                    )}
+                    {emp.department && (
+                      <Box
+                        bg={accentColor + "22"} border="1px solid" borderColor={accentColor + "66"}
+                        borderRadius="full" px={2} py={0.5} mt={0.5}
+                      >
+                        <Text fontSize="9px" color={accentColor} fontWeight="semibold">
+                          {emp.department}
+                        </Text>
+                      </Box>
+                    )}
+                  </VStack>
+                </Box>
+              </motion.div>
+            )}
+          </HStack>
 
           {/* Score card */}
           {won && (
@@ -193,67 +257,7 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
             </motion.div>
           )}
 
-          {/* Employee card */}
-          {emp && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: won ? 1.2 : 0.6, duration: 0.4 }}
-              style={{ width: "100%" }}
-            >
-              <Box
-                w="100%" bg={t.surface}
-                border="1px solid" borderColor={t.border}
-                borderRadius="xl" overflow="hidden"
-              >
-                {/* Avatar banner */}
-                <Box
-                  h="80px" bg={accentColor}
-                  display="flex" alignItems="flex-end" justifyContent="center"
-                  pb={0} position="relative"
-                >
-                  <Box
-                    position="absolute" bottom="-36px"
-                    w="72px" h="72px" borderRadius="full"
-                    overflow="hidden"
-                    border={`3px solid ${t.surface}`}
-                  >
-                    {emp.avatarUrl ? (
-                      <img
-                        src={`/api/avatar?url=${encodeURIComponent(emp.avatarUrl)}`}
-                        alt={emp.fullName}
-                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                      />
-                    ) : (
-                      <Box w="100%" h="100%" bg={accentColor}
-                        display="flex" alignItems="center" justifyContent="center">
-                        <Text fontSize="2xl" fontWeight="bold" color={t.white}>
-                          {emp.fullName?.[0]}
-                        </Text>
-                      </Box>
-                    )}
-                  </Box>
-                </Box>
 
-                <VStack gap={1} pt="44px" pb={5} px={4} textAlign="center">
-                  <Text fontSize="lg" fontWeight="700" fontFamily={t.font} color={t.text}>{emp.fullName}</Text>
-                  {(emp.slackTitle || emp.title) && (
-                    <Text fontSize="sm" color={t.muted}>{emp.slackTitle || emp.title}</Text>
-                  )}
-                  {emp.department && (
-                    <Box
-                      bg={accentColor + "22"} border="1px solid" borderColor={accentColor + "66"}
-                      borderRadius="full" px={3} py={0.5} mt={1}
-                    >
-                      <Text fontSize="xs" color={accentColor} fontWeight="semibold">
-                        {emp.department}
-                      </Text>
-                    </Box>
-                  )}
-                </VStack>
-              </Box>
-            </motion.div>
-          )}
 
           {/* Buttons */}
           <motion.div
