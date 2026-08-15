@@ -25,12 +25,25 @@ function getTileSize(wordLength) {
   return { size: 34, fontSize: 13 };
 }
 
-export default function Tile({ letter = "", status = "empty", delay = 0, wordLength = 5 }) {
+export default function Tile({ letter = "", status = "empty", delay = 0, wordLength = 5, celebrating = false, celebrateDelay = 0 }) {
   const hasLetter = letter !== "";
   const isRevealed = ["correct", "present", "absent"].includes(status);
   const { size, fontSize } = getTileSize(wordLength);
 
-  const animate = isRevealed
+  const celebrateAnimate = celebrating
+    ? {
+        y: [0, -12, 0, -6, 0],
+        rotate: [0, -5, 5, -3, 0],
+        scale: [1, 1.15, 1, 1.08, 1],
+        // keep revealed colors locked during dance so they don't snap back
+        backgroundColor: STATUS_COLORS[status] || STATUS_COLORS.empty,
+        borderColor: STATUS_BORDERS[status] || STATUS_BORDERS.empty,
+      }
+    : null;
+
+  const animate = celebrating
+    ? celebrateAnimate
+    : isRevealed
     ? {
         rotateX: [0, -90, -90, 0],
         backgroundColor: [
@@ -58,12 +71,16 @@ export default function Tile({ letter = "", status = "empty", delay = 0, wordLen
     <motion.div
       initial={initial}
       animate={animate}
-      transition={{
-        duration: isRevealed ? 0.5 : 0.1,
-        delay: isRevealed ? delay : 0,
-        times: isRevealed ? [0, 0.49, 0.51, 1] : undefined,
-        ease: "easeInOut",
-      }}
+      transition={
+        celebrating
+          ? { duration: 0.5, delay: celebrateDelay, ease: "easeInOut" }
+          : {
+              duration: isRevealed ? 0.5 : 0.1,
+              delay: isRevealed ? delay : 0,
+              times: isRevealed ? [0, 0.49, 0.51, 1] : undefined,
+              ease: "easeInOut",
+            }
+      }
       style={{
         width: size,
         height: size,

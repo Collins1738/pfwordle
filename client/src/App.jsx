@@ -33,7 +33,17 @@ export default function App({ mode = "daily" }) {
   const [debugOpen, setDebugOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [blurDraining, setBlurDraining] = useState(false);
-  const isDev = import.meta.env.DEV || import.meta.env.VITE_DEBUG === "true";
+  const [celebrating, setCelebrating] = useState(false);
+
+  const DEV_ACCOUNTS = ["tobechikeluba@gmail.com"];
+  const isDevAccount = user && DEV_ACCOUNTS.includes(user.email);
+  const [devMode, setDevMode] = useState(false);
+  // Default dev mode ON for dev accounts — sync when user loads
+  useEffect(() => {
+    if (isDevAccount) setDevMode(true);
+  }, [isDevAccount]);
+
+  const isDev = devMode;
 
   const currentRow = guesses.length;
 
@@ -56,6 +66,7 @@ export default function App({ mode = "daily" }) {
       setDebugAnswer(null);
       setAvatarUrl(data.avatarUrl || null);
       setBlurDraining(false);
+      setCelebrating(false);
       if (isDev) {
         getDebugAnswer(data.sessionId).then(d => setDebugAnswer(d.answer)).catch(() => {});
       }
@@ -144,10 +155,13 @@ export default function App({ mode = "daily" }) {
           setMessage("");
           setShowResult(false);
           if (data.status === "won" && avatarUrl) {
-            // After tile flips, drain the blur to 0 over 1s, then show result
+            // After tile flips: drain blur + dance tiles, then show result
             const blurDrainDuration = 1000;
-            setTimeout(() => setBlurDraining(true), flipDelay * 1000);
-            setTimeout(() => setShowResult(true), flipDelay * 1000 + blurDrainDuration + 200);
+            setTimeout(() => {
+              setBlurDraining(true);
+              setCelebrating(true);
+            }, flipDelay * 1000);
+            setTimeout(() => setShowResult(true), flipDelay * 1000 + blurDrainDuration + 500);
           } else {
             setTimeout(() => setShowResult(true), flipDelay * 1000);
           }
@@ -265,6 +279,27 @@ export default function App({ mode = "daily" }) {
               color={t.muted} fontSize="xl" cursor="pointer" title="My Stats"
               _hover={{ color: t.accent }} transition="color 0.15s"
             >📊</Box>
+            {user && (
+              <Box
+                as="button"
+                onClick={() => setDevMode(o => !o)}
+                title={devMode ? "Dev mode on" : "Dev mode off"}
+                fontSize="sm"
+                px={2} py={0.5}
+                borderRadius="full"
+                border="1px solid"
+                borderColor={devMode ? "#f0c040" : t.border}
+                bg={devMode ? "#f0c04022" : "transparent"}
+                color={devMode ? "#f0c040" : t.muted}
+                cursor="pointer"
+                fontFamily="monospace"
+                fontWeight="bold"
+                transition="all 0.15s"
+                _hover={{ borderColor: "#f0c040", color: "#f0c040" }}
+              >
+                🔧
+              </Box>
+            )}
           </HStack>
 
           <Box textAlign="center">
@@ -363,6 +398,7 @@ export default function App({ mode = "daily" }) {
           currentRow={currentRow}
           wordLength={wordLength}
           maxGuesses={maxGuesses}
+          celebratingRow={celebrating ? guesses.length - 1 : -1}
         />
 
         <Keyboard onKey={handleKey} letterStatuses={letterStatuses} />

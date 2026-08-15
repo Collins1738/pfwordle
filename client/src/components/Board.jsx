@@ -1,7 +1,7 @@
 import { VStack, HStack } from "@chakra-ui/react";
 import Tile from "./Tile";
 
-export default function Board({ guesses, currentGuess, currentRow, wordLength, maxGuesses }) {
+export default function Board({ guesses, currentGuess, currentRow, wordLength, maxGuesses, celebratingRow = -1 }) {
   const rows = [];
 
   for (let i = 0; i < maxGuesses; i++) {
@@ -10,7 +10,15 @@ export default function Board({ guesses, currentGuess, currentRow, wordLength, m
       rows.push(
         <HStack key={i} gap="4px">
           {result.map((cell, j) => (
-            <Tile key={j} letter={cell.letter} status={cell.status} delay={j * 0.1} wordLength={wordLength} />
+            <Tile
+              key={j}
+              letter={cell.letter}
+              status={cell.status}
+              delay={j * 0.1}
+              wordLength={wordLength}
+              celebrating={i === celebratingRow}
+              celebrateDelay={j * 0.06}
+            />
           ))}
         </HStack>
       );
