@@ -410,7 +410,7 @@ app.get("/api/leaderboard/daily", async (req, res) => {
     const { rows } = await pool.query(
       `SELECT u.name, u.avatar_url, g.guess_count, g.duration_seconds, g.status
        FROM games g JOIN users u ON u.id = g.user_id
-       WHERE g.date = $1 AND g.status IN ('won', 'lost')
+       WHERE g.date = $1 AND g.mode = 'daily' AND g.status IN ('won', 'lost')
        ORDER BY g.status DESC, g.guess_count ASC, g.duration_seconds ASC
        LIMIT 50`,
       [today]
@@ -431,7 +431,7 @@ app.get("/api/leaderboard/alltime", async (req, res) => {
               ROUND(AVG(g.guess_count) FILTER (WHERE g.status = 'won'), 1) AS avg_guesses,
               COUNT(*) AS total_games
        FROM games g JOIN users u ON u.id = g.user_id
-       WHERE g.status IN ('won', 'lost')
+       WHERE g.mode = 'daily' AND g.status IN ('won', 'lost')
        GROUP BY u.id, u.name, u.avatar_url
        ORDER BY wins DESC, avg_guesses ASC
        LIMIT 50`
