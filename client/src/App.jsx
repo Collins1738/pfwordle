@@ -32,6 +32,7 @@ export default function App({ mode = "daily" }) {
   const [debugAnswer, setDebugAnswer] = useState(null);
   const [debugOpen, setDebugOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(null);
+  const [blurDraining, setBlurDraining] = useState(false);
   const isDev = import.meta.env.DEV || import.meta.env.VITE_DEBUG === "true";
 
   const currentRow = guesses.length;
@@ -54,6 +55,7 @@ export default function App({ mode = "daily" }) {
       setLetterStatuses({});
       setDebugAnswer(null);
       setAvatarUrl(data.avatarUrl || null);
+      setBlurDraining(false);
       if (isDev) {
         getDebugAnswer(data.sessionId).then(d => setDebugAnswer(d.answer)).catch(() => {});
       }
@@ -141,7 +143,14 @@ export default function App({ mode = "daily" }) {
           setDuration(data.durationSeconds ?? null);
           setMessage("");
           setShowResult(false);
-          setTimeout(() => setShowResult(true), flipDelay * 1000);
+          if (data.status === "won" && avatarUrl) {
+            // After tile flips, drain the blur to 0 over 1s, then show result
+            const blurDrainDuration = 1000;
+            setTimeout(() => setBlurDraining(true), flipDelay * 1000);
+            setTimeout(() => setShowResult(true), flipDelay * 1000 + blurDrainDuration + 200);
+          } else {
+            setTimeout(() => setShowResult(true), flipDelay * 1000);
+          }
         }
       } catch (e) {
         setMessage(e?.response?.data?.error || "Invalid guess");
@@ -331,12 +340,17 @@ export default function App({ mode = "daily" }) {
           )}
           {!message && avatarUrl && guesses.length >= 1 && (() => {
             const proxyUrl = `${BASE_URL}/api/avatar?url=${encodeURIComponent(avatarUrl)}`;
-            const blurPx = guesses.length === 1 ? 8 : Math.max(0, 6 - guesses.length);
+            const naturalBlur = guesses.length === 1 ? 8 : Math.max(0, 6 - guesses.length);
+            const blurPx = blurDraining ? 0 : naturalBlur;
             return (
               <Box w="36px" h="36px" borderRadius="full" overflow="hidden" border={`2px solid ${t.accent}`} flexShrink={0}>
                 <Box
                   as="img" src={proxyUrl} w="100%" h="100%" objectFit="cover" display="block"
-                  style={{ filter: `blur(${blurPx}px)`, transform: "scale(1.3)" }}
+                  style={{
+                    filter: `blur(${blurPx}px)`,
+                    transform: "scale(1.3)",
+                    transition: blurDraining ? "filter 1s ease-out" : "none",
+                  }}
                 />
               </Box>
             );
