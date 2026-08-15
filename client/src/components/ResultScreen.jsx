@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Box, Text, Button, VStack, HStack } from "@chakra-ui/react";
+import { t } from "../theme";
 
 // Score out of 1000 based on guess count + time bonus
 function calcScore(guessCount, maxGuesses, won, durationSeconds) {
@@ -10,7 +11,7 @@ function calcScore(guessCount, maxGuesses, won, durationSeconds) {
 
   let timeBonus = 0;
   if (durationSeconds != null) {
-    if (durationSeconds < 60)   timeBonus = 100;
+    if (durationSeconds < 60)        timeBonus = 100;
     else if (durationSeconds < 300)  timeBonus = 75;
     else if (durationSeconds < 600)  timeBonus = 50;
     else if (durationSeconds < 1800) timeBonus = 25;
@@ -19,13 +20,13 @@ function calcScore(guessCount, maxGuesses, won, durationSeconds) {
   return Math.min(1000, base + timeBonus);
 }
 
-function scoreLabel(score) {
-  if (score >= 900) return { label: "Genius 🧠", color: "#f5c518" };
-  if (score >= 750) return { label: "Impressive 🔥", color: "#e8824a" };
-  if (score >= 550) return { label: "Solid 💪", color: "#538d4e" };
-  if (score >= 350) return { label: "Getting there 👀", color: "#818384" };
-  if (score >= 100) return { label: "Lucky escape 😅", color: "#818384" };
-  return { label: "Better luck tomorrow 😬", color: "#b59f3b" };
+function getScoreLabel(score) {
+  if (score >= 900) return { label: "Genius 🧠",             color: "#f5c518" };
+  if (score >= 750) return { label: "Impressive 🔥",         color: t.accentAlt };
+  if (score >= 550) return { label: "Solid 💪",              color: t.accent };
+  if (score >= 350) return { label: "Getting there 👀",      color: t.muted };
+  if (score >= 100) return { label: "Lucky escape 😅",       color: t.muted };
+  return             { label: "Better luck tomorrow 😬",     color: t.present };
 }
 
 function TileRow({ guess, result, delay = 0 }) {
@@ -33,7 +34,9 @@ function TileRow({ guess, result, delay = 0 }) {
     <HStack gap={1} justify="center">
       {guess.split("").map((letter, i) => {
         const status = result?.[i]?.status || "absent";
-        const bg = status === "correct" ? "#538d4e" : status === "present" ? "#b59f3b" : "#3a3a3c";
+        const bg = status === "correct" ? t.correct
+                 : status === "present" ? t.present
+                 : t.absent;
         return (
           <motion.div
             key={i}
@@ -44,10 +47,10 @@ function TileRow({ guess, result, delay = 0 }) {
             <Box
               w="44px" h="44px"
               bg={bg}
-              borderRadius="md"
+              borderRadius={t.radius}
               display="flex" alignItems="center" justifyContent="center"
             >
-              <Text color="white" fontWeight="bold" fontSize="lg" letterSpacing="0.05em">
+              <Text color={t.white} fontWeight="700" fontFamily={t.font} fontSize="lg" letterSpacing="0.05em">
                 {letter}
               </Text>
             </Box>
@@ -60,18 +63,17 @@ function TileRow({ guess, result, delay = 0 }) {
 
 function timeBonusLabel(durationSeconds) {
   if (durationSeconds == null) return null;
-  if (durationSeconds < 60)   return "+100 ⚡ under 1 min";
-  if (durationSeconds < 300)  return "+75 🔥 under 5 min";
-  if (durationSeconds < 600)  return "+50 💨 under 10 min";
-  if (durationSeconds < 1800) return "+25 ⏱️ under 30 min";
+  if (durationSeconds < 60)        return "+100 ⚡ under 1 min";
+  if (durationSeconds < 300)       return "+75 🔥 under 5 min";
+  if (durationSeconds < 600)       return "+50 💨 under 10 min";
+  if (durationSeconds < 1800)      return "+25 ⏱️ under 30 min";
   return null;
 }
 
 export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLength, employee, durationSeconds, onPlayAgain, onShowStats }) {
-  const accentColor = won ? "#538d4e" : "#b59f3b";
+  const accentColor = won ? t.accent : t.present;
   const score = calcScore(guesses.length, maxGuesses, won, durationSeconds);
-  const { label: scoreLabel_, color: scoreColor } = scoreLabel(score);
-  const finalGuess = guesses[guesses.length - 1];
+  const { label: scoreLabelText, color: scoreColor } = getScoreLabel(score);
 
   const employees = Array.isArray(employee) ? employee : employee ? [employee] : [];
   const emp = employees[0];
@@ -88,20 +90,21 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
           position: "fixed",
           inset: 0,
           zIndex: 200,
-          background: "#121213",
+          background: t.bg,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           overflowY: "auto",
+          fontFamily: t.font,
         }}
       >
         {/* Header */}
         <Box
           w="100%" maxW="520px"
-          borderBottom="1px solid" borderColor="#3a3a3c"
-          py={3} textAlign="center"
+          borderBottom="1px solid" borderColor={t.border}
+          bg={t.surface} py={3} textAlign="center"
         >
-          <Text fontSize="lg" letterSpacing="0.2em" color="white" fontWeight="bold">
+          <Text fontSize="lg" letterSpacing="0.1em" color={t.text} fontWeight="700" fontFamily={t.font}>
             PERMITDLE
           </Text>
         </Box>
@@ -119,13 +122,13 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
               {won ? "You got it! 🎉" : "Not this time 😬"}
             </Text>
             {!won && (
-              <Text fontSize="sm" color="#818384" mt={1}>
-                The answer was <Text as="span" color="white" fontWeight="bold">{answer}</Text>
+              <Text fontSize="sm" color={t.muted} mt={1}>
+                The answer was <Text as="span" color={t.text} fontWeight="700">{answer}</Text>
               </Text>
             )}
           </motion.div>
 
-          {/* All rows — filled guesses + empty rows */}
+          {/* All guess rows + empty rows */}
           <VStack gap={1}>
             {Array.from({ length: maxGuesses }, (_, rowIdx) => {
               const g = guesses[rowIdx];
@@ -145,8 +148,8 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
                           key={i}
                           w="44px" h="44px"
                           bg="transparent"
-                          border="2px solid #3a3a3c"
-                          borderRadius="md"
+                          border={`2px solid ${t.border}`}
+                          borderRadius={t.radius}
                         />
                       ))}
                     </HStack>
@@ -156,7 +159,7 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
             })}
           </VStack>
 
-          {/* Score */}
+          {/* Score card */}
           {won && (
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
@@ -165,20 +168,20 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
               style={{ textAlign: "center" }}
             >
               <Box
-                bg="#1a1a1b" border="1px solid" borderColor={accentColor}
+                bg={t.surface} border="1px solid" borderColor={accentColor}
                 borderRadius="2xl" px={8} py={4}
               >
-                <Text fontSize="xs" color="#818384" letterSpacing="0.15em" textTransform="uppercase" mb={1}>
+                <Text fontSize="xs" color={t.muted} letterSpacing="0.15em" textTransform="uppercase" mb={1}>
                   Score
                 </Text>
                 <Text fontSize="4xl" fontWeight="black" color={scoreColor} lineHeight={1}>
                   {score}
                 </Text>
-                <Text fontSize="sm" color={scoreColor} mt={1}>{scoreLabel_}</Text>
-                <Text fontSize="xs" color="#555" mt={2}>
+                <Text fontSize="sm" color={scoreColor} mt={1}>{scoreLabelText}</Text>
+                <Text fontSize="xs" color={t.muted} mt={2}>
                   {guesses.length} guess{guesses.length !== 1 ? "es" : ""}
                 </Text>
-                {won && timeBonusLabel(durationSeconds) && (
+                {timeBonusLabel(durationSeconds) && (
                   <Text fontSize="xs" color="#f5c518" mt={1} fontWeight="semibold">
                     {timeBonusLabel(durationSeconds)}
                   </Text>
@@ -196,8 +199,8 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
               style={{ width: "100%" }}
             >
               <Box
-                w="100%" bg="#1a1a1b"
-                border="1px solid" borderColor="#3a3a3c"
+                w="100%" bg={t.surface}
+                border="1px solid" borderColor={t.border}
                 borderRadius="xl" overflow="hidden"
               >
                 {/* Avatar banner */}
@@ -210,17 +213,18 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
                     position="absolute" bottom="-36px"
                     w="72px" h="72px" borderRadius="full"
                     overflow="hidden"
-                    border="3px solid #1a1a1b"
+                    border={`3px solid ${t.surface}`}
                   >
                     {emp.avatarUrl ? (
-                      <img src={`/api/avatar?url=${encodeURIComponent(emp.avatarUrl)}`}
+                      <img
+                        src={`/api/avatar?url=${encodeURIComponent(emp.avatarUrl)}`}
                         alt={emp.fullName}
                         style={{ width: "100%", height: "100%", objectFit: "cover" }}
                       />
                     ) : (
                       <Box w="100%" h="100%" bg={accentColor}
                         display="flex" alignItems="center" justifyContent="center">
-                        <Text fontSize="2xl" fontWeight="bold" color="white">
+                        <Text fontSize="2xl" fontWeight="bold" color={t.white}>
                           {emp.fullName?.[0]}
                         </Text>
                       </Box>
@@ -229,9 +233,9 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
                 </Box>
 
                 <VStack gap={1} pt="44px" pb={5} px={4} textAlign="center">
-                  <Text fontSize="lg" fontWeight="bold" color="white">{emp.fullName}</Text>
+                  <Text fontSize="lg" fontWeight="700" fontFamily={t.font} color={t.text}>{emp.fullName}</Text>
                   {(emp.slackTitle || emp.title) && (
-                    <Text fontSize="sm" color="#a0a0a0">{emp.slackTitle || emp.title}</Text>
+                    <Text fontSize="sm" color={t.muted}>{emp.slackTitle || emp.title}</Text>
                   )}
                   {emp.department && (
                     <Box
@@ -248,7 +252,7 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
             </motion.div>
           )}
 
-          {/* Play again */}
+          {/* Buttons */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -256,20 +260,23 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
             style={{ width: "100%", display: "flex", flexDirection: "column", gap: "10px" }}
           >
             <Button
-              w="100%" bg={accentColor} color="white"
-              size="lg" borderRadius="xl"
+              w="100%" bg={accentColor} color={t.white}
+              size="lg" borderRadius={t.radiusMd}
+              fontFamily={t.font} fontWeight="700"
+              boxShadow={`0 4px 0 ${accentColor}cc`}
               onClick={onPlayAgain}
-              _hover={{ opacity: 0.85 }}
+              _hover={{ opacity: 0.9, transform: "translateY(-1px)" }}
             >
               Play Again
             </Button>
             {onShowStats && (
               <Button
-                w="100%" bg="transparent" color="#818384"
-                size="md" borderRadius="xl"
-                border="1px solid #3a3a3c"
+                w="100%" bg={t.surface} color={t.muted}
+                size="md" borderRadius={t.radiusMd}
+                fontFamily={t.font} fontWeight="600"
+                border={`2px solid ${t.border}`}
                 onClick={onShowStats}
-                _hover={{ bg: "#1a1a1b", color: "white" }}
+                _hover={{ bg: t.bg, color: t.text }}
               >
                 📊 My Stats
               </Button>

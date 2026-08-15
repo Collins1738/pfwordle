@@ -1,24 +1,22 @@
 import { useState, useEffect, useCallback } from "react";
-import { Box, VStack, Text, Heading, Button, Avatar, HStack } from "@chakra-ui/react";
+import { useNavigate } from "react-router-dom";
+import { Box, VStack, Text, Heading, Avatar, HStack } from "@chakra-ui/react";
 import Board from "./components/Board";
 import Keyboard from "./components/Keyboard";
 import EmployeeCard from "./components/EmployeeCard";
 import Leaderboard from "./components/Leaderboard";
 import ResultScreen from "./components/ResultScreen";
-import StatsModal from "./components/StatsModal";
-import HomePage from "./components/HomePage";
 import { startGame, submitGuess, getDebugAnswer, resumeGame } from "./api";
 import { useAuth } from "./useAuth";
+import { t } from "./theme";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 
-export default function App() {
+export default function App({ mode = "daily" }) {
   const { user, logout, getToken } = useAuth();
-  const [screen, setScreen] = useState("home"); // "home" | "game"
+  const navigate = useNavigate();
   const [showLeaderboard, setShowLeaderboard] = useState(false);
-  const [showStats, setShowStats] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [mode, setMode] = useState("daily"); // "daily" | "practice"
   const [sessionId, setSessionId] = useState(null);
   const [guesses, setGuesses] = useState([]);
   const [currentGuess, setCurrentGuess] = useState("");
@@ -41,8 +39,7 @@ export default function App() {
   async function newGame(options = {}) {
     try {
       const token = getToken();
-      const effectiveMode = options.mode ?? mode;
-      const data = await startGame({ mode: effectiveMode, ...options }, token);
+      const data = await startGame({ mode, ...options }, token);
       setSessionId(data.sessionId);
       setWordLength(data.wordLength);
       setMaxGuesses(data.maxGuesses);
@@ -55,7 +52,6 @@ export default function App() {
       setDuration(null);
       setMessage("");
       setLetterStatuses({});
-      setLetterStatuses({});
       setDebugAnswer(null);
       setAvatarUrl(data.avatarUrl || null);
       if (isDev) {
@@ -66,44 +62,43 @@ export default function App() {
     }
   }
 
-  async function handleHomePlay(selectedMode) {
-    setMode(selectedMode);
-    // Try to resume a daily game in progress; otherwise start fresh
-    if (selectedMode === "daily") {
-      const token = getToken();
-      if (token) {
-        try {
-          const data = await resumeGame(token);
-          if (data.hasGame) {
-            setSessionId(data.sessionId);
-            setWordLength(data.wordLength);
-            setMaxGuesses(data.maxGuesses);
-            setGuesses(data.guesses || []);
-            setCurrentGuess("");
-            setStatus(data.status);
-            if (data.status === "won" || data.status === "lost") {
-              setShowResult(true);
-            }
-            setAvatarUrl(data.avatarUrl || null);
-            if (data.guesses?.length) {
-              const priority = { correct: 3, present: 2, absent: 1 };
-              const updated = {};
-              data.guesses.forEach(({ result }) => {
-                result?.forEach(({ letter, status: s }) => {
-                  if (!updated[letter] || priority[s] > (priority[updated[letter]] ?? 0)) updated[letter] = s;
+  // On mount: resume daily game if possible, otherwise start fresh
+  useEffect(() => {
+    async function init() {
+      if (mode === "daily") {
+        const token = getToken();
+        if (token) {
+          try {
+            const data = await resumeGame(token);
+            if (data.hasGame) {
+              setSessionId(data.sessionId);
+              setWordLength(data.wordLength);
+              setMaxGuesses(data.maxGuesses);
+              setGuesses(data.guesses || []);
+              setCurrentGuess("");
+              setStatus(data.status);
+              if (data.status === "won" || data.status === "lost") setShowResult(true);
+              setAvatarUrl(data.avatarUrl || null);
+              if (data.guesses?.length) {
+                const priority = { correct: 3, present: 2, absent: 1 };
+                const updated = {};
+                data.guesses.forEach(({ result }) => {
+                  result?.forEach(({ letter, status: s }) => {
+                    if (!updated[letter] || priority[s] > (priority[updated[letter]] ?? 0)) updated[letter] = s;
+                  });
                 });
-              });
-              setLetterStatuses(updated);
+                setLetterStatuses(updated);
+              }
+              return;
             }
-            setScreen("game");
-            return;
-          }
-        } catch { /* fall through to new game */ }
+          } catch { /* fall through */ }
+        }
       }
+      await newGame();
     }
-    await newGame({ mode: selectedMode });
-    setScreen("game");
-  }
+    init();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
 
   const updateLetterStatuses = useCallback((newGuesses) => {
     const priority = { correct: 3, present: 2, absent: 1 };
@@ -111,9 +106,7 @@ export default function App() {
     newGuesses.forEach(({ result }) => {
       result.forEach(({ letter, status }) => {
         const cur = updated[letter];
-        if (!cur || priority[status] > (priority[cur] ?? 0)) {
-          updated[letter] = status;
-        }
+        if (!cur || priority[status] > (priority[cur] ?? 0)) updated[letter] = status;
       });
     });
     setLetterStatuses(updated);
@@ -141,7 +134,7 @@ export default function App() {
         updateLetterStatuses(newGuesses);
         if (data.status === "won" || data.status === "lost") {
           const finalWordLength = data.answer?.length || wordLength;
-          const flipDelay = (finalWordLength - 1) * 0.1 + 0.5 + 0.3; // last tile + buffer
+          const flipDelay = (finalWordLength - 1) * 0.1 + 0.5 + 0.3;
           setStatus(data.status);
           setAnswer(data.answer);
           setEmployee(data.employee || null);
@@ -170,28 +163,23 @@ export default function App() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKey]);
 
-  const msgColor = status === "won" ? "#538d4e" : status === "lost" ? "#b59f3b" : "white";
-
-  if (screen === "home") {
-    return <HomePage onPlay={handleHomePlay} />;
-  }
+  const msgColor = status === "won" ? t.accent : status === "lost" ? t.accentAlt : t.text;
 
   return (
-    <Box minH="100vh" bg="#121213" display="flex" flexDir="column" alignItems="center">
+    <Box minH="100vh" bg={t.bg} display="flex" flexDir="column" alignItems="center" fontFamily={t.font}>
       {/* Mode toggle bar */}
-      <Box w="100%" maxW="520px" display="flex" borderBottom="1px solid" borderColor="#3a3a3c">
+      <Box w="100%" maxW="520px" display="flex" borderBottom="1px solid" borderColor={t.border}>
         {["daily", "practice"].map(m => (
           <Box
             key={m} flex={1} textAlign="center" py={2} cursor="pointer"
-            bg={mode === m ? "#242425" : "transparent"}
-            color={mode === m ? "white" : "#818384"}
-            fontWeight={mode === m ? "bold" : "normal"}
+            bg={mode === m ? t.surface : "transparent"}
+            color={mode === m ? t.accent : t.muted}
+            fontWeight={mode === m ? "700" : "500"}
+            fontFamily={t.font}
             fontSize="sm" letterSpacing="0.05em" textTransform="capitalize"
-            borderBottom={mode === m ? "2px solid #538d4e" : "2px solid transparent"}
+            borderBottom={mode === m ? `2px solid ${t.accent}` : "2px solid transparent"}
             transition="all 0.15s"
-            onClick={() => {
-              if (mode !== m) { setMode(m); newGame({ mode: m }); }
-            }}
+            onClick={() => { if (mode !== m) navigate(`/${m}`); }}
           >
             {m === "daily" ? "📅 Daily" : "🎯 Practice"}
           </Box>
@@ -208,21 +196,18 @@ export default function App() {
           employee={employee}
           durationSeconds={duration}
           onPlayAgain={() => newGame({})}
-          onShowStats={() => { setShowResult(false); setShowStats(true); }}
+          onShowStats={() => { setShowResult(false); navigate(`/stats?mode=${mode}`); }}
         />
       )}
+
       {/* DEV floater */}
       {isDev && debugAnswer && (
         <Box position="fixed" top="12px" right="12px" zIndex={9999}>
           <Box
-            bg="#1a1a2e"
-            border="1px dashed #444"
-            borderRadius="md"
-            overflow="hidden"
-            cursor="pointer"
+            bg="#1a1a2e" border="1px dashed #444" borderRadius="md"
+            overflow="hidden" cursor="pointer"
             onClick={() => setDebugOpen(o => !o)}
-            px={3} py={1}
-            opacity={0.9}
+            px={3} py={1} opacity={0.9}
           >
             <Text fontSize="xs" color="#888" fontFamily="monospace" userSelect="none">
               🔧 <Text as="span" color="#f0c040" fontWeight="bold">{debugAnswer}</Text>
@@ -234,37 +219,18 @@ export default function App() {
               <Box
                 as="button"
                 onClick={(e) => { e.stopPropagation(); setDebugOpen(false); newGame({}); }}
-                bg="#2a2a4a"
-                color="#a0a0ff"
-                border="1px solid #444"
-                borderRadius="sm"
-                px={2} py={1}
-                fontSize="xs"
-                fontFamily="monospace"
-                cursor="pointer"
-                w="100%"
+                bg="#2a2a4a" color="#a0a0ff" border="1px solid #444" borderRadius="sm"
+                px={2} py={1} fontSize="xs" fontFamily="monospace" cursor="pointer" w="100%"
                 _hover={{ bg: "#33336a" }}
               >
                 ↺ new random word
               </Box>
               <Box
-                as="a"
-                href="/roster"
-                target="_blank"
-                rel="noopener noreferrer"
+                as="a" href="/roster" target="_blank" rel="noopener noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                bg="#1a2e1a"
-                color="#6fcf6f"
-                border="1px solid #444"
-                borderRadius="sm"
-                px={2} py={1}
-                fontSize="xs"
-                fontFamily="monospace"
-                cursor="pointer"
-                w="100%"
-                textAlign="center"
-                textDecoration="none"
-                display="block"
+                bg="#1a2e1a" color="#6fcf6f" border="1px solid #444" borderRadius="sm"
+                px={2} py={1} fontSize="xs" fontFamily="monospace" cursor="pointer" w="100%"
+                textAlign="center" textDecoration="none" display="block"
                 _hover={{ bg: "#223322" }}
               >
                 👥 view roster
@@ -275,34 +241,30 @@ export default function App() {
       )}
 
       {showLeaderboard && <Leaderboard onClose={() => setShowLeaderboard(false)} />}
-      {showStats && <StatsModal onClose={() => setShowStats(false)} token={getToken()} maxGuesses={maxGuesses} mode={mode} />}
 
       {/* Header */}
-      <Box w="100%" maxW="520px" borderBottom="1px solid" borderColor="#3a3a3c" py={3} px={4}>
+      <Box w="100%" maxW="520px" borderBottom="1px solid" borderColor={t.border} bg={t.surface} py={3} px={4}>
         <HStack justifyContent="space-between" alignItems="center">
-          {/* Left icons */}
           <HStack gap={2}>
             <Box
               as="button" onClick={() => setShowLeaderboard(true)}
-              color="#818384" fontSize="xl" cursor="pointer" title="Leaderboard"
-              _hover={{ color: "white" }} transition="color 0.15s"
+              color={t.muted} fontSize="xl" cursor="pointer" title="Leaderboard"
+              _hover={{ color: t.accent }} transition="color 0.15s"
             >🏆</Box>
             <Box
-              as="button" onClick={() => setShowStats(true)}
-              color="#818384" fontSize="xl" cursor="pointer" title="My Stats"
-              _hover={{ color: "white" }} transition="color 0.15s"
+              as="button" onClick={() => navigate(`/stats?mode=${mode}`)}
+              color={t.muted} fontSize="xl" cursor="pointer" title="My Stats"
+              _hover={{ color: t.accent }} transition="color 0.15s"
             >📊</Box>
           </HStack>
 
-          {/* Title */}
           <Box textAlign="center">
-            <Heading size="lg" letterSpacing="0.2em" color="white" fontWeight="bold">
+            <Heading size="lg" letterSpacing="0.1em" color={t.text} fontWeight="700" fontFamily={t.font} cursor="pointer" onClick={() => navigate("/")}>
               PERMITDLE
             </Heading>
-            <Text fontSize="xs" color="#818384">Guess today's Permitflow employee</Text>
+            <Text fontSize="xs" color={t.muted} fontFamily={t.font}>Guess today's Permitflow employee</Text>
           </Box>
 
-          {/* Auth */}
           {user === undefined ? (
             <Box w="32px" />
           ) : user ? (
@@ -311,7 +273,7 @@ export default function App() {
                 size="sm" cursor="pointer"
                 onClick={() => setShowUserMenu(o => !o)}
                 title={user.name}
-                outline={showUserMenu ? "2px solid #538d4e" : "none"}
+                outline={showUserMenu ? `2px solid ${t.accent}` : "none"}
                 borderRadius="full"
               >
                 <Avatar.Image src={user.avatar} />
@@ -319,25 +281,22 @@ export default function App() {
               </Avatar.Root>
               {showUserMenu && (
                 <>
-                  {/* backdrop to close on outside click */}
                   <Box position="fixed" inset={0} zIndex={9} onClick={() => setShowUserMenu(false)} />
                   <Box
                     position="absolute" right={0} top="calc(100% + 8px)"
-                    bg="#1a1a1b" border="1px solid #3a3a3c" borderRadius="lg"
-                    p={3} minW="160px" zIndex={10} boxShadow="0 4px 20px rgba(0,0,0,0.5)"
+                    bg={t.surface} border={`1px solid ${t.border}`} borderRadius={t.radiusMd}
+                    p={3} minW="160px" zIndex={10} boxShadow="0 4px 20px rgba(0,100,200,0.1)"
                   >
-                    <Text color="white" fontSize="sm" fontWeight="semibold" noOfLines={1} mb={0.5}>
-                      {user.name}
-                    </Text>
-                    <Text color="#818384" fontSize="xs" noOfLines={1} mb={3}>{user.email}</Text>
+                    <Text color={t.text} fontFamily={t.font} fontSize="sm" fontWeight="600" noOfLines={1} mb={0.5}>{user.name}</Text>
+                    <Text color={t.muted} fontFamily={t.font} fontSize="xs" noOfLines={1} mb={3}>{user.email}</Text>
                     <Box
                       as="button" w="100%" textAlign="center"
-                      bg="#2a1a1a" border="1px solid #5a2a2a"
-                      borderRadius="md" py={1.5} px={3}
-                      color="#ff6b6b" fontSize="xs" fontWeight="semibold"
+                      bg="#fff0f0" border="1px solid #ffcccc" borderRadius={t.radius}
+                      py={1.5} px={3} color="#e05252" fontSize="xs" fontWeight="700"
+                      fontFamily={t.font}
                       cursor="pointer"
                       onClick={() => { logout(); setShowUserMenu(false); }}
-                      _hover={{ bg: "#3a1a1a" }}
+                      _hover={{ bg: "#ffe0e0" }}
                     >
                       Sign out
                     </Box>
@@ -348,9 +307,11 @@ export default function App() {
           ) : (
             <Box
               as="a" href={`${BASE_URL}/auth/google`}
-              bg="#538d4e" color="white" px={3} py={1} borderRadius="md"
-              fontSize="xs" fontWeight="bold" textDecoration="none"
-              _hover={{ bg: "#4a7a45" }} transition="bg 0.15s"
+              bg={t.accent} color={t.white} px={3} py={1} borderRadius={t.radius}
+              fontFamily={t.font}
+              fontSize="xs" fontWeight="700" textDecoration="none"
+              boxShadow={`0 3px 0 ${t.accentDark}`}
+              _hover={{ opacity: 0.9 }} transition="all 0.1s"
             >
               Sign in
             </Box>
@@ -359,11 +320,12 @@ export default function App() {
       </Box>
 
       <VStack gap={0} w="100%" maxW="520px" px={3}>
-        {/* Message bar — fixed height, also shows blurred photo hint */}
         <Box h="36px" display="flex" alignItems="center" justifyContent="center" mt={1} position="relative">
           {message && (
-            <Box bg="#222" color={msgColor} px={4} py={1} borderRadius="md"
-              fontWeight="bold" fontSize="sm" border="1px solid" borderColor={msgColor}>
+            <Box bg="white" color={msgColor} px={4} py={1} borderRadius="10px"
+              fontWeight="700" fontFamily="'Fredoka', sans-serif" fontSize="sm"
+              border="2px solid" borderColor={msgColor}
+              boxShadow="0 2px 8px rgba(0,100,200,0.1)" fontFamily={t.font}>
               {message}
             </Box>
           )}
@@ -371,7 +333,7 @@ export default function App() {
             const proxyUrl = `${BASE_URL}/api/avatar?url=${encodeURIComponent(avatarUrl)}`;
             const blurPx = guesses.length === 1 ? 8 : Math.max(0, 6 - guesses.length);
             return (
-              <Box w="36px" h="36px" borderRadius="full" overflow="hidden" border="2px solid #3a3a3c" flexShrink={0}>
+              <Box w="36px" h="36px" borderRadius="full" overflow="hidden" border={`2px solid ${t.accent}`} flexShrink={0}>
                 <Box
                   as="img" src={proxyUrl} w="100%" h="100%" objectFit="cover" display="block"
                   style={{ filter: `blur(${blurPx}px)`, transform: "scale(1.3)" }}
@@ -381,7 +343,6 @@ export default function App() {
           })()}
         </Box>
 
-        {/* Board */}
         <Board
           guesses={guesses}
           currentGuess={currentGuess}
@@ -390,7 +351,6 @@ export default function App() {
           maxGuesses={maxGuesses}
         />
 
-        {/* Keyboard */}
         <Keyboard onKey={handleKey} letterStatuses={letterStatuses} />
 
         <Box h="72px" />

@@ -1,4 +1,5 @@
 import { Box } from "@chakra-ui/react";
+import { t } from "../theme";
 
 const ROWS = [
   ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
@@ -7,10 +8,10 @@ const ROWS = [
 ];
 
 const STATUS_COLORS = {
-  correct: "#538d4e",
-  present: "#b59f3b",
-  absent: "#3a3a3c",
-  default: "#818384",
+  correct: t.correct,
+  present: t.present,
+  absent:  t.absent,
+  default: t.keyDefault,
 };
 
 export default function Keyboard({ onKey, letterStatuses = {} }) {
@@ -27,20 +28,21 @@ export default function Keyboard({ onKey, letterStatuses = {} }) {
                 as="button"
                 onClick={() => onKey(key)}
                 bg={STATUS_COLORS[status]}
-                color="white"
-                fontWeight="bold"
-                fontSize={isWide ? "10px" : "13px"}
-                h={{ base: "50px", sm: "58px" }}
+                color={status === "default" ? t.text : t.white}
+                fontWeight="700"
+                fontSize={isWide ? "11px" : "14px"}
+                h={{ base: "50px", sm: "56px" }}
                 flex={isWide ? "1.5" : "1"}
                 maxW={isWide ? "65px" : "43px"}
                 minW={isWide ? "44px" : "28px"}
-                borderRadius="4px"
+                borderRadius={t.radius}
                 border="none"
                 cursor="pointer"
                 display="flex"
                 alignItems="center"
                 justifyContent="center"
-                style={{ fontFamily: "inherit", touchAction: "manipulation" }}
+                boxShadow="0 3px 0 rgba(0,0,0,0.15)"
+                style={{ fontFamily: t.font, touchAction: "manipulation", transition: "all 0.1s" }}
               >
                 {key}
               </Box>

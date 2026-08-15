@@ -2,14 +2,15 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Box, Text, VStack, HStack, Spinner } from "@chakra-ui/react";
 import axios from "axios";
+import { t } from "../theme";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 
 function StatBox({ value, label }) {
   return (
     <VStack gap={0} flex={1} align="center">
-      <Text fontSize="2xl" fontWeight="black" color="white" lineHeight={1}>{value}</Text>
-      <Text fontSize="10px" color="#818384" textAlign="center" mt={1} lineHeight="1.2">{label}</Text>
+      <Text fontSize="2xl" fontWeight="black" color={t.text} lineHeight={1}>{value}</Text>
+      <Text fontSize="10px" color={t.muted} textAlign="center" mt={1} lineHeight="1.2">{label}</Text>
     </VStack>
   );
 }
@@ -24,7 +25,7 @@ export default function StatsModal({ onClose, token, maxGuesses = 6, mode = "dai
       .then(r => setStats(r.data))
       .catch(() => setStats(null))
       .finally(() => setLoading(false));
-  }, [token]);
+  }, [token, mode]);
 
   const maxCount = stats?.distribution?.reduce((m, r) => Math.max(m, parseInt(r.count)), 1) || 1;
 
@@ -34,7 +35,7 @@ export default function StatsModal({ onClose, token, maxGuesses = 6, mode = "dai
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center" }}
+        style={{ position: "fixed", inset: 0, background: "rgba(0,50,120,0.4)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center" }}
         onClick={onClose}
       >
         <motion.div
@@ -45,23 +46,22 @@ export default function StatsModal({ onClose, token, maxGuesses = 6, mode = "dai
           onClick={e => e.stopPropagation()}
           style={{ width: "100%", maxWidth: "420px", margin: "0 16px" }}
         >
-          <Box bg="#1a1a1b" border="1px solid #3a3a3c" borderRadius="xl" p={6}>
+          <Box bg={t.surface} border={`1px solid ${t.border}`} borderRadius="xl" p={6}>
             <HStack justifyContent="space-between" mb={5}>
-              <Text fontSize="sm" fontWeight="bold" color="white" letterSpacing="0.12em" textTransform="uppercase">
+              <Text fontSize="sm" fontWeight="bold" color={t.text} letterSpacing="0.12em" textTransform="uppercase" fontFamily={t.font}>
                 {mode === "practice" ? "🎯 Practice Stats" : "📅 Daily Stats"}
               </Text>
-              <Box as="button" color="#818384" onClick={onClose} fontSize="lg" cursor="pointer" lineHeight={1}>✕</Box>
+              <Box as="button" color={t.muted} onClick={onClose} fontSize="lg" cursor="pointer" lineHeight={1}>✕</Box>
             </HStack>
 
             {loading ? (
-              <Box display="flex" justifyContent="center" py={6}><Spinner color="#538d4e" /></Box>
+              <Box display="flex" justifyContent="center" py={6}><Spinner color={t.accent} /></Box>
             ) : !stats || !token ? (
-              <Text color="#818384" textAlign="center" py={6} fontSize="sm">
+              <Text color={t.muted} textAlign="center" py={6} fontSize="sm" fontFamily={t.font}>
                 Sign in to track your stats 👀
               </Text>
             ) : (
               <VStack gap={6} align="stretch">
-                {/* Top stats row */}
                 <HStack gap={2} justify="center">
                   <StatBox value={stats.played} label="Played" />
                   <StatBox value={`${stats.winPct}`} label="Win %" />
@@ -69,9 +69,8 @@ export default function StatsModal({ onClose, token, maxGuesses = 6, mode = "dai
                   <StatBox value={stats.maxStreak} label={`Max\nStreak`} />
                 </HStack>
 
-                {/* Guess distribution */}
                 <Box>
-                  <Text fontSize="xs" fontWeight="bold" color="white" letterSpacing="0.12em" textTransform="uppercase" mb={3}>
+                  <Text fontSize="xs" fontWeight="bold" color={t.text} letterSpacing="0.12em" textTransform="uppercase" mb={3} fontFamily={t.font}>
                     Guess Distribution
                   </Text>
                   <VStack gap={1.5} align="stretch">
@@ -81,14 +80,14 @@ export default function StatsModal({ onClose, token, maxGuesses = 6, mode = "dai
                       const pct = Math.max(8, Math.round((count / maxCount) * 100));
                       return (
                         <HStack key={i} gap={2} align="center">
-                          <Text color="#818384" fontSize="sm" w="12px" textAlign="right" flexShrink={0}>{i + 1}</Text>
+                          <Text color={t.muted} fontSize="sm" w="12px" textAlign="right" flexShrink={0}>{i + 1}</Text>
                           <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${pct}%` }}
                             transition={{ delay: 0.1 + i * 0.05, duration: 0.4, ease: "easeOut" }}
-                            style={{ background: count > 0 ? "#538d4e" : "#3a3a3c", borderRadius: 4, minWidth: 24, display: "flex", alignItems: "center", justifyContent: "flex-end", padding: "2px 6px" }}
+                            style={{ background: count > 0 ? t.accent : t.border, borderRadius: 4, minWidth: 24, display: "flex", alignItems: "center", justifyContent: "flex-end", padding: "2px 6px" }}
                           >
-                            <Text fontSize="xs" color="white" fontWeight="bold">{count}</Text>
+                            <Text fontSize="xs" color={t.white} fontWeight="bold">{count}</Text>
                           </motion.div>
                         </HStack>
                       );
