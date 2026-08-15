@@ -6,10 +6,10 @@ function authHeaders(token) {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-export async function startGame({ word, length, daily } = {}, token) {
+export async function startGame({ word, length, daily, mode } = {}, token) {
   const res = await axios.post(
     `${BASE_URL}/api/game/start`,
-    { word, length, daily },
+    { word, length, daily, mode },
     { headers: authHeaders(token) }
   );
   return res.data;
