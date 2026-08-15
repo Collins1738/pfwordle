@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Box, Text, Button, VStack, HStack } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
+import { DiceFive, ChartBar, House } from "@phosphor-icons/react";
 import { t } from "../theme";
 
 // Score out of 1000 based on guess count + time bonus
@@ -46,12 +47,12 @@ function TileRow({ guess, result, delay = 0 }) {
             transition={{ delay: delay + i * 0.06, duration: 0.25, ease: "easeOut" }}
           >
             <Box
-              w="30px" h="30px"
+              w="22px" h="22px"
               bg={bg}
-              borderRadius="6px"
+              borderRadius="4px"
               display="flex" alignItems="center" justifyContent="center"
             >
-              <Text color={t.white} fontWeight="700" fontFamily={t.font} fontSize="sm" letterSpacing="0.05em">
+              <Text color={t.white} fontWeight="700" fontFamily={t.font} fontSize="10px" letterSpacing="0.03em">
                 {letter}
               </Text>
             </Box>
@@ -148,10 +149,10 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
                       {Array.from({ length: wordLength }, (_, i) => (
                         <Box
                           key={i}
-                          w="30px" h="30px"
+                          w="22px" h="22px"
                           bg="transparent"
                           border={`2px solid ${t.border}`}
-                          borderRadius="6px"
+                          borderRadius="4px"
                         />
                       ))}
                     </HStack>
@@ -291,7 +292,7 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
                 onClick={onPractice}
                 _hover={{ bg: t.bg }}
               >
-                🎯 Practice Mode
+                <DiceFive size={16} weight="duotone" style={{ display: "inline", marginRight: 6, verticalAlign: "middle" }} />Practice Mode
               </Button>
             )}
             <Button
@@ -302,7 +303,7 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
               onClick={() => navigate("/")}
               _hover={{ bg: t.bg, color: t.text }}
             >
-              🏠 Home
+              <House size={16} weight="duotone" style={{ display: "inline", marginRight: 6, verticalAlign: "middle" }} />Home
             </Button>
             {onShowStats && (
               <Button
@@ -313,7 +314,7 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
                 onClick={onShowStats}
                 _hover={{ bg: t.bg, color: t.text }}
               >
-                📊 My Stats
+                <ChartBar size={16} weight="duotone" style={{ display: "inline", marginRight: 6, verticalAlign: "middle" }} />My Stats
               </Button>
             )}
           </motion.div>

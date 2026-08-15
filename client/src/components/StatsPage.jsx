@@ -50,7 +50,7 @@ export default function StatsPage({ token, maxGuesses = 6, mode = "daily" }) {
             ← Back
           </Box>
           <Text fontSize="sm" fontWeight="bold" color={t.text} letterSpacing="0.12em" textTransform="uppercase" fontFamily={t.font}>
-            {mode === "practice" ? "🎯 Practice Stats" : "📅 Daily Stats"}
+            {mode === "practice" ? "🎯 Practice Stats" : "🗓️ Daily Stats"}
           </Text>
           <Box w="48px" />
         </HStack>

@@ -9,12 +9,15 @@ import ResultScreen from "./components/ResultScreen";
 import { startGame, submitGuess, getDebugAnswer, resumeGame } from "./api";
 import { useAuth } from "./useAuth";
 import { t } from "./theme";
+import { Trophy, ChartBar } from "@phosphor-icons/react";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 
 export default function App({ mode = "daily" }) {
   const { user, logout, getToken } = useAuth();
   const navigate = useNavigate();
+
+
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [sessionId, setSessionId] = useState(null);
@@ -37,13 +40,25 @@ export default function App({ mode = "daily" }) {
 
   const DEV_ACCOUNTS = ["tobechikeluba@gmail.com", "collins.chikeluba@permitflow.com"];
   const isDevAccount = user && DEV_ACCOUNTS.includes(user.email);
-  const [devMode, setDevMode] = useState(false);
-  // Default dev mode ON for dev accounts — sync when user loads
+
+  const getDevMode = () => {
+    const stored = localStorage.getItem("devMode");
+    if (stored !== null) return stored === "true";
+    return !!isDevAccount; // default ON for dev accounts
+  };
+  const [devMode, setDevMode] = useState(getDevMode);
+
   useEffect(() => {
-    if (isDevAccount) setDevMode(true);
+    if (isDevAccount && localStorage.getItem("devMode") === null) setDevMode(true);
   }, [isDevAccount]);
 
   const isDev = devMode;
+
+  function toggleDevMode() {
+    const next = !devMode;
+    setDevMode(next);
+    localStorage.setItem("devMode", String(next));
+  }
 
   // Fetch debug answer whenever dev mode is toggled on and we have a session
   useEffect(() => {
@@ -249,6 +264,23 @@ export default function App({ mode = "daily" }) {
               >
                 👥 view roster
               </Box>
+              {mode === "daily" && (
+                <Box
+                  as="button"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    const token = getToken();
+                    await fetch(`${BASE_URL}/api/dev/reset-daily`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+                    setDebugOpen(false);
+                    await newGame({});
+                  }}
+                  bg="#2e1a1a" color="#ff8080" border="1px solid #444" borderRadius="sm"
+                  px={2} py={1} fontSize="xs" fontFamily="monospace" cursor="pointer" w="100%"
+                  _hover={{ bg: "#3e1a1a" }}
+                >
+                  🗑️ reset daily
+                </Box>
+              )}
             </Box>
           )}
         </Box>
@@ -262,18 +294,18 @@ export default function App({ mode = "daily" }) {
           <HStack gap={2}>
             <Box
               as="button" onClick={() => setShowLeaderboard(true)}
-              color={t.muted} fontSize="xl" cursor="pointer" title="Leaderboard"
+              color={t.muted} cursor="pointer" title="Leaderboard" display="flex" alignItems="center"
               _hover={{ color: t.accent }} transition="color 0.15s"
-            >🏆</Box>
+            ><Trophy size={20} weight="duotone" /></Box>
             <Box
               as="button" onClick={() => navigate(`/stats?mode=${mode}`)}
-              color={t.muted} fontSize="xl" cursor="pointer" title="My Stats"
+              color={t.muted} cursor="pointer" title="My Stats" display="flex" alignItems="center"
               _hover={{ color: t.accent }} transition="color 0.15s"
-            >📊</Box>
-            {user && (
+            ><ChartBar size={20} weight="duotone" /></Box>
+            {isDevAccount && (
               <Box
                 as="button"
-                onClick={() => setDevMode(o => !o)}
+                onClick={toggleDevMode}
                 title={devMode ? "Dev mode on" : "Dev mode off"}
                 fontSize="sm"
                 px={2} py={0.5}
