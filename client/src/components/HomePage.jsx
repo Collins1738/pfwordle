@@ -63,7 +63,7 @@ export default function HomePage() {
     navigate("/daily");
   }
 
-  function renderLeaderboard(data, title, statFn, topN) {
+  function renderLeaderboard(data, title, statFn, topN, linkTo) {
     if (!data.length) return null;
     const userIdx = user ? data.findIndex(r => r.name === user.name) : -1;
     const topRows = data.slice(0, topN).map((row, i) => ({ row, position: i + 1 }));
@@ -78,12 +78,17 @@ export default function HomePage() {
     }
     const medals = ["🥇", "🥈", "🥉"];
     return (
-      <Box w="100%" bg={t.surface} border={`1px solid ${t.border}`} borderRadius="xl" overflow="hidden">
-        <Box px={4} py={2.5} borderBottom={`1px solid ${t.border}`}>
+      <Box w="100%" bg={t.surface} border={`1px solid ${t.border}`} borderRadius="xl" overflow="hidden" cursor={linkTo ? "pointer" : "default"} onClick={linkTo ? () => navigate(linkTo) : undefined}>
+        <HStack px={4} py={2.5} borderBottom={`1px solid ${t.border}`} justifyContent="space-between">
           <Text fontSize="xs" fontWeight="700" color={t.muted} fontFamily={t.font} letterSpacing="0.1em" textTransform="uppercase">
             {title}
           </Text>
-        </Box>
+          {linkTo && (
+            <Text fontSize="xs" color={t.accent} fontFamily={t.font} fontWeight="600" cursor="pointer" onClick={() => navigate(linkTo)}>
+              →
+            </Text>
+          )}
+        </HStack>
         <VStack gap={0} align="stretch">
           {topRows.map(({ row, position }, i) => {
             const isYou = user && row.name === user.name;
@@ -336,12 +341,15 @@ export default function HomePage() {
           const isOutsideTop3 = user && userIdx >= 3;
           const medals = ["🥇", "🥈", "🥉"];
           return (
-            <Box w="100%" bg={t.surface} border={`1px solid ${t.border}`} borderRadius="xl" overflow="hidden">
-              <Box px={4} py={2.5} borderBottom={`1px solid ${t.border}`}>
+            <Box w="100%" bg={t.surface} border={`1px solid ${t.border}`} borderRadius="xl" overflow="hidden" cursor="pointer" onClick={() => navigate("/leaderboard/weekly")}>
+              <HStack px={4} py={2.5} borderBottom={`1px solid ${t.border}`} justifyContent="space-between">
                 <Text fontSize="xs" fontWeight="700" color={t.muted} fontFamily={t.font} letterSpacing="0.1em" textTransform="uppercase">
                   This Week
                 </Text>
-              </Box>
+                <Text fontSize="xs" color={t.accent} fontFamily={t.font} fontWeight="600" cursor="pointer" onClick={() => navigate("/leaderboard/weekly")}>
+                  →
+                </Text>
+              </HStack>
               <HStack px={2} py={2} gap={0} align="stretch">
                 {top3.map((row, i) => {
                   const isYou = user && row.name === user.name;
@@ -406,9 +414,9 @@ export default function HomePage() {
               </HStack>
             ))}
           </Box>
-        ) : renderLeaderboard(leaderboard, "Today's Leaderboard", (row) =>
+        ) : renderLeaderboard(leaderboard, "Today", (row) =>
           row.status === "won" ? `${row.guess_count} guess${row.guess_count !== 1 ? "es" : ""}` : "❌"
-        , 1)}
+        , 1, "/leaderboard/daily")}
 
         {/* Auth strip */}
         <Box mt={4} w="100%" display="flex" justifyContent="center">

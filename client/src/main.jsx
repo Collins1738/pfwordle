@@ -6,6 +6,7 @@ import App from "./App";
 import HomePage from "./components/HomePage";
 import RosterPage from "./components/RosterPage";
 import StatsPageWrapper from "./components/StatsPageWrapper";
+import LeaderboardPage from "./components/LeaderboardPage";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
@@ -16,6 +17,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           <Route path="/daily" element={<App mode="daily" />} />
           <Route path="/practice" element={<App mode="practice" />} />
           <Route path="/stats" element={<StatsPageWrapper />} />
+          <Route path="/leaderboard/:type" element={<LeaderboardPage />} />
           <Route path="/roster" element={<RosterPage />} />
         </Routes>
       </BrowserRouter>
