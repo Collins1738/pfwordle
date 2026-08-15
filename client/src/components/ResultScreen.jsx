@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Box, Text, Button, VStack, HStack } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
-import { DiceFive, ChartBar, House } from "@phosphor-icons/react";
+import { DiceFive, ChartBar } from "@phosphor-icons/react";
 import { t } from "../theme";
 
 // Score out of 1000 based on guess count + time bonus
@@ -72,7 +72,7 @@ function timeBonusLabel(durationSeconds) {
   return null;
 }
 
-export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLength, employee, durationSeconds, onPlayAgain, onShowStats, onPractice }) {
+export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLength, employee, durationSeconds, onPlayAgain, onShowStats, onPractice, instant = false }) {
   const navigate = useNavigate();
   const accentColor = won ? t.accent : t.present;
   const score = calcScore(guesses.length, maxGuesses, won, durationSeconds);
@@ -85,10 +85,10 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
     <AnimatePresence>
       <motion.div
         key="result-screen"
-        initial={{ x: "100%", opacity: 0 }}
+        initial={instant ? false : { x: "100%", opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         exit={{ x: "100%", opacity: 0 }}
-        transition={{ type: "spring", stiffness: 280, damping: 30 }}
+        transition={instant ? { duration: 0 } : { type: "spring", stiffness: 280, damping: 30 }}
         style={{
           position: "fixed",
           inset: 0,
@@ -303,7 +303,7 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
               onClick={() => navigate("/")}
               _hover={{ bg: t.bg, color: t.text }}
             >
-              <House size={16} weight="duotone" style={{ display: "inline", marginRight: 6, verticalAlign: "middle" }} />Home
+              🏠 Home
             </Button>
             {onShowStats && (
               <Button
