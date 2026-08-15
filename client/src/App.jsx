@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, VStack, Text, Heading, Avatar, HStack } from "@chakra-ui/react";
 import Board from "./components/Board";
@@ -37,6 +37,8 @@ export default function App({ mode = "daily" }) {
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [blurDraining, setBlurDraining] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
+  const [initializing, setInitializing] = useState(true);
+  const resumedComplete = useRef(false); // true when result screen shown via resume (skip animation)
 
   const DEV_ACCOUNTS = ["tobechikeluba@gmail.com", "collins.chikeluba@permitflow.com"];
   const isDevAccount = user && DEV_ACCOUNTS.includes(user.email);
@@ -124,7 +126,7 @@ export default function App({ mode = "daily" }) {
               setGuesses(data.guesses || []);
               setCurrentGuess("");
               setStatus(data.status);
-              if (data.status === "won" || data.status === "lost") setShowResult(true);
+              if (data.status === "won" || data.status === "lost") { setShowResult(true); resumedComplete.current = true; }
               setAvatarUrl(data.avatarUrl || null);
               if (data.guesses?.length) restoreLetterStatuses(data.guesses);
               return;
@@ -160,7 +162,7 @@ export default function App({ mode = "daily" }) {
 
       await newGame();
     }
-    init();
+    init().finally(() => setInitializing(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
@@ -239,6 +241,8 @@ export default function App({ mode = "daily" }) {
 
   const msgColor = status === "won" ? t.accent : status === "lost" ? t.accentAlt : t.text;
 
+  if (initializing) return <Box minH="100vh" bg={t.bg} />;
+
   return (
     <Box minH="100vh" bg={t.bg} display="flex" flexDir="column" alignItems="center" fontFamily={t.font}>
 
@@ -252,9 +256,10 @@ export default function App({ mode = "daily" }) {
           wordLength={wordLength}
           employee={employee}
           durationSeconds={duration}
+          instant={resumedComplete.current}
           onPlayAgain={mode === "practice" ? () => newGame({}) : null}
-          onPractice={mode === "daily" ? () => navigate("/practice") : null}
-          onShowStats={() => { setShowResult(false); navigate(`/stats?mode=${mode}`); }}
+          onPractice={null}
+          onShowStats={mode === "practice" ? () => { setShowResult(false); navigate(`/stats?mode=${mode}`); } : null}
         />
       )}
 
