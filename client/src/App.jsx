@@ -4,12 +4,12 @@ import { Box, VStack, Text, Heading, Avatar, HStack } from "@chakra-ui/react";
 import Board from "./components/Board";
 import Keyboard from "./components/Keyboard";
 import EmployeeCard from "./components/EmployeeCard";
-import Leaderboard from "./components/Leaderboard";
+
 import ResultScreen from "./components/ResultScreen";
 import { startGame, submitGuess, getDebugAnswer, resumeGame, getGameState } from "./api";
 import { useAuth } from "./useAuth";
 import { t } from "./theme";
-import { Trophy, ChartBar } from "@phosphor-icons/react";
+
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 
@@ -18,7 +18,7 @@ export default function App({ mode = "daily" }) {
   const navigate = useNavigate();
 
 
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
+
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [sessionId, setSessionId] = useState(null);
   const [guesses, setGuesses] = useState([]);
@@ -333,17 +333,13 @@ export default function App({ mode = "daily" }) {
         </Box>
       )}
 
-      {showLeaderboard && <Leaderboard onClose={() => setShowLeaderboard(false)} />}
+
 
       {/* Header */}
       <Box w="100%" maxW="520px" borderBottom="1px solid" borderColor={t.border} bg={t.surface} py={3} px={4}>
         <HStack justifyContent="space-between" alignItems="center">
           <HStack gap={2}>
-            <Box
-              as="button" onClick={() => setShowLeaderboard(true)}
-              color={t.muted} cursor="pointer" title="Leaderboard" display="flex" alignItems="center"
-              _hover={{ color: t.accent }} transition="color 0.15s"
-            ><Trophy size={20} weight="duotone" /></Box>
+
 
             {isDevAccount && (
               <Box
