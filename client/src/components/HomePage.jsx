@@ -134,10 +134,20 @@ export default function HomePage() {
     return hrs > 0 ? `${hrs}h left` : `${mins}m left`;
   })();
 
+  const nextInText = (() => {
+    const now = new Date();
+    const midnight = new Date(now);
+    midnight.setHours(24, 0, 0, 0);
+    const diff = midnight - now;
+    const hrs = Math.floor(diff / 3600000);
+    const mins = Math.floor((diff % 3600000) / 60000);
+    return hrs > 0 ? `next in ${hrs}h` : `next in ${mins}m`;
+  })();
+
   const dailyLabel = dailyStatus === "won"
-    ? { icon: <><CheckCircle size={12} weight="duotone" /><span style={{ marginLeft: 3, fontSize: "10px", color: t.muted }}>{hoursUntilMidnight}</span></>, color: "#22c55e" }
+    ? { icon: <><CheckCircle size={12} weight="duotone" /><span style={{ marginLeft: 3, fontSize: "10px", color: t.muted }}>{nextInText}</span></>, color: "#22c55e" }
     : dailyStatus === "lost"
-    ? { icon: <><XCircle size={12} weight="duotone" /><span style={{ marginLeft: 3, fontSize: "10px", color: t.muted }}>{hoursUntilMidnight}</span></>, color: t.present }
+    ? { icon: <><XCircle size={12} weight="duotone" /><span style={{ marginLeft: 3, fontSize: "10px", color: t.muted }}>{nextInText}</span></>, color: t.present }
     : dailyStatus === "playing"
     ? { text: "▶️ In progress", color: "#f5c518" }
     : user
@@ -161,8 +171,8 @@ export default function HomePage() {
 
   return (
     <>
-    {devModeOn && (
-      <Box position="fixed" top="12px" right="12px" zIndex={9999}>
+    {devModeOn && isDevAccount && (
+      <Box position="fixed" bottom="80px" right="16px" zIndex={9999}>
         <Box
           as="button"
           onClick={() => setDevMenuOpen(o => !o)}
