@@ -197,24 +197,7 @@ export default function App({ mode = "daily" }) {
 
   return (
     <Box minH="100vh" bg={t.bg} display="flex" flexDir="column" alignItems="center" fontFamily={t.font}>
-      {/* Mode toggle bar */}
-      <Box w="100%" maxW="520px" display="flex" borderBottom="1px solid" borderColor={t.border}>
-        {["daily", "practice"].map(m => (
-          <Box
-            key={m} flex={1} textAlign="center" py={2} cursor="pointer"
-            bg={mode === m ? t.surface : "transparent"}
-            color={mode === m ? t.accent : t.muted}
-            fontWeight={mode === m ? "700" : "500"}
-            fontFamily={t.font}
-            fontSize="sm" letterSpacing="0.05em" textTransform="capitalize"
-            borderBottom={mode === m ? `2px solid ${t.accent}` : "2px solid transparent"}
-            transition="all 0.15s"
-            onClick={() => { if (mode !== m) navigate(`/${m}`); }}
-          >
-            {m === "daily" ? "📅 Daily" : "🎯 Practice"}
-          </Box>
-        ))}
-      </Box>
+
 
       {showResult && (status === "won" || status === "lost") && (
         <ResultScreen
@@ -225,7 +208,8 @@ export default function App({ mode = "daily" }) {
           wordLength={wordLength}
           employee={employee}
           durationSeconds={duration}
-          onPlayAgain={() => newGame({})}
+          onPlayAgain={mode === "practice" ? () => newGame({}) : null}
+          onPractice={mode === "daily" ? () => navigate("/practice") : null}
           onShowStats={() => { setShowResult(false); navigate(`/stats?mode=${mode}`); }}
         />
       )}
