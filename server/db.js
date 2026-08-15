@@ -34,6 +34,7 @@ async function migrate() {
 
     -- Add mode column (daily | practice)
     ALTER TABLE games ADD COLUMN IF NOT EXISTS mode TEXT NOT NULL DEFAULT 'daily';
+    ALTER TABLE games ADD COLUMN IF NOT EXISTS score INTEGER;
 
     -- Fix: drop old unique constraint (daily only), add partial index for daily uniqueness
     ALTER TABLE games DROP CONSTRAINT IF EXISTS games_user_id_date_key;
