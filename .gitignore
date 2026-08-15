@@ -6,3 +6,4 @@ client/dist/
 *.log
 # Keep .env.production (needed for build), ignore local .env
 client/.env
+server/.env

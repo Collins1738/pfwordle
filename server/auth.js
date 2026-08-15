@@ -64,7 +64,8 @@ function setupAuth(app) {
         { expiresIn: "30d" }
       );
       // Redirect to frontend with token
-      res.redirect(`/?token=${token}`);
+      const frontendUrl = process.env.FRONTEND_URL || "";
+      res.redirect(`${frontendUrl}/?token=${token}`);
     }
   );
 
