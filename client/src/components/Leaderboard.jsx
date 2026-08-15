@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Box, VStack, Text, Heading, HStack, Avatar, Spinner } from "@chakra-ui/react";
+import { Trophy } from "@phosphor-icons/react";
 import axios from "axios";
 import { t } from "../theme";
 
@@ -12,7 +13,9 @@ export default function Leaderboard({ onClose }) {
 
   useEffect(() => {
     setLoading(true);
-    const url = tab === "daily" ? `${BASE_URL}/api/leaderboard/daily` : `${BASE_URL}/api/leaderboard/alltime`;
+    const url = tab === "daily"   ? `${BASE_URL}/api/leaderboard/daily`
+              : tab === "weekly"  ? `${BASE_URL}/api/leaderboard/weekly`
+              :                     `${BASE_URL}/api/leaderboard/alltime`;
     axios.get(url)
       .then(r => setData(r.data))
       .catch(() => setData([]))
@@ -33,13 +36,13 @@ export default function Leaderboard({ onClose }) {
         onClick={e => e.stopPropagation()}
       >
         <HStack justifyContent="space-between" mb={4}>
-          <Heading size="md" color={t.text} fontFamily={t.font}>🏆 Leaderboard</Heading>
+          <Heading size="md" color={t.text} fontFamily={t.font} display="flex" alignItems="center" gap={2}><Trophy size={20} weight="duotone" /> Leaderboard</Heading>
           <Box as="button" color={t.muted} onClick={onClose} fontSize="xl" cursor="pointer">✕</Box>
         </HStack>
 
         {/* Tabs */}
         <HStack mb={4} gap={0} border={`1px solid ${t.border}`} borderRadius="lg" overflow="hidden">
-          {["daily", "alltime"].map(tab_ => (
+          {["daily", "weekly", "alltime"].map(tab_ => (
             <Box
               key={tab_}
               flex={1} textAlign="center" py={2} cursor="pointer"
@@ -49,7 +52,7 @@ export default function Leaderboard({ onClose }) {
               fontSize="sm" fontWeight="bold" fontFamily={t.font}
               transition="all 0.15s"
             >
-              {tab_ === "daily" ? "Today" : "All Time"}
+              {tab_ === "daily" ? "Today" : tab_ === "weekly" ? "This Week" : "All Time"}
             </Box>
           ))}
         </HStack>
@@ -78,6 +81,11 @@ export default function Leaderboard({ onClose }) {
                     {row.duration_seconds && (
                       <Text color={t.muted} fontSize="xs">{formatDuration(row.duration_seconds)}</Text>
                     )}
+                  </VStack>
+                ) : tab === "weekly" ? (
+                  <VStack gap={0} align="flex-end">
+                    <Text color={t.accent} fontWeight="bold" fontSize="sm" fontFamily={t.font}>{row.total_score} pts</Text>
+                    <Text color={t.muted} fontSize="xs">{row.wins} win{row.wins !== 1 ? "s" : ""}</Text>
                   </VStack>
                 ) : (
                   <VStack gap={0} align="flex-end">

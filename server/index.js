@@ -9,6 +9,18 @@ const { EMPLOYEE_MAP } = require("./names");
 const { migrate, pool } = require("./db");
 const { setupAuth, requireAuth } = require("./auth");
 
+function calcScore(guessCount, maxGuesses, durationSeconds) {
+  const perfect = 900;
+  const deductPerGuess = Math.floor(perfect / maxGuesses);
+  const base = Math.max(50, perfect - (guessCount - 1) * deductPerGuess);
+  let timeBonus = 0;
+  if (durationSeconds < 60)        timeBonus = 100;
+  else if (durationSeconds < 300)  timeBonus = 75;
+  else if (durationSeconds < 600)  timeBonus = 50;
+  else if (durationSeconds < 1800) timeBonus = 25;
+  return Math.min(1000, base + timeBonus);
+}
+
 // Feature flag: "first" = first names only, "full" = full names (first + last)
 const NAME_MODE = "first";
 
@@ -284,10 +296,11 @@ app.post("/api/game/:sessionId/guess", async (req, res) => {
       );
       if (session.status !== "playing") {
         const durationSeconds = Math.round((Date.now() - session.startedAt) / 1000);
+        const score = session.status === "won" ? calcScore(session.guesses.length, session.maxGuesses, durationSeconds) : 0;
         await pool.query(
-          `UPDATE games SET status = $1, guess_count = $2, duration_seconds = $3, completed_at = NOW()
+          `UPDATE games SET status = $1, guess_count = $2, duration_seconds = $3, completed_at = NOW(), score = $5
            WHERE id = $4`,
-          [session.status, session.guesses.length, durationSeconds, session.gameId]
+          [session.status, session.guesses.length, durationSeconds, session.gameId, score]
         );
       }
     } catch (e) { console.error("DB save error:", e.message); }
@@ -321,6 +334,14 @@ app.get("/api/game/:sessionId", (req, res) => {
     status: session.status,
     ...(session.status !== "playing" ? { answer: session.word } : {}),
   });
+});
+
+// DELETE /api/dev/reset-daily — dev only, deletes today's daily game for current user
+app.delete("/api/dev/reset-daily", requireAuth, async (req, res) => {
+  if (process.env.NODE_ENV === "production") return res.status(403).json({ error: "Not allowed in production" });
+  const today = new Date().toISOString().slice(0, 10);
+  await pool.query("DELETE FROM games WHERE user_id = $1 AND date = $2 AND mode = 'daily'", [req.user.id, today]);
+  res.json({ ok: true });
 });
 
 // GET /api/game/:sessionId/debug — dev only
@@ -435,6 +456,39 @@ app.get("/api/leaderboard/alltime", async (req, res) => {
        GROUP BY u.id, u.name, u.avatar_url
        ORDER BY wins DESC, avg_guesses ASC
        LIMIT 50`
+    );
+    res.json(rows);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/leaderboard/weekly — Mon–Fri current week, ranked by total score
+app.get("/api/leaderboard/weekly", async (req, res) => {
+  try {
+    // Get Monday of current week
+    const now = new Date();
+    const day = now.getDay(); // 0=Sun, 1=Mon...
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+    monday.setHours(0, 0, 0, 0);
+    const friday = new Date(monday);
+    friday.setDate(monday.getDate() + 4);
+    friday.setHours(23, 59, 59, 999);
+
+    const { rows } = await pool.query(
+      `SELECT u.name, u.avatar_url,
+              COALESCE(SUM(g.score), 0) AS total_score,
+              COUNT(*) FILTER (WHERE g.status = 'won') AS wins,
+              COUNT(*) AS played
+       FROM games g JOIN users u ON u.id = g.user_id
+       WHERE g.mode = 'daily'
+         AND g.date >= $1 AND g.date <= $2
+         AND g.status IN ('won', 'lost')
+       GROUP BY u.id, u.name, u.avatar_url
+       ORDER BY total_score DESC, wins DESC
+       LIMIT 50`,
+      [monday.toISOString().slice(0, 10), friday.toISOString().slice(0, 10)]
     );
     res.json(rows);
   } catch (e) {
