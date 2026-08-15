@@ -206,7 +206,7 @@ export default function LeaderboardPage() {
                     transition="background 0.1s"
                   >
                     <Text fontSize="sm" w="28px" textAlign="center" flexShrink={0} color={t.muted} fontFamily={t.font}>
-                      {medals[i] || `#${i + 1}`}
+                      {isWeekly ? (medals[i] || `#${i + 1}`) : `#${i + 1}`}
                     </Text>
                     <Avatar.Root size="sm" flexShrink={0}>
                       <Avatar.Image src={row.avatar_url} />

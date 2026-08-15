@@ -135,13 +135,13 @@ export default function HomePage() {
   })();
 
   const dailyLabel = dailyStatus === "won"
-    ? { icon: <CheckCircle size={14} weight="duotone" />, color: "#22c55e" }
+    ? { icon: <><CheckCircle size={12} weight="duotone" /><span style={{ marginLeft: 3, fontSize: "10px", color: t.muted }}>{hoursUntilMidnight}</span></>, color: "#22c55e" }
     : dailyStatus === "lost"
-    ? { icon: <XCircle size={14} weight="duotone" />, color: t.present }
+    ? { icon: <><XCircle size={12} weight="duotone" /><span style={{ marginLeft: 3, fontSize: "10px", color: t.muted }}>{hoursUntilMidnight}</span></>, color: t.present }
     : dailyStatus === "playing"
     ? { text: "▶️ In progress", color: "#f5c518" }
     : user
-    ? { text: `${hoursUntilMidnight}`, color: t.muted }
+    ? { text: `⏳ ${hoursUntilMidnight}`, color: t.muted }
     : null;
 
   const devModeOn = localStorage.getItem("devMode") === "true" || (isDevAccount && localStorage.getItem("devMode") === null);

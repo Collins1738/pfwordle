@@ -454,9 +454,14 @@ export default function App({ mode = "daily" }) {
                     transition: blurDraining ? "filter 1s ease-out" : "filter 0.6s ease-out",
                   }}
                 />
-                {isBlacked && (
-                  <Box position="absolute" inset={0} bg="black" borderRadius="full" />
-                )}
+                <Box
+                  position="absolute" inset={0} bg="black" borderRadius="full"
+                  style={{
+                    opacity: isBlacked ? 1 : 0,
+                    transition: "opacity 0.6s ease-out",
+                    pointerEvents: "none",
+                  }}
+                />
               </Box>
             );
           })()}

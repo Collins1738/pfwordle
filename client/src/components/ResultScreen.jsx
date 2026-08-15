@@ -47,7 +47,7 @@ function TileRow({ guess, result, delay = 0 }) {
             transition={{ delay: delay + i * 0.06, duration: 0.25, ease: "easeOut" }}
           >
             <Box
-              w="22px" h="22px"
+              w="16px" h="16px"
               bg={bg}
               borderRadius="4px"
               display="flex" alignItems="center" justifyContent="center"
@@ -133,7 +133,7 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
           </motion.div>
 
           {/* Tiles + Employee card side by side */}
-          <HStack gap={4} align="flex-start" w="100%">
+          <HStack gap={4} align="center" w="100%">
             {/* Guess grid */}
             <VStack gap={1} flexShrink={0}>
               {Array.from({ length: maxGuesses }, (_, rowIdx) => {
@@ -152,7 +152,7 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
                         {Array.from({ length: wordLength }, (_, i) => (
                           <Box
                             key={i}
-                            w="22px" h="22px"
+                            w="16px" h="16px"
                             bg="transparent"
                             border={`2px solid ${t.border}`}
                             borderRadius="4px"
@@ -170,7 +170,7 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: won ? 1.2 : 0.6, duration: 0.4 }}
+                transition={{ delay: won ? 1.2 : 1.0, duration: 0.4 }}
                 style={{ flex: 1, minWidth: 0 }}
               >
                 <Box
@@ -179,13 +179,13 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
                   borderRadius="xl" overflow="hidden"
                 >
                   <Box
-                    h="60px" bg={accentColor}
+                    h="80px" bg={accentColor}
                     display="flex" alignItems="flex-end" justifyContent="center"
                     position="relative"
                   >
                     <Box
-                      position="absolute" bottom="-28px"
-                      w="56px" h="56px" borderRadius="full"
+                      position="absolute" bottom="-36px"
+                      w="72px" h="72px" borderRadius="full"
                       overflow="hidden"
                       border={`3px solid ${t.surface}`}
                     >
@@ -205,7 +205,7 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
                       )}
                     </Box>
                   </Box>
-                  <VStack gap={1} pt="36px" pb={3} px={2} textAlign="center">
+                  <VStack gap={1} pt="44px" pb={3} px={2} textAlign="center">
                     <Text fontSize="sm" fontWeight="700" fontFamily={t.font} color={t.text} noOfLines={1}>{emp.fullName}</Text>
                     {(emp.slackTitle || emp.title) && (
                       <Text fontSize="10px" color={t.muted} noOfLines={2}>{emp.slackTitle || emp.title}</Text>
@@ -231,7 +231,7 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.9, type: "spring", stiffness: 200 }}
+              transition={{ delay: 1.8, type: "spring", stiffness: 200 }}
               style={{ textAlign: "center" }}
             >
               <Box
@@ -263,7 +263,7 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: won ? 1.5 : 0.9 }}
+            transition={{ delay: won ? 2.2 : 1.6 }}
             style={{ width: "100%", display: "flex", flexDirection: "column", gap: "10px" }}
           >
             {onPlayAgain ? (
