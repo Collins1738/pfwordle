@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Box, Heading, Text, VStack, Avatar, HStack } from "@chakra-ui/react";
+import { Box, Heading, Text, VStack, Avatar, HStack, Skeleton, SkeletonCircle } from "@chakra-ui/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CalendarDots } from "@phosphor-icons/react";
 import { t } from "../theme";
@@ -22,6 +22,7 @@ export default function HomePage() {
   const toastTimer = useRef(null);
   const [leaderboard, setLeaderboard] = useState([]);
   const [weeklyLeaderboard, setWeeklyLeaderboard] = useState([]);
+  const [loadingBoards, setLoadingBoards] = useState(true);
 
   useEffect(() => {
     const token = getToken();
@@ -40,12 +41,14 @@ export default function HomePage() {
   ] : [];
 
   useEffect(() => {
-    axios.get(`${BASE_URL}/api/leaderboard/daily`)
-      .then(r => setLeaderboard(r.data.length > 0 ? r.data : DUMMY_LEADERBOARD))
-      .catch(() => { if (import.meta.env.DEV) setLeaderboard(DUMMY_LEADERBOARD); });
-    axios.get(`${BASE_URL}/api/leaderboard/weekly`)
-      .then(r => setWeeklyLeaderboard(r.data.length > 0 ? r.data : DUMMY_LEADERBOARD))
-      .catch(() => { if (import.meta.env.DEV) setWeeklyLeaderboard(DUMMY_LEADERBOARD); });
+    Promise.all([
+      axios.get(`${BASE_URL}/api/leaderboard/daily`)
+        .then(r => setLeaderboard(r.data.length > 0 ? r.data : DUMMY_LEADERBOARD))
+        .catch(() => { if (import.meta.env.DEV) setLeaderboard(DUMMY_LEADERBOARD); }),
+      axios.get(`${BASE_URL}/api/leaderboard/weekly`)
+        .then(r => setWeeklyLeaderboard(r.data.length > 0 ? r.data : DUMMY_LEADERBOARD))
+        .catch(() => { if (import.meta.env.DEV) setWeeklyLeaderboard(DUMMY_LEADERBOARD); }),
+    ]).finally(() => setLoadingBoards(false));
   }, []);
 
   function handleDailyClick() {
@@ -309,7 +312,25 @@ export default function HomePage() {
         </VStack>
 
         {/* Weekly leaderboard — horizontal podium */}
-        {weeklyLeaderboard.length > 0 && (() => {
+        {loadingBoards ? (
+          <Box w="100%" bg={t.surface} border={`1px solid ${t.border}`} borderRadius="xl" overflow="hidden">
+            <Box px={4} py={2.5} borderBottom={`1px solid ${t.border}`} h="37px" display="flex" alignItems="center">
+              <Skeleton h="10px" w="80px" borderRadius="full" />
+            </Box>
+            <HStack px={2} py={2} gap={0} h="110px">
+              {[0,1,2].map(i => (
+                <React.Fragment key={i}>
+                  {i > 0 && <Box w="1px" bg={t.border} alignSelf="stretch" flexShrink={0} />}
+                  <VStack flex={1} gap={1.5} align="center" justify="center">
+                    <SkeletonCircle size="7" />
+                    <Skeleton h="8px" w="50px" borderRadius="full" />
+                    <Skeleton h="7px" w="30px" borderRadius="full" />
+                  </VStack>
+                </React.Fragment>
+              ))}
+            </HStack>
+          </Box>
+        ) : weeklyLeaderboard.length > 0 && (() => {
           const top3 = weeklyLeaderboard.slice(0, 3);
           const userIdx = user ? weeklyLeaderboard.findIndex(r => r.name === user.name) : -1;
           const isOutsideTop3 = user && userIdx >= 3;
@@ -362,7 +383,7 @@ export default function HomePage() {
                       <Avatar.Fallback>{row.name?.[0]}</Avatar.Fallback>
                     </Avatar.Root>
                     <Text fontSize="sm" color={t.accent} fontFamily={t.font} fontWeight="700" flex={1}>{shortName} <Text as="span" color={t.muted} fontWeight="400">(you)</Text></Text>
-                    <Text fontSize="xs" color={t.accent} fontFamily={t.font} fontWeight="700">{row.total_score ?? 0} pts</Text>
+                    <Text fontSize="9px" color={t.accent} fontFamily={t.font} fontWeight="700">{row.total_score ?? 0} pts</Text>
                   </HStack>
                 );
               })()}
@@ -371,13 +392,29 @@ export default function HomePage() {
         })()}
 
         {/* Daily leaderboard — #1 + current user */}
-        {renderLeaderboard(leaderboard, "Today's Leaderboard", (row) =>
+        {loadingBoards ? (
+          <Box w="100%" bg={t.surface} border={`1px solid ${t.border}`} borderRadius="xl" overflow="hidden">
+            <Box px={4} py={2.5} borderBottom={`1px solid ${t.border}`} h="37px" display="flex" alignItems="center">
+              <Skeleton h="10px" w="120px" borderRadius="full" />
+            </Box>
+            {[0,1].map(i => (
+              <HStack key={i} px={4} py={2.5} gap={3} h="44px" borderBottom={i === 0 ? `1px solid ${t.border}` : "none"}>
+                <Skeleton h="10px" w="24px" borderRadius="full" />
+                <SkeletonCircle size="6" />
+                <Skeleton h="10px" flex={1} borderRadius="full" />
+                <Skeleton h="10px" w="60px" borderRadius="full" />
+              </HStack>
+            ))}
+          </Box>
+        ) : renderLeaderboard(leaderboard, "Today's Leaderboard", (row) =>
           row.status === "won" ? `${row.guess_count} guess${row.guess_count !== 1 ? "es" : ""}` : "❌"
         , 1)}
 
         {/* Auth strip */}
         <Box mt={4} w="100%" display="flex" justifyContent="center">
-          {user === undefined ? null : user ? (
+          {user === undefined ? (
+            <Skeleton h="36px" w="160px" borderRadius="full" />
+          ) : user ? (
             <HStack gap={2} bg={t.surface} border={`1px solid ${t.border}`} borderRadius={t.radiusFull} px={3} py={1.5}>
               <Avatar.Root size="xs">
                 <Avatar.Image src={user.avatar} />

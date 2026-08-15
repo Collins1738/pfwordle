@@ -6,7 +6,7 @@ import Keyboard from "./components/Keyboard";
 import EmployeeCard from "./components/EmployeeCard";
 import Leaderboard from "./components/Leaderboard";
 import ResultScreen from "./components/ResultScreen";
-import { startGame, submitGuess, getDebugAnswer, resumeGame } from "./api";
+import { startGame, submitGuess, getDebugAnswer, resumeGame, getGameState } from "./api";
 import { useAuth } from "./useAuth";
 import { t } from "./theme";
 import { Trophy, ChartBar } from "@phosphor-icons/react";
@@ -89,12 +89,24 @@ export default function App({ mode = "daily" }) {
       setAvatarUrl(data.avatarUrl || null);
       setBlurDraining(false);
       setCelebrating(false);
+      if (mode === "practice") localStorage.setItem("practiceSessionId", data.sessionId);
       if (isDev) {
         getDebugAnswer(data.sessionId).then(d => setDebugAnswer(d.answer)).catch(() => {});
       }
     } catch (e) {
       setMessage("Failed to start game. Is the server running?");
     }
+  }
+
+  function restoreLetterStatuses(guesses) {
+    const priority = { correct: 3, present: 2, absent: 1 };
+    const updated = {};
+    guesses.forEach(({ result }) => {
+      result?.forEach(({ letter, status: s }) => {
+        if (!updated[letter] || priority[s] > (priority[updated[letter]] ?? 0)) updated[letter] = s;
+      });
+    });
+    setLetterStatuses(updated);
   }
 
   // On mount: resume daily game if possible, otherwise start fresh
@@ -114,21 +126,38 @@ export default function App({ mode = "daily" }) {
               setStatus(data.status);
               if (data.status === "won" || data.status === "lost") setShowResult(true);
               setAvatarUrl(data.avatarUrl || null);
-              if (data.guesses?.length) {
-                const priority = { correct: 3, present: 2, absent: 1 };
-                const updated = {};
-                data.guesses.forEach(({ result }) => {
-                  result?.forEach(({ letter, status: s }) => {
-                    if (!updated[letter] || priority[s] > (priority[updated[letter]] ?? 0)) updated[letter] = s;
-                  });
-                });
-                setLetterStatuses(updated);
-              }
+              if (data.guesses?.length) restoreLetterStatuses(data.guesses);
               return;
             }
           } catch { /* fall through */ }
         }
       }
+
+      if (mode === "practice") {
+        const savedSessionId = localStorage.getItem("practiceSessionId");
+        console.log("[practice resume] saved sessionId:", savedSessionId);
+        if (savedSessionId) {
+          try {
+            const res = await getGameState(savedSessionId);
+            console.log("[practice resume] server response:", res);
+            if (res && res.status && res.status !== "error") {
+              setSessionId(savedSessionId);
+              setWordLength(res.wordLength);
+              setMaxGuesses(res.maxGuesses);
+              setGuesses(res.guesses || []);
+              setCurrentGuess("");
+              setStatus(res.status);
+              if (res.status === "won" || res.status === "lost") setShowResult(true);
+              if (res.guesses?.length) restoreLetterStatuses(res.guesses);
+              return;
+            }
+          } catch (e) {
+            console.log("[practice resume] failed:", e.message);
+            /* session expired, fall through to new game */
+          }
+        }
+      }
+
       await newGame();
     }
     init();
@@ -419,16 +448,20 @@ export default function App({ mode = "daily" }) {
           })()}
         </Box>
 
-        <Board
-          guesses={guesses}
-          currentGuess={currentGuess}
-          currentRow={currentRow}
-          wordLength={wordLength}
-          maxGuesses={maxGuesses}
-          celebratingRow={celebrating ? guesses.length - 1 : -1}
-        />
+        {status === "idle" ? (
+          <Box h={`${maxGuesses * 56 + 24}px`} /> /* placeholder matching board height */
+        ) : (
+          <Board
+            guesses={guesses}
+            currentGuess={currentGuess}
+            currentRow={currentRow}
+            wordLength={wordLength}
+            maxGuesses={maxGuesses}
+            celebratingRow={celebrating ? guesses.length - 1 : -1}
+          />
+        )}
 
-        <Keyboard onKey={handleKey} letterStatuses={letterStatuses} />
+        {status !== "idle" && <Keyboard onKey={handleKey} letterStatuses={letterStatuses} />}
 
         <Box h="72px" />
       </VStack>
