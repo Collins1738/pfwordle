@@ -1,10 +1,14 @@
+import { useNavigate } from "react-router-dom";
 import { Box, Heading, Text, VStack } from "@chakra-ui/react";
+import { t } from "../theme";
 
-export default function HomePage({ onPlay }) {
+export default function HomePage() {
+  const navigate = useNavigate();
+
   return (
     <Box
       minH="100vh"
-      bg="#121213"
+      bg={t.bg}
       display="flex"
       flexDir="column"
       alignItems="center"
@@ -12,38 +16,38 @@ export default function HomePage({ onPlay }) {
       px={6}
     >
       <VStack gap={8} textAlign="center" w="100%" maxW="400px">
-        {/* Title */}
         <VStack gap={2}>
           <Heading
-            fontSize={{ base: "3xl", md: "4xl" }}
-            letterSpacing="0.2em"
-            color="white"
-            fontWeight="bold"
+            fontSize={{ base: "4xl", md: "5xl" }}
+            letterSpacing="0.05em"
+            color={t.text}
+            fontWeight="700"
+            fontFamily={t.font}
           >
             PERMITDLE
           </Heading>
-          <Text fontSize="md" color="#818384">
+          <Text fontSize="lg" color={t.muted} fontFamily={t.font} fontWeight="500">
             Guess the Permitflow employee
           </Text>
         </VStack>
 
-        {/* Buttons */}
         <VStack gap={4} w="100%">
           <Box
             as="button"
             w="100%"
             py={5}
-            borderRadius="xl"
-            bg="#538d4e"
-            color="white"
+            borderRadius={t.radiusMd}
+            bg={t.accent}
+            color={t.white}
             fontSize="xl"
-            fontWeight="bold"
-            letterSpacing="0.08em"
+            fontWeight="700"
+            fontFamily={t.font}
             cursor="pointer"
-            transition="all 0.15s"
-            _hover={{ bg: "#4a7a45", transform: "translateY(-1px)" }}
-            _active={{ transform: "translateY(0)" }}
-            onClick={() => onPlay("daily")}
+            boxShadow={`0 5px 0 ${t.accentDark}`}
+            transition="all 0.1s"
+            _hover={{ transform: "translateY(-2px)", boxShadow: `0 7px 0 ${t.accentDark}` }}
+            _active={{ transform: "translateY(3px)", boxShadow: `0 2px 0 ${t.accentDark}` }}
+            onClick={() => navigate("/daily")}
           >
             📅 Play Daily
           </Box>
@@ -52,24 +56,25 @@ export default function HomePage({ onPlay }) {
             as="button"
             w="100%"
             py={5}
-            borderRadius="xl"
-            bg="#2a2a2c"
-            color="white"
+            borderRadius={t.radiusMd}
+            bg={t.surface}
+            color={t.text}
             fontSize="xl"
-            fontWeight="bold"
-            letterSpacing="0.08em"
-            border="2px solid #3a3a3c"
+            fontWeight="700"
+            fontFamily={t.font}
+            border={`2px solid ${t.border}`}
             cursor="pointer"
-            transition="all 0.15s"
-            _hover={{ bg: "#333335", borderColor: "#538d4e", transform: "translateY(-1px)" }}
-            _active={{ transform: "translateY(0)" }}
-            onClick={() => onPlay("practice")}
+            boxShadow={`0 5px 0 ${t.border}`}
+            transition="all 0.1s"
+            _hover={{ transform: "translateY(-2px)", boxShadow: `0 7px 0 ${t.border}` }}
+            _active={{ transform: "translateY(3px)", boxShadow: `0 2px 0 ${t.border}` }}
+            onClick={() => navigate("/practice")}
           >
             🎯 Practice
           </Box>
         </VStack>
 
-        <Text fontSize="xs" color="#555" mt={2}>
+        <Text fontSize="sm" color={t.muted} fontFamily={t.font} mt={2}>
           Daily resets at midnight · Practice anytime
         </Text>
       </VStack>

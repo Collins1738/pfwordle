@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Box, VStack, Text, Heading, HStack, Avatar, Spinner } from "@chakra-ui/react";
 import axios from "axios";
+import { t } from "../theme";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 
@@ -22,66 +23,66 @@ export default function Leaderboard({ onClose }) {
 
   return (
     <Box
-      position="fixed" inset={0} bg="rgba(0,0,0,0.85)" zIndex={100}
+      position="fixed" inset={0} bg="rgba(0,50,120,0.4)" zIndex={100}
       display="flex" alignItems="center" justifyContent="center"
       onClick={onClose}
     >
       <Box
-        bg="#1a1a1b" border="1px solid #3a3a3c" borderRadius="xl"
+        bg={t.surface} border={`1px solid ${t.border}`} borderRadius="xl"
         w="100%" maxW="420px" mx={4} p={6} maxH="80vh" overflowY="auto"
         onClick={e => e.stopPropagation()}
       >
         <HStack justifyContent="space-between" mb={4}>
-          <Heading size="md" color="white">🏆 Leaderboard</Heading>
-          <Box as="button" color="#818384" onClick={onClose} fontSize="xl" cursor="pointer">✕</Box>
+          <Heading size="md" color={t.text} fontFamily={t.font}>🏆 Leaderboard</Heading>
+          <Box as="button" color={t.muted} onClick={onClose} fontSize="xl" cursor="pointer">✕</Box>
         </HStack>
 
         {/* Tabs */}
-        <HStack mb={4} gap={0} border="1px solid #3a3a3c" borderRadius="lg" overflow="hidden">
-          {["daily", "alltime"].map(t => (
+        <HStack mb={4} gap={0} border={`1px solid ${t.border}`} borderRadius="lg" overflow="hidden">
+          {["daily", "alltime"].map(tab_ => (
             <Box
-              key={t}
+              key={tab_}
               flex={1} textAlign="center" py={2} cursor="pointer"
-              bg={tab === t ? "#538d4e" : "transparent"}
-              color={tab === t ? "white" : "#818384"}
-              onClick={() => setTab(t)}
-              fontSize="sm" fontWeight="bold"
+              bg={tab === tab_ ? t.accent : "transparent"}
+              color={tab === tab_ ? t.white : t.muted}
+              onClick={() => setTab(tab_)}
+              fontSize="sm" fontWeight="bold" fontFamily={t.font}
               transition="all 0.15s"
             >
-              {t === "daily" ? "Today" : "All Time"}
+              {tab_ === "daily" ? "Today" : "All Time"}
             </Box>
           ))}
         </HStack>
 
         {loading ? (
-          <Box display="flex" justifyContent="center" py={8}><Spinner color="#538d4e" /></Box>
+          <Box display="flex" justifyContent="center" py={8}><Spinner color={t.accent} /></Box>
         ) : data.length === 0 ? (
-          <Text color="#818384" textAlign="center" py={8}>No games yet today 👀</Text>
+          <Text color={t.muted} textAlign="center" py={8} fontFamily={t.font}>No games yet today 👀</Text>
         ) : (
           <VStack gap={2} align="stretch">
             {data.map((row, i) => (
-              <HStack key={i} bg="#242425" borderRadius="lg" px={3} py={2} gap={3}>
+              <HStack key={i} bg={t.bg} borderRadius="lg" px={3} py={2} gap={3} border={`1px solid ${t.border}`}>
                 <Text fontSize="lg" w="28px" textAlign="center">
-                  {medals[i] || <Text color="#818384">{i + 1}</Text>}
+                  {medals[i] || <Text color={t.muted}>{i + 1}</Text>}
                 </Text>
                 <Avatar.Root size="sm">
                   <Avatar.Image src={row.avatar_url} />
                   <Avatar.Fallback>{row.name?.[0]}</Avatar.Fallback>
                 </Avatar.Root>
-                <Text color="white" fontWeight="medium" flex={1} fontSize="sm">{row.name}</Text>
+                <Text color={t.text} fontWeight="medium" flex={1} fontSize="sm" fontFamily={t.font}>{row.name}</Text>
                 {tab === "daily" ? (
                   <VStack gap={0} align="flex-end">
-                    <Text color="#538d4e" fontWeight="bold" fontSize="sm">
+                    <Text color={t.accent} fontWeight="bold" fontSize="sm" fontFamily={t.font}>
                       {row.status === "won" ? `${row.guess_count} guess${row.guess_count !== 1 ? "es" : ""}` : "❌"}
                     </Text>
                     {row.duration_seconds && (
-                      <Text color="#818384" fontSize="xs">{formatDuration(row.duration_seconds)}</Text>
+                      <Text color={t.muted} fontSize="xs">{formatDuration(row.duration_seconds)}</Text>
                     )}
                   </VStack>
                 ) : (
                   <VStack gap={0} align="flex-end">
-                    <Text color="#538d4e" fontWeight="bold" fontSize="sm">{row.wins}W</Text>
-                    <Text color="#818384" fontSize="xs">avg {row.avg_guesses}</Text>
+                    <Text color={t.accent} fontWeight="bold" fontSize="sm" fontFamily={t.font}>{row.wins}W</Text>
+                    <Text color={t.muted} fontSize="xs">avg {row.avg_guesses}</Text>
                   </VStack>
                 )}
               </HStack>

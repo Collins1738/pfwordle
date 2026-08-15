@@ -1,19 +1,20 @@
 import { motion } from "framer-motion";
+import { t } from "../theme";
 
 const STATUS_COLORS = {
-  correct: "#538d4e",
-  present: "#b59f3b",
-  absent:  "#3a3a3c",
-  empty:   "#121213",
-  tbd:     "#121213",
+  correct: t.correct,
+  present: t.present,
+  absent:  t.absent,
+  empty:   t.empty,
+  tbd:     t.tbd,
 };
 
 const STATUS_BORDERS = {
-  correct: "#538d4e",
-  present: "#b59f3b",
-  absent:  "#3a3a3c",
-  empty:   "#3a3a3c",
-  tbd:     "#565758",
+  correct: t.correct,
+  present: t.present,
+  absent:  t.absent,
+  empty:   t.border,
+  tbd:     t.muted,
 };
 
 function getTileSize(wordLength) {
@@ -29,8 +30,6 @@ export default function Tile({ letter = "", status = "empty", delay = 0, wordLen
   const isRevealed = ["correct", "present", "absent"].includes(status);
   const { size, fontSize } = getTileSize(wordLength);
 
-  // For revealed tiles: use 4-keyframe flip where color swaps at the midpoint (tile is edge-on)
-  // For non-revealed: static style
   const animate = isRevealed
     ? {
         rotateX: [0, -90, -90, 0],
@@ -52,11 +51,7 @@ export default function Tile({ letter = "", status = "empty", delay = 0, wordLen
     : {};
 
   const initial = isRevealed
-    ? {
-        backgroundColor: STATUS_COLORS.tbd,
-        borderColor: STATUS_BORDERS.tbd,
-        rotateX: 0,
-      }
+    ? { backgroundColor: STATUS_COLORS.tbd, borderColor: STATUS_BORDERS.tbd, rotateX: 0 }
     : false;
 
   return (
@@ -80,10 +75,11 @@ export default function Tile({ letter = "", status = "empty", delay = 0, wordLen
         justifyContent: "center",
         flexShrink: 0,
         userSelect: "none",
-        fontFamily: "inherit",
-        fontWeight: "bold",
+        fontFamily: t.font,
+        fontWeight: "700",
         fontSize,
-        color: "white",
+        color: ["empty", "tbd"].includes(status) ? t.text : t.white,
+        borderRadius: t.radius,
       }}
     >
       {letter}
