@@ -4,10 +4,15 @@
   "scripts": {
     "build": "cd server && npm install && cd ../client && npm install --include=dev && npm run build",
     "start": "node server/index.js",
-    "dev:server": "node server/index.js",
-    "dev:client": "cd client && npm run dev"
+    "dev:server": "nodemon --cwd server server/index.js",
+    "dev:client": "cd client && npm run dev -- --host",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\""
   },
   "engines": {
     "node": ">=18"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.4",
+    "nodemon": "^3.1.14"
   }
 }
