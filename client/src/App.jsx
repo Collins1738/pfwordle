@@ -359,14 +359,26 @@ export default function App() {
       </Box>
 
       <VStack gap={0} w="100%" maxW="520px" px={3}>
-        {/* Message bar */}
-        <Box h="36px" display="flex" alignItems="center" justifyContent="center" mt={1}>
+        {/* Message bar — fixed height, also shows blurred photo hint */}
+        <Box h="36px" display="flex" alignItems="center" justifyContent="center" mt={1} position="relative">
           {message && (
             <Box bg="#222" color={msgColor} px={4} py={1} borderRadius="md"
               fontWeight="bold" fontSize="sm" border="1px solid" borderColor={msgColor}>
               {message}
             </Box>
           )}
+          {!message && avatarUrl && guesses.length >= 1 && (() => {
+            const proxyUrl = `${BASE_URL}/api/avatar?url=${encodeURIComponent(avatarUrl)}`;
+            const blurPx = Math.max(16, 28 - (guesses.length - 1) * 4);
+            return (
+              <Box w="36px" h="36px" borderRadius="full" overflow="hidden" border="2px solid #3a3a3c" flexShrink={0}>
+                <Box
+                  as="img" src={proxyUrl} w="100%" h="100%" objectFit="cover" display="block"
+                  style={{ filter: `blur(${blurPx}px)`, transform: "scale(1.3)" }}
+                />
+              </Box>
+            );
+          })()}
         </Box>
 
         {/* Board */}
@@ -377,32 +389,6 @@ export default function App() {
           wordLength={wordLength}
           maxGuesses={maxGuesses}
         />
-
-        {/* Blurred photo hint — shown after first guess */}
-        {avatarUrl && guesses.length >= 1 && (() => {
-          const proxyUrl = `${BASE_URL}/api/avatar?url=${encodeURIComponent(avatarUrl)}`;
-          // blur starts at 28px, decreases by 4px per guess after the first, min 16px
-          const blurPx = Math.max(16, 28 - (guesses.length - 1) * 4);
-          return (
-            <Box
-              w="72px" h="72px"
-              borderRadius="full"
-              overflow="hidden"
-              mt={2} mb={1}
-              flexShrink={0}
-              border="2px solid #3a3a3c"
-            >
-              <Box
-                as="img"
-                src={proxyUrl}
-                w="100%" h="100%"
-                objectFit="cover"
-                display="block"
-                style={{ filter: `blur(${blurPx}px)`, transform: "scale(1.2)" }}
-              />
-            </Box>
-          );
-        })()}
 
         {/* Keyboard */}
         <Keyboard onKey={handleKey} letterStatuses={letterStatuses} />
