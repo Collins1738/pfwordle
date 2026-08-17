@@ -73,7 +73,7 @@ function timeBonusLabel(durationSeconds) {
   return null;
 }
 
-export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLength, employee, durationSeconds, onPlayAgain, onShowStats, onPractice, instant = false }) {
+export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLength, employee, durationSeconds, onPlayAgain, onShowStats, onPractice, instant = false, isDaily = false }) {
   const navigate = useNavigate();
   const accentColor = won ? t.accent : t.present;
   const score = calcScore(guesses.length, maxGuesses, won, durationSeconds);
@@ -300,12 +300,13 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
               </Button>
             )}
             <Button
-              w="100%" bg={t.surface} color={t.muted}
+              w="100%" bg={isDaily ? accentColor : t.surface} color={isDaily ? t.white : t.muted}
               size="md" borderRadius={t.radiusMd}
               fontFamily={t.font} fontWeight="600"
-              border={`2px solid ${t.border}`}
+              border={isDaily ? "none" : `2px solid ${t.border}`}
+              boxShadow={isDaily ? `0 4px 0 ${accentColor}cc` : "none"}
               onClick={() => navigate("/")}
-              _hover={{ bg: t.bg, color: t.text }}
+              _hover={{ opacity: isDaily ? 0.9 : 1, bg: isDaily ? accentColor : t.bg, color: isDaily ? t.white : t.text }}
             >
               🏠 Home
             </Button>

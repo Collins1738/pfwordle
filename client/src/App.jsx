@@ -270,6 +270,7 @@ export default function App({ mode = "daily" }) {
           employee={employee}
           durationSeconds={duration}
           instant={resumedComplete.current}
+          isDaily={mode === "daily"}
           onPlayAgain={mode === "practice" ? () => newGame({}) : null}
           onPractice={null}
           onShowStats={null}
