@@ -55,7 +55,7 @@ export default function App({ mode = "daily" }) {
     if (isDevAccount && localStorage.getItem("devMode") === null) setDevMode(true);
   }, [isDevAccount]);
 
-  const isDev = devMode;
+  const isDev = !!isDevAccount && devMode;
 
   function toggleDevMode() {
     const next = !devMode;
