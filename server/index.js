@@ -71,34 +71,8 @@ function parseCSVLine(line) {
   return result;
 }
 
-// Build a lookup map from first name → roster row (avatar, department, slackTitle)
-const rosterByFirst = {};
-try {
-  const rosterRaw = fs.readFileSync(path.join(__dirname, "roster.csv"), "utf8").replace(/\r/g, "");
-  const rosterLines = rosterRaw.trim().split("\n");
-  const rHeaders = parseCSVLine(rosterLines[0]);
-  const ri = (h) => rHeaders.indexOf(h);
-  for (let i = 1; i < rosterLines.length; i++) {
-    const parts = parseCSVLine(rosterLines[i]);
-    const name = parts[ri("name")]?.trim();
-    if (!name) continue;
-    const firstName = name.split(" ")[0].toUpperCase();
-    if (!rosterByFirst[firstName]) rosterByFirst[firstName] = [];
-    rosterByFirst[firstName].push({
-      fullName: name,
-      title: parts[ri("title")]?.trim() || "",
-      department: parts[ri("department")]?.trim() || "",
-      slackTitle: parts[ri("slack_title")]?.trim() || "",
-      avatarUrl: parts[ri("avatar_url")]?.trim() || "",
-    });
-  }
-} catch (e) { console.warn("Could not load roster.csv for enrichment:", e.message); }
-
 function getEmployeeInfo(firstName) {
-  const key = firstName.toUpperCase();
-  // Prefer roster data (has avatar/department); fall back to EMPLOYEE_MAP
-  if (rosterByFirst[key]) return rosterByFirst[key];
-  return EMPLOYEE_MAP[key] || null;
+  return EMPLOYEE_MAP[firstName.toUpperCase()] || null;
 }
 
 const app = express();
