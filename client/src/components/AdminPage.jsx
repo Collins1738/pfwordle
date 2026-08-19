@@ -184,7 +184,8 @@ export default function AdminPage() {
   const isAdmin = user && DEV_ACCOUNTS.includes(user.email);
 
   const fetchGames = useCallback(async () => {
-    if (!isAdmin) return;
+    if (user === undefined) return; // still loading auth
+    if (!isAdmin) { setLoading(false); return; }
     setLoading(true);
     setError(null);
     try {
