@@ -114,7 +114,6 @@ function GameCard({ game }) {
 
       {/* Meta row */}
       <HStack gap={3} mt={2} flexWrap="wrap">
-        <Text fontSize="xs" color={t.muted} fontFamily={t.font}>📅 {game.date}</Text>
         <Text fontSize="xs" color={t.muted} fontFamily={t.font}>🕐 {formatTime(game.started_at)}</Text>
         {game.guess_count && <Text fontSize="xs" color={t.muted} fontFamily={t.font}>🎯 {game.guess_count} guess{game.guess_count !== 1 ? "es" : ""}</Text>}
         {game.duration_seconds != null && <Text fontSize="xs" color={t.muted} fontFamily={t.font}>⏱ {formatDuration(game.duration_seconds)}</Text>}
