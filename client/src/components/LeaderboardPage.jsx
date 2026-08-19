@@ -127,6 +127,8 @@ export default function LeaderboardPage() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedRow, setSelectedRow] = useState(null);
+  const [shakingLock, setShakingLock] = useState(null);
+  const [showLockMsg, setShowLockMsg] = useState(false);
 
   const isWeekly = type === "weekly";
 
@@ -150,14 +152,33 @@ export default function LeaderboardPage() {
     return parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1][0]}.` : parts[0];
   }
 
-  function handleRowClick(row) {
-    if (!isWeekly && row.guesses?.length && hasPlayedToday) {
-      setSelectedRow(row);
+  function handleRowClick(row, i) {
+    if (!isWeekly && row.guesses?.length) {
+      if (hasPlayedToday) {
+        setSelectedRow(row);
+      } else {
+        setShakingLock(i);
+        setShowLockMsg(true);
+        setTimeout(() => setShakingLock(null), 600);
+        setTimeout(() => setShowLockMsg(false), 3000);
+      }
     }
   }
 
   return (
     <>
+      <style>{`
+        @keyframes lock-shake {
+          0%   { transform: rotate(0deg); }
+          15%  { transform: rotate(-18deg); }
+          35%  { transform: rotate(18deg); }
+          55%  { transform: rotate(-12deg); }
+          75%  { transform: rotate(10deg); }
+          90%  { transform: rotate(-5deg); }
+          100% { transform: rotate(0deg); }
+        }
+        .lock-shaking { animation: lock-shake 0.55s ease; }
+      `}</style>
       {selectedRow && <BoardModal row={selectedRow} onClose={() => setSelectedRow(null)} />}
 
       <Box minH="100vh" bg={t.bg} display="flex" flexDir="column" alignItems="center" fontFamily={t.font}>
@@ -195,6 +216,26 @@ export default function LeaderboardPage() {
           ))}
         </Box>
 
+        {/* Lock toast */}
+        <Box
+          position="fixed" bottom="24px" left="50%" zIndex={200}
+          style={{
+            transform: "translateX(-50%)",
+            transition: "opacity 0.3s, transform 0.3s",
+            opacity: showLockMsg ? 1 : 0,
+            pointerEvents: "none",
+          }}
+        >
+          <Box
+            bg={t.text} color="white" px={4} py={2} borderRadius={t.radiusFull}
+            fontFamily={t.font} fontSize="sm" fontWeight="600"
+            boxShadow="0 4px 16px rgba(0,0,0,0.2)"
+            whiteSpace="nowrap"
+          >
+            🔒 Play today's daily to view (no cheating 😄)
+          </Box>
+        </Box>
+
         <VStack w="100%" maxW="520px" px={4} py={4} gap={0} align="stretch">
           {loading ? (
             <Box display="flex" justifyContent="center" py={12}><Spinner color={t.accent} /></Box>
@@ -212,7 +253,7 @@ export default function LeaderboardPage() {
                     borderBottom={i < data.length - 1 ? `1px solid ${t.border}` : "none"}
                     bg={isYou ? t.accent + "11" : "transparent"}
                     cursor={!isWeekly && row.guesses?.length && hasPlayedToday ? "pointer" : "default"}
-                    onClick={!isWeekly && row.guesses?.length ? (e) => { e.stopPropagation(); handleRowClick(row); } : undefined}
+                    onClick={!isWeekly && row.guesses?.length ? (e) => { e.stopPropagation(); handleRowClick(row, i); } : undefined}
                     _hover={!isWeekly && row.guesses?.length && hasPlayedToday ? { bg: isYou ? t.accent + "22" : t.bg } : {}}
                     transition="background 0.1s"
                   >
@@ -274,7 +315,11 @@ export default function LeaderboardPage() {
                               position="absolute" inset={0}
                               display="flex" alignItems="center" justifyContent="center"
                             >
-                              <Text fontSize="10px" lineHeight={1}>🔒</Text>
+                              <Text
+                                fontSize="10px" lineHeight={1}
+                                className={shakingLock === i ? "lock-shaking" : ""}
+                                display="inline-block"
+                              >🔒</Text>
                             </Box>
                           )}
                         </Box>
