@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, Text, Heading, HStack, VStack, Avatar, Badge } from "@chakra-ui/react";
 import { useAuth } from "../useAuth";
@@ -183,31 +183,25 @@ export default function AdminPage() {
 
   const isAdmin = user && DEV_ACCOUNTS.includes(user.email);
 
-  const fetchGames = useCallback(async () => {
-    if (user === undefined) return; // still loading auth
+  useEffect(() => {
+    if (user === undefined) return; // auth still loading
     if (!isAdmin) { setLoading(false); return; }
+    let cancelled = false;
     setLoading(true);
     setError(null);
-    try {
-      const token = getToken();
-      const params = new URLSearchParams({ limit: LIMIT, offset: page * LIMIT });
-      if (modeFilter) params.set("mode", modeFilter);
-      if (dateFilter) params.set("date", dateFilter);
-      const res = await fetch(`${BASE_URL}/api/admin/games?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error((await res.json()).error || "Failed");
-      const data = await res.json();
-      setGames(data.games);
-      setTotal(data.total);
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [isAdmin, getToken, modeFilter, dateFilter, page]);
-
-  useEffect(() => { fetchGames(); }, [fetchGames]);
+    const token = getToken();
+    const params = new URLSearchParams({ limit: LIMIT, offset: page * LIMIT });
+    if (modeFilter) params.set("mode", modeFilter);
+    if (dateFilter) params.set("date", dateFilter);
+    fetch(`${BASE_URL}/api/admin/games?${params}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(res => res.ok ? res.json() : res.json().then(d => Promise.reject(d.error || "Failed")))
+      .then(data => { if (!cancelled) { setGames(data.games); setTotal(data.total); } })
+      .catch(e => { if (!cancelled) setError(String(e)); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [user, isAdmin, modeFilter, dateFilter, page]); // getToken intentionally omitted — stable localStorage read
 
   // Wait for auth to load
   if (user === undefined) return <Box minH="100vh" bg={t.bg} />;

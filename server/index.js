@@ -230,7 +230,20 @@ app.post("/api/game/start", async (req, res) => {
   }
 
   const maxGuesses = Math.max(6, word.length);
-  sessions.set(sessionId, { word, wordLength: word.length, guesses: [], status: "playing", maxGuesses });
+  // Save anonymous practice games to DB (user_id = NULL, player shown as "Anonymous")
+  let anonGameId = null;
+  if (mode === "practice") {
+    try {
+      const anonRes = await pool.query(
+        `INSERT INTO games (user_id, date, word, status, session_id, mode)
+         VALUES (NULL, $1, $2, 'playing', $3, 'practice')
+         RETURNING id`,
+        [today, word, sessionId]
+      );
+      anonGameId = anonRes.rows[0].id;
+    } catch (e) { console.error("[game/start] anon practice save error:", e.message); }
+  }
+  sessions.set(sessionId, { word, wordLength: word.length, guesses: [], status: "playing", maxGuesses, gameId: anonGameId, startedAt: Date.now(), mode });
   const empInfoAnon = getEmployeeInfo(word);
   const avatarUrlAnon = Array.isArray(empInfoAnon) ? empInfoAnon[0]?.avatarUrl : empInfoAnon?.avatarUrl || "";
   res.json({ sessionId, wordLength: word.length, maxGuesses, avatarUrl: avatarUrlAnon });
@@ -428,7 +441,8 @@ app.get("/api/admin/games", requireAuth, async (req, res) => {
          g.id, g.date, g.mode, g.word, g.status,
          g.guess_count, g.duration_seconds, g.score,
          g.started_at, g.completed_at,
-         u.name AS player_name, u.email AS player_email, u.avatar_url AS player_avatar,
+         COALESCE(u.name, 'Anonymous') AS player_name,
+         u.email AS player_email, u.avatar_url AS player_avatar,
          COALESCE(
            json_agg(
              json_build_object('guess', gu.guess, 'result', gu.result, 'guessed_at', gu.guessed_at)
