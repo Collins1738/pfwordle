@@ -119,18 +119,6 @@ function BoardModal({ row, onClose }) {
   );
 }
 
-const shakeKeyframes = `
-@keyframes lb-shake {
-  0%   { transform: translateX(0); }
-  15%  { transform: translateX(-6px) rotate(-1deg); }
-  30%  { transform: translateX(6px) rotate(1deg); }
-  45%  { transform: translateX(-5px) rotate(-1deg); }
-  60%  { transform: translateX(5px) rotate(0.5deg); }
-  75%  { transform: translateX(-3px); }
-  90%  { transform: translateX(3px); }
-  100% { transform: translateX(0); }
-}
-`;
 
 export default function LeaderboardPage() {
   const { type } = useParams();
@@ -139,7 +127,6 @@ export default function LeaderboardPage() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedRow, setSelectedRow] = useState(null);
-  const [shakingRow, setShakingRow] = useState(null);
 
   const isWeekly = type === "weekly";
 
@@ -163,20 +150,14 @@ export default function LeaderboardPage() {
     return parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1][0]}.` : parts[0];
   }
 
-  function handleRowClick(row, i) {
-    if (!isWeekly && row.guesses?.length) {
-      if (hasPlayedToday) {
-        setSelectedRow(row);
-      } else {
-        setShakingRow(i);
-        setTimeout(() => setShakingRow(null), 600);
-      }
+  function handleRowClick(row) {
+    if (!isWeekly && row.guesses?.length && hasPlayedToday) {
+      setSelectedRow(row);
     }
   }
 
   return (
     <>
-      <style>{shakeKeyframes}</style>
       {selectedRow && <BoardModal row={selectedRow} onClose={() => setSelectedRow(null)} />}
 
       <Box minH="100vh" bg={t.bg} display="flex" flexDir="column" alignItems="center" fontFamily={t.font}>
@@ -230,10 +211,9 @@ export default function LeaderboardPage() {
                     key={i} px={4} py={3} gap={3}
                     borderBottom={i < data.length - 1 ? `1px solid ${t.border}` : "none"}
                     bg={isYou ? t.accent + "11" : "transparent"}
-                    cursor={!isWeekly && row.guesses?.length ? "pointer" : "default"}
-                    onClick={!isWeekly && row.guesses?.length ? (e) => { e.stopPropagation(); handleRowClick(row, i); } : undefined}
-                    _hover={!isWeekly && row.guesses?.length ? { bg: isYou ? t.accent + "22" : t.bg } : {}}
-                    style={shakingRow === i ? { animation: "lb-shake 0.55s ease" } : {}}
+                    cursor={!isWeekly && row.guesses?.length && hasPlayedToday ? "pointer" : "default"}
+                    onClick={!isWeekly && row.guesses?.length ? (e) => { e.stopPropagation(); handleRowClick(row); } : undefined}
+                    _hover={!isWeekly && row.guesses?.length && hasPlayedToday ? { bg: isYou ? t.accent + "22" : t.bg } : {}}
                     transition="background 0.1s"
                   >
                     <Text fontSize="sm" w="28px" textAlign="center" flexShrink={0} color={t.muted} fontFamily={t.font}>
@@ -282,8 +262,21 @@ export default function LeaderboardPage() {
                     )}
                     {!isWeekly && row.guesses?.length > 0 && (
                       <VStack gap={0.5} align="center" flexShrink={0}>
-                        <Box opacity={0.75}>
-                          <MiniBoard guesses={row.guesses} maxGuesses={maxGuesses} wordLength={wordLength} size={5} />
+                        <Box position="relative">
+                          <Box
+                            opacity={hasPlayedToday ? 0.75 : 1}
+                            style={hasPlayedToday ? {} : { filter: "blur(1.5px)" }}
+                          >
+                            <MiniBoard guesses={row.guesses} maxGuesses={maxGuesses} wordLength={wordLength} size={5} />
+                          </Box>
+                          {!hasPlayedToday && (
+                            <Box
+                              position="absolute" inset={0}
+                              display="flex" alignItems="center" justifyContent="center"
+                            >
+                              <Text fontSize="10px" lineHeight={1}>🔒</Text>
+                            </Box>
+                          )}
                         </Box>
                         {row.score != null && hasPlayedToday && (
                           <Text fontSize="9px" color={t.accent} fontFamily={t.font} fontWeight="700">{row.score}pts</Text>
