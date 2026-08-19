@@ -410,7 +410,7 @@ function evaluateGuess(guess, target) {
 }
 
 // GET /api/admin/games — all games (daily + practice), admin only
-const ADMIN_EMAILS = ["tobechikeluba@gmail.com", "collins.chikeluba@permitflow.com"];
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "tobechikeluba@gmail.com,collins.chikeluba@permitflow.com").split(",");
 app.get("/api/admin/games", requireAuth, async (req, res) => {
   if (!ADMIN_EMAILS.includes(req.user.email)) {
     return res.status(403).json({ error: "Forbidden" });

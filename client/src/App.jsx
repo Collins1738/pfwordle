@@ -9,6 +9,7 @@ import ResultScreen from "./components/ResultScreen";
 import { startGame, submitGuess, getDebugAnswer, resumeGame, getGameState } from "./api";
 import { useAuth } from "./useAuth";
 import { t } from "./theme";
+import { DEV_ACCOUNTS } from "./constants";
 
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "";
@@ -41,7 +42,6 @@ export default function App({ mode = "daily" }) {
   const [initializing, setInitializing] = useState(true);
   const resumedComplete = useRef(false); // true when result screen shown via resume (skip animation)
 
-  const DEV_ACCOUNTS = ["tobechikeluba@gmail.com", "collins.chikeluba@permitflow.com"];
   const isDevAccount = user && DEV_ACCOUNTS.includes(user.email);
 
   const getDevMode = () => {

@@ -6,6 +6,7 @@ import { CalendarDots, CheckCircle, XCircle } from "@phosphor-icons/react";
 import { t } from "../theme";
 import { useAuth } from "../useAuth";
 import { resumeGame } from "../api";
+import { DEV_ACCOUNTS } from "../constants";
 import axios from "axios";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "";
@@ -13,7 +14,6 @@ const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 export default function HomePage() {
   const navigate = useNavigate();
   const { user, logout, getToken } = useAuth();
-  const DEV_ACCOUNTS = ["tobechikeluba@gmail.com", "collins.chikeluba@permitflow.com"];
   const isDevAccount = user && DEV_ACCOUNTS.includes(user.email);
 
   const [dailyStatus, setDailyStatus] = useState(null); // null | "playing" | "won" | "lost"

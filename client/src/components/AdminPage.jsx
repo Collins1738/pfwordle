@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { Box, Text, Heading, HStack, VStack, Avatar, Badge } from "@chakra-ui/react";
 import { useAuth } from "../useAuth";
 import { t } from "../theme";
+import { DEV_ACCOUNTS } from "../constants";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "";
-const ADMIN_EMAILS = ["tobechikeluba@gmail.com", "collins.chikeluba@permitflow.com"];
 
 function formatDuration(secs) {
   if (!secs && secs !== 0) return "—";
@@ -181,7 +181,7 @@ export default function AdminPage() {
   const [page, setPage] = useState(0);
   const LIMIT = 50;
 
-  const isAdmin = user && ADMIN_EMAILS.includes(user.email);
+  const isAdmin = user && DEV_ACCOUNTS.includes(user.email);
 
   const fetchGames = useCallback(async () => {
     if (!isAdmin) return;
