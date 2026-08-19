@@ -230,7 +230,20 @@ app.post("/api/game/start", async (req, res) => {
   }
 
   const maxGuesses = Math.max(6, word.length);
-  sessions.set(sessionId, { word, wordLength: word.length, guesses: [], status: "playing", maxGuesses });
+  // Save anonymous practice games to DB (user_id = NULL, player shown as "Anonymous")
+  let anonGameId = null;
+  if (mode === "practice") {
+    try {
+      const anonRes = await pool.query(
+        `INSERT INTO games (user_id, date, word, status, session_id, mode)
+         VALUES (NULL, $1, $2, 'playing', $3, 'practice')
+         RETURNING id`,
+        [today, word, sessionId]
+      );
+      anonGameId = anonRes.rows[0].id;
+    } catch (e) { console.error("[game/start] anon practice save error:", e.message); }
+  }
+  sessions.set(sessionId, { word, wordLength: word.length, guesses: [], status: "playing", maxGuesses, gameId: anonGameId, startedAt: Date.now(), mode });
   const empInfoAnon = getEmployeeInfo(word);
   const avatarUrlAnon = Array.isArray(empInfoAnon) ? empInfoAnon[0]?.avatarUrl : empInfoAnon?.avatarUrl || "";
   res.json({ sessionId, wordLength: word.length, maxGuesses, avatarUrl: avatarUrlAnon });
@@ -408,6 +421,53 @@ function evaluateGuess(guess, target) {
 
   return result;
 }
+
+// GET /api/admin/games — all games (daily + practice), admin only
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "tobechikeluba@gmail.com,collins.chikeluba@permitflow.com").split(",");
+app.get("/api/admin/games", requireAuth, async (req, res) => {
+  if (!ADMIN_EMAILS.includes(req.user.email)) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+  const { mode, date, limit = 200, offset = 0 } = req.query;
+  const conditions = [];
+  const params = [];
+  if (mode) { params.push(mode); conditions.push(`g.mode = $${params.length}`); }
+  if (date) { params.push(date); conditions.push(`g.date = $${params.length}`); }
+  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+  params.push(parseInt(limit, 10), parseInt(offset, 10));
+  try {
+    const { rows } = await pool.query(
+      `SELECT
+         g.id, g.date, g.mode, g.word, g.status,
+         g.guess_count, g.duration_seconds, g.score,
+         g.started_at, g.completed_at,
+         COALESCE(u.name, 'Anonymous') AS player_name,
+         u.email AS player_email, u.avatar_url AS player_avatar,
+         COALESCE(
+           json_agg(
+             json_build_object('guess', gu.guess, 'result', gu.result, 'guessed_at', gu.guessed_at)
+             ORDER BY gu.id
+           ) FILTER (WHERE gu.id IS NOT NULL),
+           '[]'
+         ) AS guesses
+       FROM games g
+       LEFT JOIN users u ON u.id = g.user_id
+       LEFT JOIN guesses gu ON gu.game_id = g.id
+       ${where}
+       GROUP BY g.id, u.name, u.email, u.avatar_url
+       ORDER BY g.started_at DESC
+       LIMIT $${params.length - 1} OFFSET $${params.length}`,
+      params
+    );
+    const { rows: countRows } = await pool.query(
+      `SELECT COUNT(*) FROM games g ${where}`,
+      params.slice(0, params.length - 2)
+    );
+    res.json({ games: rows, total: parseInt(countRows[0].count, 10) });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
 // GET /api/leaderboard/daily — today's leaderboard
 app.get("/api/leaderboard/daily", async (req, res) => {

@@ -9,6 +9,7 @@ import ResultScreen from "./components/ResultScreen";
 import { startGame, submitGuess, getDebugAnswer, resumeGame, getGameState } from "./api";
 import { useAuth } from "./useAuth";
 import { t } from "./theme";
+import { DEV_ACCOUNTS } from "./constants";
 
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "";
@@ -41,7 +42,6 @@ export default function App({ mode = "daily" }) {
   const [initializing, setInitializing] = useState(true);
   const resumedComplete = useRef(false); // true when result screen shown via resume (skip animation)
 
-  const DEV_ACCOUNTS = ["tobechikeluba@gmail.com", "collins.chikeluba@permitflow.com"];
   const isDevAccount = user && DEV_ACCOUNTS.includes(user.email);
 
   const getDevMode = () => {
@@ -396,6 +396,18 @@ export default function App({ mode = "daily" }) {
                   >
                     <Text color={t.text} fontFamily={t.font} fontSize="sm" fontWeight="600" noOfLines={1} mb={0.5}>{user.name}</Text>
                     <Text color={t.muted} fontFamily={t.font} fontSize="xs" noOfLines={1} mb={3}>{user.email}</Text>
+                    {isDevAccount && (
+                      <Box
+                        as="button" w="100%" textAlign="center"
+                        bg={t.overlay} border={`1px solid ${t.border}`} borderRadius={t.radius}
+                        py={1.5} px={3} color={t.accent} fontSize="xs" fontWeight="700"
+                        fontFamily={t.font} cursor="pointer" mb={2}
+                        onClick={() => { setShowUserMenu(false); navigate("/admin"); }}
+                        _hover={{ bg: t.accent + "22" }}
+                      >
+                        🛠 Admin
+                      </Box>
+                    )}
                     <Box
                       as="button" w="100%" textAlign="center"
                       bg="#fff0f0" border="1px solid #ffcccc" borderRadius={t.radius}

@@ -6,6 +6,7 @@ import { CalendarDots, CheckCircle, XCircle } from "@phosphor-icons/react";
 import { t } from "../theme";
 import { useAuth } from "../useAuth";
 import { resumeGame } from "../api";
+import { DEV_ACCOUNTS } from "../constants";
 import axios from "axios";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "";
@@ -13,7 +14,6 @@ const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 export default function HomePage() {
   const navigate = useNavigate();
   const { user, logout, getToken } = useAuth();
-  const DEV_ACCOUNTS = ["tobechikeluba@gmail.com", "collins.chikeluba@permitflow.com"];
   const isDevAccount = user && DEV_ACCOUNTS.includes(user.email);
 
   const [dailyStatus, setDailyStatus] = useState(null); // null | "playing" | "won" | "lost"
@@ -475,6 +475,18 @@ export default function HomePage() {
                     >
                       My Stats
                     </Box>
+                    {isDevAccount && (
+                      <Box
+                        as="button" w="100%"
+                        bg={t.overlay} border={`1px solid ${t.border}`} borderRadius={t.radius}
+                        py={1.5} px={3} color={t.accent} fontSize="xs" fontWeight="700"
+                        fontFamily={t.font} cursor="pointer" mb={1.5}
+                        onClick={() => { setAuthMenuOpen(false); navigate("/admin"); }}
+                        _hover={{ bg: t.accent + "22" }}
+                      >
+                        🛠 Admin
+                      </Box>
+                    )}
                     <Box
                       as="button" w="100%"
                       bg="#fff0f0" border="1px solid #ffcccc" borderRadius={t.radius}

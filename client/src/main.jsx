@@ -7,6 +7,7 @@ import HomePage from "./components/HomePage";
 import RosterPage from "./components/RosterPage";
 import StatsPageWrapper from "./components/StatsPageWrapper";
 import LeaderboardPage from "./components/LeaderboardPage";
+import AdminPage from "./components/AdminPage";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
@@ -19,6 +20,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           <Route path="/stats" element={<StatsPageWrapper />} />
           <Route path="/leaderboard/:type" element={<LeaderboardPage />} />
           <Route path="/roster" element={<RosterPage />} />
+          <Route path="/admin" element={<AdminPage />} />
         </Routes>
       </BrowserRouter>
     </ChakraProvider>
