@@ -129,6 +129,10 @@ export default function LeaderboardPage() {
 
   const isWeekly = type === "weekly";
 
+  // Can the current user see other people's guess breakdowns?
+  // Only if they're logged in AND have a completed game today (won or lost).
+  const hasPlayedToday = user && data.some(row => row.name === user.name);
+
   useEffect(() => {
     setLoading(true);
     const url = isWeekly ? `${BASE_URL}/api/leaderboard/weekly` : `${BASE_URL}/api/leaderboard/daily`;
@@ -200,9 +204,9 @@ export default function LeaderboardPage() {
                     key={i} px={4} py={3} gap={3}
                     borderBottom={i < data.length - 1 ? `1px solid ${t.border}` : "none"}
                     bg={isYou ? t.accent + "11" : "transparent"}
-                    cursor={!isWeekly && row.guesses?.length ? "pointer" : "default"}
-                    onClick={!isWeekly && row.guesses?.length ? (e) => { e.stopPropagation(); setSelectedRow(row); } : undefined}
-                    _hover={!isWeekly && row.guesses?.length ? { bg: isYou ? t.accent + "22" : t.bg } : {}}
+                    cursor={!isWeekly && hasPlayedToday && row.guesses?.length ? "pointer" : "default"}
+                    onClick={!isWeekly && hasPlayedToday && row.guesses?.length ? (e) => { e.stopPropagation(); setSelectedRow(row); } : undefined}
+                    _hover={!isWeekly && hasPlayedToday && row.guesses?.length ? { bg: isYou ? t.accent + "22" : t.bg } : {}}
                     transition="background 0.1s"
                   >
                     <Text fontSize="sm" w="28px" textAlign="center" flexShrink={0} color={t.muted} fontFamily={t.font}>
@@ -251,10 +255,10 @@ export default function LeaderboardPage() {
                     )}
                     {!isWeekly && row.guesses?.length > 0 && (
                       <VStack gap={0.5} align="center" flexShrink={0}>
-                        <Box opacity={0.75}>
+                        <Box opacity={hasPlayedToday ? 0.75 : 0.2} filter={hasPlayedToday ? "none" : "blur(2px)"}>
                           <MiniBoard guesses={row.guesses} maxGuesses={maxGuesses} wordLength={wordLength} size={5} />
                         </Box>
-                        {row.score != null && (
+                        {row.score != null && hasPlayedToday && (
                           <Text fontSize="9px" color={t.accent} fontFamily={t.font} fontWeight="700">{row.score}pts</Text>
                         )}
                       </VStack>
