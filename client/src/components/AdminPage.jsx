@@ -78,9 +78,9 @@ function GameCard({ game }) {
       _hover={{ boxShadow: "0 4px 16px rgba(0,100,200,0.08)" }}
       transition="box-shadow 0.15s"
     >
-      <HStack justifyContent="space-between" alignItems="flex-start" gap={3}>
-        {/* Player */}
-        <HStack gap={2} flex={1} minW={0}>
+      {/* Row 1: avatar + name (left) · word (right) */}
+      <HStack justifyContent="space-between" alignItems="center" gap={3}>
+        <HStack gap={2} minW={0}>
           <Avatar.Root size="sm" flexShrink={0}>
             {game.player_avatar ? <Avatar.Image src={`${BASE_URL}/api/avatar?url=${encodeURIComponent(game.player_avatar)}`} /> : null}
             <Avatar.Fallback bg={t.accent} color="white" fontSize="xs">
@@ -91,39 +91,39 @@ function GameCard({ game }) {
             {formatName(game.player_name)}
           </Text>
         </HStack>
-
-        {/* Word + badges */}
-        <VStack alignItems="flex-end" gap={1} flexShrink={0}>
-          <HStack gap={1}>
-            <Badge
-              px={2} py={0.5} borderRadius={t.radius} fontSize="xs"
-              bg={modeColor + "22"} color={modeColor} fontFamily={t.font} fontWeight="700"
-            >
-              {game.mode}
-            </Badge>
-            <Badge
-              px={2} py={0.5} borderRadius={t.radius} fontSize="xs"
-              bg={statusColor + "22"} color={statusColor} fontFamily={t.font} fontWeight="700"
-            >
-              {game.status}
-            </Badge>
-          </HStack>
-          <Text fontWeight="800" color={t.text} fontSize="md" fontFamily={t.font} letterSpacing="0.08em">
-            {game.word}
-          </Text>
-        </VStack>
-      </HStack>
-
-      {/* Meta row */}
-      <HStack gap={3} mt={2} flexWrap="wrap">
-        <Text fontSize="xs" color={t.muted} fontFamily={t.font}>🕐 {formatTime(game.started_at)}</Text>
-        {game.guess_count && <Text fontSize="xs" color={t.muted} fontFamily={t.font}>🎯 {game.guess_count} guess{game.guess_count !== 1 ? "es" : ""}</Text>}
-        {game.duration_seconds != null && <Text fontSize="xs" color={t.muted} fontFamily={t.font}>⏱ {formatDuration(game.duration_seconds)}</Text>}
-        {game.score != null && <Text fontSize="xs" color={t.muted} fontFamily={t.font}>⭐ {game.score} pts</Text>}
-        <Text fontSize="xs" color={t.muted + "88"} fontFamily={t.font} ml="auto">
-          {expanded ? "▲ hide" : "▼ guesses"}
+        <Text fontWeight="800" color={t.text} fontSize="lg" fontFamily={t.font} letterSpacing="0.1em" flexShrink={0}>
+          {game.word}
         </Text>
       </HStack>
+
+      {/* Row 2: badges (left) · expand toggle (right) */}
+      <HStack justifyContent="space-between" alignItems="center" mt={2}>
+        <HStack gap={1} flexWrap="wrap">
+          <Badge px={2} py={0.5} borderRadius={t.radius} fontSize="xs" bg={modeColor + "22"} color={modeColor} fontFamily={t.font} fontWeight="700">
+            {game.mode}
+          </Badge>
+          <Badge px={2} py={0.5} borderRadius={t.radius} fontSize="xs" bg={statusColor + "22"} color={statusColor} fontFamily={t.font} fontWeight="700">
+            {game.status}
+          </Badge>
+          {game.guess_count != null && (
+            <Text fontSize="xs" color={t.muted} fontFamily={t.font}>· 🎯 {game.guess_count} guess{game.guess_count !== 1 ? "es" : ""}</Text>
+          )}
+          {game.duration_seconds != null && (
+            <Text fontSize="xs" color={t.muted} fontFamily={t.font}>· ⏱ {formatDuration(game.duration_seconds)}</Text>
+          )}
+          {game.score != null && (
+            <Text fontSize="xs" color={t.muted} fontFamily={t.font}>· ⭐ {game.score} pts</Text>
+          )}
+        </HStack>
+        <Text fontSize="xs" color={t.muted + "88"} fontFamily={t.font} flexShrink={0}>
+          {expanded ? "▲" : "▼"} guesses
+        </Text>
+      </HStack>
+
+      {/* Row 3: time */}
+      <Text fontSize="xs" color={t.muted} fontFamily={t.font} mt={1}>
+        {formatTime(game.started_at)}
+      </Text>
 
       {/* Expanded guess grid */}
       {expanded && (
