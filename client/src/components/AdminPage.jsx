@@ -55,6 +55,13 @@ function GuessRow({ guesses, word }) {
   );
 }
 
+function formatName(name) {
+  if (!name || name === "Anonymous") return "Anonymous";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[parts.length - 1][0]}.`;
+}
+
 function GameCard({ game }) {
   const [expanded, setExpanded] = useState(false);
   const statusColor = game.status === "won" ? t.correct : game.status === "lost" ? "#e05252" : t.muted;
@@ -80,14 +87,9 @@ function GameCard({ game }) {
               {(game.player_name || "?")[0]}
             </Avatar.Fallback>
           </Avatar.Root>
-          <VStack alignItems="flex-start" gap={0} minW={0}>
-            <Text fontWeight="700" color={t.text} fontSize="sm" fontFamily={t.font} noOfLines={1}>
-              {game.player_name || "Anonymous"}
-            </Text>
-            <Text color={t.muted} fontSize="xs" fontFamily={t.font} noOfLines={1}>
-              {game.player_email || "—"}
-            </Text>
-          </VStack>
+          <Text fontWeight="700" color={t.text} fontSize="sm" fontFamily={t.font} noOfLines={1}>
+            {formatName(game.player_name)}
+          </Text>
         </HStack>
 
         {/* Word + badges */}
