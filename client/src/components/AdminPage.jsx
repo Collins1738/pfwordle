@@ -106,13 +106,13 @@ function GameCard({ game }) {
             {game.status}
           </Badge>
           {game.guess_count != null && (
-            <Text fontSize="xs" color={t.muted} fontFamily={t.font}>· 🎯 {game.guess_count} guess{game.guess_count !== 1 ? "es" : ""}</Text>
+            <Text fontSize="xs" color={t.muted} fontFamily={t.font}>🎯 {game.guess_count} guess{game.guess_count !== 1 ? "es" : ""}</Text>
           )}
           {game.duration_seconds != null && (
-            <Text fontSize="xs" color={t.muted} fontFamily={t.font}>· ⏱ {formatDuration(game.duration_seconds)}</Text>
+            <Text fontSize="xs" color={t.muted} fontFamily={t.font}>⏱ {formatDuration(game.duration_seconds)}</Text>
           )}
           {game.score != null && (
-            <Text fontSize="xs" color={t.muted} fontFamily={t.font}>· ⭐ {game.score} pts</Text>
+            <Text fontSize="xs" color={t.muted} fontFamily={t.font}>⭐ {game.score} pts</Text>
           )}
         </HStack>
         <Text fontSize="xs" color={t.muted + "88"} fontFamily={t.font} flexShrink={0}>
