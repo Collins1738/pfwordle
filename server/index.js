@@ -9,6 +9,11 @@ const { EMPLOYEE_MAP } = require("./names");
 const { migrate, pool } = require("./db");
 const { setupAuth, requireAuth } = require("./auth");
 
+// Get current date in America/New_York (ET) as YYYY-MM-DD
+function getETDate(d = new Date()) {
+  return d.toLocaleDateString("en-CA", { timeZone: "America/New_York" }); // en-CA gives YYYY-MM-DD
+}
+
 function calcScore(guessCount, maxGuesses, durationSeconds) {
   const perfect = 900;
   const deductPerGuess = Math.floor(perfect / maxGuesses);
@@ -50,10 +55,11 @@ function getAnswerWord(firstName) {
   return firstName;
 }
 
-// Daily word: deterministic seed from date so everyone gets the same name each day
+// Daily word: deterministic seed from ET date so everyone gets the same name each day
 function getDailyName() {
-  const today = new Date();
-  const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+  const et = getETDate(); // YYYY-MM-DD in ET
+  const [y, m, d] = et.split("-").map(Number);
+  const seed = y * 10000 + m * 100 + d;
   return PERMITFLOW_NAMES[seed % PERMITFLOW_NAMES.length];
 }
 
@@ -103,7 +109,7 @@ app.get("/api/game/resume", async (req, res) => {
     userId = decoded.id;
   } catch { return res.status(401).json({ error: "Invalid token" }); }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getETDate();
   const { rows } = await pool.query(
     `SELECT g.*, array_agg(
        json_build_object('guess', gu.guess, 'result', gu.result)
@@ -158,13 +164,13 @@ app.get("/api/game/resume", async (req, res) => {
 // GET /api/daily — returns today's name (for display/hint, not the answer directly)
 app.get("/api/daily", (req, res) => {
   const name = getDailyName();
-  res.json({ wordLength: name.length, date: new Date().toISOString().slice(0, 10) });
+  res.json({ wordLength: name.length, date: getETDate() });
 });
 
 // POST /api/game/start — start a new game
 app.post("/api/game/start", async (req, res) => {
   const sessionId = generateSessionId();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getETDate();
   const mode = req.body?.mode === "practice" ? "practice" : "daily";
   console.log(`[game/start] mode=${mode} hasAuth=${!!req.headers.authorization}`);
   let word;
@@ -318,7 +324,7 @@ app.get("/api/game/:sessionId", (req, res) => {
 // DELETE /api/dev/reset-daily — dev only, deletes today's daily game for current user
 app.delete("/api/dev/reset-daily", requireAuth, async (req, res) => {
   if (process.env.NODE_ENV === "production") return res.status(403).json({ error: "Not allowed in production" });
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getETDate();
   await pool.query("DELETE FROM games WHERE user_id = $1 AND date = $2 AND mode = 'daily'", [req.user.id, today]);
   res.json({ ok: true });
 });
@@ -405,7 +411,7 @@ function evaluateGuess(guess, target) {
 
 // GET /api/leaderboard/daily — today's leaderboard
 app.get("/api/leaderboard/daily", async (req, res) => {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getETDate();
   try {
     const { rows } = await pool.query(
       `SELECT u.name, u.avatar_url, g.id AS game_id, g.guess_count, g.duration_seconds, g.status, g.score,
@@ -449,15 +455,17 @@ app.get("/api/leaderboard/alltime", async (req, res) => {
 // GET /api/leaderboard/weekly — Mon–Fri current week, ranked by total score
 app.get("/api/leaderboard/weekly", async (req, res) => {
   try {
-    // Get Monday of current week
-    const now = new Date();
-    const day = now.getDay(); // 0=Sun, 1=Mon...
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
-    monday.setHours(0, 0, 0, 0);
+    // Get Monday–Friday of current week in ET
+    const todayET = getETDate();
+    const [ty, tm, td] = todayET.split("-").map(Number);
+    const nowET = new Date(ty, tm - 1, td);
+    const day = nowET.getDay(); // 0=Sun, 1=Mon...
+    const monday = new Date(nowET);
+    monday.setDate(nowET.getDate() - (day === 0 ? 6 : day - 1));
     const friday = new Date(monday);
     friday.setDate(monday.getDate() + 4);
-    friday.setHours(23, 59, 59, 999);
+    const mondayStr = getETDate(monday);
+    const fridayStr = getETDate(friday);
 
     const { rows } = await pool.query(
       `SELECT u.name, u.avatar_url,
@@ -471,7 +479,7 @@ app.get("/api/leaderboard/weekly", async (req, res) => {
        GROUP BY u.id, u.name, u.avatar_url
        ORDER BY total_score DESC, wins DESC
        LIMIT 50`,
-      [monday.toISOString().slice(0, 10), friday.toISOString().slice(0, 10)]
+      [mondayStr, fridayStr]
     );
     res.json(rows);
   } catch (e) {
@@ -510,8 +518,10 @@ app.get("/api/stats", requireAuth, async (req, res) => {
     );
 
     let currentStreak = 0, maxStreak = 0, streak = 0;
-    const today = new Date().toISOString().slice(0, 10);
-    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const today = getETDate();
+    const [ety, etm, etd] = today.split("-").map(Number);
+    const yDate = new Date(ety, etm - 1, etd - 1);
+    const yesterday = getETDate(yDate);
 
     if (winDays.length > 0) {
       const dates = winDays.map(r => r.date.toISOString?.().slice(0, 10) ?? r.date);
