@@ -154,7 +154,7 @@ export default function HomePage() {
     ? { text: `⏳ ${hoursUntilMidnight}`, color: t.muted }
     : null;
 
-  const devModeOn = localStorage.getItem("devMode") === "true" || (isDevAccount && localStorage.getItem("devMode") === null);
+  const devModeOn = localStorage.getItem("devMode") === "true";
   const [devMenuOpen, setDevMenuOpen] = useState(false);
 
   function toggleDevMode() {

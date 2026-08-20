@@ -47,12 +47,12 @@ export default function App({ mode = "daily" }) {
   const getDevMode = () => {
     const stored = localStorage.getItem("devMode");
     if (stored !== null) return stored === "true";
-    return !!isDevAccount; // default ON for dev accounts
+    return false; // default OFF — user must enable manually
   };
   const [devMode, setDevMode] = useState(getDevMode);
 
   useEffect(() => {
-    if (isDevAccount && localStorage.getItem("devMode") === null) setDevMode(true);
+    // no longer auto-enable for dev accounts
   }, [isDevAccount]);
 
   const isDev = !!isDevAccount && devMode;
