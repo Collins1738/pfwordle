@@ -154,13 +154,11 @@ export default function HomePage() {
     ? { text: `⏳ ${hoursUntilMidnight}`, color: t.muted }
     : null;
 
-  const devModeOn = localStorage.getItem("devMode") === "true";
+  const [devModeOn, setDevModeOn] = useState(false);
   const [devMenuOpen, setDevMenuOpen] = useState(false);
 
   function toggleDevMode() {
-    const next = !devModeOn;
-    localStorage.setItem("devMode", String(next));
-    window.location.reload();
+    setDevModeOn(next => !next);
   }
 
   async function resetDaily() {

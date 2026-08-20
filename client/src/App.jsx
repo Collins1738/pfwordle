@@ -44,23 +44,12 @@ export default function App({ mode = "daily" }) {
 
   const isDevAccount = user && DEV_ACCOUNTS.includes(user.email);
 
-  const getDevMode = () => {
-    const stored = localStorage.getItem("devMode");
-    if (stored !== null) return stored === "true";
-    return false; // default OFF — user must enable manually
-  };
-  const [devMode, setDevMode] = useState(getDevMode);
-
-  useEffect(() => {
-    // no longer auto-enable for dev accounts
-  }, [isDevAccount]);
+  const [devMode, setDevMode] = useState(false);
 
   const isDev = !!isDevAccount && devMode;
 
   function toggleDevMode() {
-    const next = !devMode;
-    setDevMode(next);
-    localStorage.setItem("devMode", String(next));
+    setDevMode(next => !next);
   }
 
   // Fetch debug answer whenever dev mode is toggled on and we have a session
