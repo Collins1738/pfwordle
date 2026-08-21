@@ -516,16 +516,16 @@ app.get("/api/leaderboard/alltime", async (req, res) => {
 app.get("/api/leaderboard/weekly", async (req, res) => {
   try {
     // Get Monday–Friday of current week in ET
+    // All arithmetic done in UTC to avoid timezone shift when converting back via getETDate()
     const todayET = getETDate();
     const [ty, tm, td] = todayET.split("-").map(Number);
-    const nowET = new Date(ty, tm - 1, td);
-    const day = nowET.getDay(); // 0=Sun, 1=Mon...
-    const monday = new Date(nowET);
-    monday.setDate(nowET.getDate() - (day === 0 ? 6 : day - 1));
-    const friday = new Date(monday);
-    friday.setDate(monday.getDate() + 4);
-    const mondayStr = getETDate(monday);
-    const fridayStr = getETDate(friday);
+    const nowUTC = new Date(Date.UTC(ty, tm - 1, td));
+    const day = nowUTC.getUTCDay(); // 0=Sun, 1=Mon...
+    const mondayOffset = day === 0 ? -6 : 1 - day;
+    const mondayUTC = new Date(Date.UTC(ty, tm - 1, td + mondayOffset));
+    const fridayUTC = new Date(Date.UTC(ty, tm - 1, td + mondayOffset + 4));
+    const mondayStr = mondayUTC.toISOString().slice(0, 10);
+    const fridayStr = fridayUTC.toISOString().slice(0, 10);
 
     const { rows } = await pool.query(
       `SELECT u.name, u.avatar_url,
