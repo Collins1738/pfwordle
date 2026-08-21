@@ -481,7 +481,7 @@ app.get("/api/leaderboard/daily", async (req, res) => {
        LEFT JOIN guesses gu ON gu.game_id = g.id
        WHERE g.date = $1 AND g.mode = 'daily' AND g.status IN ('won', 'lost')
        GROUP BY u.name, u.avatar_url, g.id, g.guess_count, g.duration_seconds, g.status
-       ORDER BY g.status DESC, g.guess_count ASC, g.duration_seconds ASC
+       ORDER BY g.status DESC, g.score DESC
        LIMIT 50`,
       [today]
     );
