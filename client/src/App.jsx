@@ -40,6 +40,7 @@ export default function App({ mode = "daily" }) {
   const [shakingRow, setShakingRow] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
   const [initializing, setInitializing] = useState(true);
+  const [isWeekend, setIsWeekend] = useState(false);
   const resumedComplete = useRef(false); // true when result screen shown via resume (skip animation)
 
   const isDevAccount = user && DEV_ACCOUNTS.includes(user.email);
@@ -65,6 +66,7 @@ export default function App({ mode = "daily" }) {
     try {
       const token = getToken();
       const data = await startGame({ mode, ...options }, token);
+      if (data.error === "weekend") { setIsWeekend(true); return; }
       setSessionId(data.sessionId);
       setWordLength(data.wordLength);
       setMaxGuesses(data.maxGuesses);
@@ -109,6 +111,7 @@ export default function App({ mode = "daily" }) {
         if (token) {
           try {
             const data = await resumeGame(token);
+            if (data.error === "weekend") { setIsWeekend(true); return; }
             if (data.hasGame) {
               setSessionId(data.sessionId);
               setWordLength(data.wordLength);
@@ -125,6 +128,9 @@ export default function App({ mode = "daily" }) {
             }
           } catch { /* fall through */ }
         }
+        // Not logged in — still check if it's a weekend before starting game
+        const day = new Date().toLocaleDateString("en-US", { timeZone: "America/New_York", weekday: "short" });
+        if (["Sat", "Sun"].includes(day)) { setIsWeekend(true); return; }
       }
 
       if (mode === "practice") {
@@ -244,6 +250,23 @@ export default function App({ mode = "daily" }) {
   const msgColor = status === "won" ? t.accent : status === "lost" ? t.accentAlt : t.text;
 
   if (initializing) return <Box minH="100vh" bg={t.bg} />;
+
+  if (mode === "daily" && isWeekend) {
+    return (
+      <Box minH="100vh" bg={t.bg} display="flex" flexDir="column" alignItems="center" justifyContent="center" fontFamily={t.font} px={4}>
+        <Text fontSize="4xl" mb={4}>🐉</Text>
+        <Heading fontSize="2xl" color={t.text} fontFamily={t.font} mb={2} textAlign="center">
+          No daily on weekends!
+        </Heading>
+        <Text color={t.muted} fontSize="md" textAlign="center" maxW="320px">
+          Daily mode runs Monday–Friday. Come back Monday and see how you rank on the weekly leaderboard!
+        </Text>
+        <Box mt={6} cursor="pointer" color={t.accent} fontWeight="700" fontSize="sm" onClick={() => window.location.href = "/"}>
+          ← Back to home
+        </Box>
+      </Box>
+    );
+  }
 
   return (
     <Box minH="100vh" bg={t.bg} display="flex" flexDir="column" alignItems="center" fontFamily={t.font}>

@@ -14,6 +14,12 @@ function getETDate(d = new Date()) {
   return d.toLocaleDateString("en-CA", { timeZone: "America/New_York" }); // en-CA gives YYYY-MM-DD
 }
 
+// Returns true if today is a weekday (Mon–Fri) in ET
+function isWeekdayET() {
+  const day = new Date().toLocaleDateString("en-US", { timeZone: "America/New_York", weekday: "short" });
+  return !["Sat", "Sun"].includes(day);
+}
+
 function calcScore(guessCount, maxGuesses, durationSeconds) {
   const perfect = 900;
   const deductPerGuess = Math.floor(perfect / maxGuesses);
@@ -109,6 +115,11 @@ app.get("/api/game/resume", async (req, res) => {
     userId = decoded.id;
   } catch { return res.status(401).json({ error: "Invalid token" }); }
 
+  // Block daily resume on weekends
+  if (!isWeekdayET()) {
+    return res.status(403).json({ error: "weekend", message: "Daily mode is only available Monday–Friday. See you Monday!" });
+  }
+
   const today = getETDate();
   const { rows } = await pool.query(
     `SELECT g.*, array_agg(
@@ -173,6 +184,12 @@ app.post("/api/game/start", async (req, res) => {
   const today = getETDate();
   const mode = req.body?.mode === "practice" ? "practice" : "daily";
   console.log(`[game/start] mode=${mode} hasAuth=${!!req.headers.authorization}`);
+
+  // Block daily mode on weekends
+  if (mode === "daily" && !isWeekdayET()) {
+    return res.status(403).json({ error: "weekend", message: "Daily mode is only available Monday–Friday. See you Monday!" });
+  }
+
   let word;
 
   if (mode === "practice") {
