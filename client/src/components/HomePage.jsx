@@ -99,7 +99,7 @@ export default function HomePage() {
                 borderBottom={i < topRows.length - 1 ? `1px solid ${t.border}` : "none"}
                 bg={isYou ? t.accent + "11" : "transparent"}
               >
-                <Text fontSize="sm" w="20px" textAlign="center" flexShrink={0} color={t.muted} fontFamily={t.font}>
+                <Text fontSize="sm" w="28px" textAlign="center" flexShrink={0} color={t.muted} fontFamily={t.font}>
                   {`#${position}`}
                 </Text>
                 <Avatar.Root size="xs" flexShrink={0}>
@@ -400,7 +400,7 @@ export default function HomePage() {
                 const shortName = parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1][0]}.` : parts[0];
                 return (
                   <HStack px={4} py={2} gap={3} borderTop={`1px solid ${t.border}`} bg={t.accent + "11"}>
-                    <Text fontSize="sm" color={t.muted} fontFamily={t.font} w="20px" textAlign="center">#{userIdx + 1}</Text>
+                    <Text fontSize="sm" color={t.muted} fontFamily={t.font} w="28px" textAlign="center">#{userIdx + 1}</Text>
                     <Avatar.Root size="xs">
                       <Avatar.Image src={row.avatar_url} />
                       <Avatar.Fallback>{row.name?.[0]}</Avatar.Fallback>

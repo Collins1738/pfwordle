@@ -65,8 +65,8 @@ export default function Leaderboard({ onClose }) {
           <VStack gap={2} align="stretch">
             {data.map((row, i) => (
               <HStack key={i} bg={t.bg} borderRadius="lg" px={3} py={2} gap={3} border={`1px solid ${t.border}`}>
-                <Text fontSize="lg" w="28px" textAlign="center">
-                  {medals[i] || <Text color={t.muted}>{i + 1}</Text>}
+                <Text fontSize="lg" w="32px" textAlign="center" color={medals[i] ? "inherit" : t.muted}>
+                  {medals[i] || i + 1}
                 </Text>
                 <Avatar.Root size="sm">
                   <Avatar.Image src={row.avatar_url} />
