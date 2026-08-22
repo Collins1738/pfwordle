@@ -15,6 +15,10 @@ export default function HomePage() {
   const navigate = useNavigate();
   const { user, logout, getToken } = useAuth();
   const isDevAccount = user && DEV_ACCOUNTS.includes(user.email);
+  const isWeekend = (() => {
+    const day = new Date().toLocaleDateString("en-US", { timeZone: "America/New_York", weekday: "short" });
+    return ["Sat", "Sun"].includes(day);
+  })();
 
   const [dailyStatus, setDailyStatus] = useState(null); // null | "playing" | "won" | "lost"
   const [authMenuOpen, setAuthMenuOpen] = useState(false);
@@ -291,7 +295,7 @@ export default function HomePage() {
                 _active={{ transform: "translateY(3px)", boxShadow: done ? `0 1px 0 ${t.border}` : `0 1px 0 ${t.accentDark}` }}
                 onClick={handleDailyClick}
               >
-                <CalendarDots size={20} weight="duotone" style={{ display: "inline", marginRight: 8, verticalAlign: "middle" }} />Daily
+                <CalendarDots size={20} weight="duotone" style={{ display: "inline", marginRight: 8, verticalAlign: "middle" }} />{isWeekend ? "Weekend Bonus! 🎉" : "Daily"}
               </Box>
                 );
               })()}
