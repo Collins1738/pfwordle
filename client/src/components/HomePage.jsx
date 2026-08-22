@@ -23,6 +23,10 @@ export default function HomePage() {
 
   const [dailyStatus, setDailyStatus] = useState(null); // null | "playing" | "won" | "lost"
   const [authMenuOpen, setAuthMenuOpen] = useState(false);
+  useEffect(() => {
+    document.body.style.overflow = authMenuOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [authMenuOpen]);
   const [shaking, setShaking] = useState(false);
   const [toast, setToast] = useState(false);
   const toastTimer = useRef(null);
