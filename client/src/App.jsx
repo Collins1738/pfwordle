@@ -386,16 +386,28 @@ export default function App({ mode = "daily" }) {
                     <Text color={t.text} fontFamily={t.font} fontSize="sm" fontWeight="600" noOfLines={1} mb={0.5}>{user.name}</Text>
                     <Text color={t.muted} fontFamily={t.font} fontSize="xs" noOfLines={1} mb={3}>{user.email}</Text>
                     {isDevAccount && (
-                      <Box
-                        as="button" w="100%" textAlign="center"
-                        bg={t.overlay} border={`1px solid ${t.border}`} borderRadius={t.radius}
-                        py={1.5} px={3} color={t.accent} fontSize="xs" fontWeight="700"
-                        fontFamily={t.font} cursor="pointer" mb={2}
-                        onClick={() => { setShowUserMenu(false); navigate("/admin"); }}
-                        _hover={{ bg: t.accent + "22" }}
-                      >
-                        🛠 Admin
-                      </Box>
+                      <>
+                        <Box
+                          as="button" w="100%" textAlign="center"
+                          bg={t.overlay} border={`1px solid ${t.border}`} borderRadius={t.radius}
+                          py={1.5} px={3} color={t.accent} fontSize="xs" fontWeight="700"
+                          fontFamily={t.font} cursor="pointer" mb={2}
+                          onClick={() => { setShowUserMenu(false); navigate("/admin"); }}
+                          _hover={{ bg: t.accent + "22" }}
+                        >
+                          🛠 Admin
+                        </Box>
+                        <Box
+                          as="button" w="100%" textAlign="center"
+                          bg={t.overlay} border={`1px solid ${t.border}`} borderRadius={t.radius}
+                          py={1.5} px={3} color="#f5a623" fontSize="xs" fontWeight="700"
+                          fontFamily={t.font} cursor="pointer" mb={2}
+                          onClick={() => { setShowUserMenu(false); navigate("/hall-of-fame"); }}
+                          _hover={{ bg: "#f5a62322" }}
+                        >
+                          🏆 Hall of Fame
+                        </Box>
+                      </>
                     )}
                     <Box
                       as="button" w="100%" textAlign="center"
