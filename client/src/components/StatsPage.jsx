@@ -16,17 +16,36 @@ function StatBox({ value, label }) {
   );
 }
 
+function formatWeekRange(weekStart) {
+  const [y, m, d] = weekStart.split("-").map(Number);
+  const mon = new Date(Date.UTC(y, m - 1, d));
+  const fri = new Date(Date.UTC(y, m - 1, d + 4));
+  const fmt = (dt) => dt.toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" });
+  return `${fmt(mon)} – ${fmt(fri)}`;
+}
+
+function rankLabel(rank) {
+  if (rank === 1) return "🥇";
+  if (rank === 2) return "🥈";
+  if (rank === 3) return "🥉";
+  return `#${rank}`;
+}
+
 export default function StatsPage({ token, maxGuesses = 6, mode = "daily" }) {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
+  const [weeklyHistory, setWeeklyHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!token) { setLoading(false); return; }
-    axios.get(`${BASE_URL}/api/stats?mode=${mode}`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => setStats(r.data))
-      .catch(() => setStats(null))
-      .finally(() => setLoading(false));
+    const headers = { Authorization: `Bearer ${token}` };
+    Promise.all([
+      axios.get(`${BASE_URL}/api/stats?mode=${mode}`, { headers }).then(r => setStats(r.data)).catch(() => setStats(null)),
+      mode === "daily"
+        ? axios.get(`${BASE_URL}/api/stats/weekly-history`, { headers }).then(r => setWeeklyHistory(r.data)).catch(() => setWeeklyHistory([]))
+        : Promise.resolve(),
+    ]).finally(() => setLoading(false));
   }, [token, mode]);
 
   const maxCount = stats?.distribution?.reduce((m, r) => Math.max(m, parseInt(r.count)), 1) || 1;
@@ -98,6 +117,43 @@ export default function StatsPage({ token, maxGuesses = 6, mode = "daily" }) {
                 })}
               </VStack>
             </Box>
+
+            {mode === "daily" && weeklyHistory.length > 0 && (
+              <Box>
+                <Text fontSize="xs" fontWeight="bold" color={t.text} letterSpacing="0.12em" textTransform="uppercase" mb={3} fontFamily={t.font}>
+                  Weekly History
+                </Text>
+                <VStack gap={2} align="stretch">
+                  {weeklyHistory.map((week, i) => (
+                    <motion.div
+                      key={week.week_start}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.05, duration: 0.2 }}
+                    >
+                      <HStack
+                        bg={week.rank === 1 ? "#f5a62311" : t.surface}
+                        border={`1px solid ${week.rank === 1 ? "#f5a62344" : t.border}`}
+                        borderRadius="xl" px={4} py={2.5} gap={3}
+                      >
+                        <Text fontSize="lg" flexShrink={0} w="32px" textAlign="center">{rankLabel(parseInt(week.rank))}</Text>
+                        <VStack gap={0} align="flex-start" flex={1}>
+                          <Text fontSize="xs" fontWeight="700" color={t.text} fontFamily={t.font}>
+                            {formatWeekRange(week.week_start)}
+                          </Text>
+                          <Text fontSize="10px" color={t.muted} fontFamily={t.font}>
+                            {week.wins} win{week.wins !== 1 ? "s" : ""} · {week.played} played · out of {week.total_players}
+                          </Text>
+                        </VStack>
+                        <Text fontSize="sm" fontWeight="700" color={t.accent} fontFamily={t.font} flexShrink={0}>
+                          {week.total_score} pts
+                        </Text>
+                      </HStack>
+                    </motion.div>
+                  ))}
+                </VStack>
+              </Box>
+            )}
           </VStack>
         )}
       </Box>
