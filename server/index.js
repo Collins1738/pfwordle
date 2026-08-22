@@ -502,6 +502,7 @@ app.get("/api/leaderboard/alltime", async (req, res) => {
               COUNT(*) AS total_games
        FROM games g JOIN users u ON u.id = g.user_id
        WHERE g.mode = 'daily' AND g.status IN ('won', 'lost')
+         AND EXTRACT(DOW FROM g.date) BETWEEN 1 AND 5
        GROUP BY u.id, u.name, u.avatar_url
        ORDER BY wins DESC, avg_guesses ASC
        LIMIT 50`
