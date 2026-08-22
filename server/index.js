@@ -474,18 +474,29 @@ app.get("/api/leaderboard/daily", async (req, res) => {
   const today = getETDate();
   try {
     const { rows } = await pool.query(
-      `SELECT u.name, u.avatar_url, g.id AS game_id, g.guess_count, g.duration_seconds, g.status, g.score,
+      `SELECT u.name, u.avatar_url, g.id AS game_id, g.guess_count, g.duration_seconds, g.status, g.score, g.word,
               COALESCE(json_agg(json_build_object('guess', gu.guess, 'result', gu.result) ORDER BY gu.id) FILTER (WHERE gu.id IS NOT NULL), '[]') AS guesses
        FROM games g
        JOIN users u ON u.id = g.user_id
        LEFT JOIN guesses gu ON gu.game_id = g.id
        WHERE g.date = $1 AND g.mode = 'daily' AND g.status IN ('won', 'lost')
-       GROUP BY u.name, u.avatar_url, g.id, g.guess_count, g.duration_seconds, g.status
+       GROUP BY u.name, u.avatar_url, g.id, g.guess_count, g.duration_seconds, g.status, g.word
        ORDER BY g.status DESC, g.score DESC
        LIMIT 50`,
       [today]
     );
-    res.json(rows);
+    // Enrich each row with the employee's title/department from the word (first name)
+    const enriched = rows.map(row => {
+      const empInfo = row.word ? getEmployeeInfo(row.word) : null;
+      const emp = Array.isArray(empInfo) ? empInfo[0] : empInfo;
+      return {
+        ...row,
+        employee_title: emp?.slackTitle || emp?.title || null,
+        employee_department: emp?.department || null,
+        employee_full_name: emp?.fullName || null,
+      };
+    });
+    res.json(enriched);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

@@ -50,6 +50,7 @@ function BoardModal({ row, onClose }) {
   const guesses = row.guesses || [];
   const wordLength = guesses[0]?.result?.length || 5;
   const maxGuesses = Math.max(6, guesses.length);
+  const [profileExpanded, setProfileExpanded] = useState(false);
 
   return (
     <AnimatePresence>
@@ -69,7 +70,12 @@ function BoardModal({ row, onClose }) {
           style={{ width: "100%", maxWidth: "320px", margin: "0 16px" }}
         >
           <Box bg={t.surface} border={`1px solid ${t.border}`} borderRadius="2xl" overflow="hidden">
-            <HStack px={4} py={3} borderBottom={`1px solid ${t.border}`} gap={3}>
+            <HStack
+              px={4} py={3} borderBottom={`1px solid ${t.border}`} gap={3}
+              cursor="pointer" onClick={() => setProfileExpanded(v => !v)}
+              _hover={{ bg: t.bg }}
+              transition="background 0.15s"
+            >
               <Avatar.Root size="sm">
                 <Avatar.Image src={row.avatar_url} />
                 <Avatar.Fallback>{row.name?.[0]}</Avatar.Fallback>
@@ -80,8 +86,36 @@ function BoardModal({ row, onClose }) {
                   {row.status === "won" ? `${row.guess_count} guess${row.guess_count !== 1 ? "es" : ""}` : "Did not get it"}
                 </Text>
               </VStack>
-              <Box as="button" color={t.muted} onClick={onClose} fontSize="lg" cursor="pointer" lineHeight={1}>✕</Box>
+              <Text fontSize="xs" color={t.muted} mr={2}>{profileExpanded ? "▲" : "▼"}</Text>
+              <Box as="button" color={t.muted} onClick={e => { e.stopPropagation(); onClose(); }} fontSize="lg" cursor="pointer" lineHeight={1}>✕</Box>
             </HStack>
+            <AnimatePresence>
+              {profileExpanded && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  style={{ overflow: "hidden" }}
+                >
+                  <HStack px={4} py={3} gap={3} borderBottom={`1px solid ${t.border}`} bg={t.bg}>
+                    <Avatar.Root size="md">
+                      <Avatar.Image src={row.avatar_url} />
+                      <Avatar.Fallback>{row.name?.[0]}</Avatar.Fallback>
+                    </Avatar.Root>
+                    <VStack gap={0} align="flex-start">
+                      <Text fontSize="sm" fontWeight="700" color={t.text} fontFamily={t.font}>{row.employee_full_name || row.name}</Text>
+                      {row.employee_title && (
+                        <Text fontSize="xs" color={t.muted} fontFamily={t.font}>{row.employee_title}</Text>
+                      )}
+                      {row.employee_department && (
+                        <Text fontSize="xs" color={t.accent} fontFamily={t.font} fontWeight="600">{row.employee_department}</Text>
+                      )}
+                    </VStack>
+                  </HStack>
+                </motion.div>
+              )}
+            </AnimatePresence>
             <Box p={4} display="flex" flexDir="column" alignItems="center" gap={3}>
               <VStack gap="4px">
                 {Array.from({ length: maxGuesses }, (_, i) => {
