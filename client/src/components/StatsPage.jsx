@@ -25,7 +25,7 @@ function rankLabel(rank) {
   return `#${rank}`;
 }
 
-export default function StatsPage({ token, maxGuesses = 6, mode = "daily" }) {
+export default function StatsPage({ token, maxGuesses = 6, mode = "daily", user = null }) {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [weeklyHistory, setWeeklyHistory] = useState([]);
@@ -132,8 +132,8 @@ export default function StatsPage({ token, maxGuesses = 6, mode = "daily" }) {
                       >
                         <Text fontSize="lg" flexShrink={0} w="32px" textAlign="center">{rankLabel(parseInt(week.rank))}</Text>
                         <Avatar.Root size="sm" flexShrink={0}>
-                          <Avatar.Image src={week.avatar_url} />
-                          <Avatar.Fallback>{week.name?.[0]}</Avatar.Fallback>
+                          <Avatar.Image src={user?.avatar} />
+                          <Avatar.Fallback>{user?.name?.[0]}</Avatar.Fallback>
                         </Avatar.Root>
                         <VStack gap={0} align="flex-start" flex={1}>
                           <Text fontSize="xs" fontWeight="700" color={t.text} fontFamily={t.font}>
