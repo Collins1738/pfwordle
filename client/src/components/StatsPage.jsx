@@ -118,7 +118,7 @@ export default function StatsPage({ token, maxGuesses = 6, mode = "daily" }) {
               </VStack>
             </Box>
 
-            {mode === "daily" && weeklyHistory.length > 0 && (
+            {weeklyHistory.length > 0 && (
               <Box>
                 <Text fontSize="xs" fontWeight="bold" color={t.text} letterSpacing="0.12em" textTransform="uppercase" mb={3} fontFamily={t.font}>
                   Weekly History
