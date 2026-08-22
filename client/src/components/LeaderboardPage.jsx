@@ -161,20 +161,29 @@ function ProfileModal({ row, onClose }) {
                   </Box>
                 )}
               </VStack>
-              <HStack gap={4} pt={2}>
-                <VStack gap={0} align="center">
-                  <Text fontSize="xl" fontWeight="700" color={t.accent} fontFamily={t.font}>{row.wins}</Text>
-                  <Text fontSize="xs" color={t.muted} fontFamily={t.font}>wins</Text>
-                </VStack>
-                <VStack gap={0} align="center">
-                  <Text fontSize="xl" fontWeight="700" color={t.text} fontFamily={t.font}>{row.played}</Text>
-                  <Text fontSize="xs" color={t.muted} fontFamily={t.font}>played</Text>
-                </VStack>
-                <VStack gap={0} align="center">
-                  <Text fontSize="xl" fontWeight="700" color={t.text} fontFamily={t.font}>{row.total_score}</Text>
-                  <Text fontSize="xs" color={t.muted} fontFamily={t.font}>pts</Text>
-                </VStack>
-              </HStack>
+              {(() => {
+                // Weekly rows have wins/played/total_score; daily rows have status/guess_count/score
+                const isWeeklyRow = row.total_score !== undefined;
+                const wins = isWeeklyRow ? row.wins : (row.status === "won" ? 1 : 0);
+                const played = isWeeklyRow ? row.played : 1;
+                const pts = isWeeklyRow ? row.total_score : (row.score ?? 0);
+                return (
+                  <HStack gap={4} pt={2}>
+                    <VStack gap={0} align="center">
+                      <Text fontSize="xl" fontWeight="700" color={t.accent} fontFamily={t.font}>{wins}</Text>
+                      <Text fontSize="xs" color={t.muted} fontFamily={t.font}>wins</Text>
+                    </VStack>
+                    <VStack gap={0} align="center">
+                      <Text fontSize="xl" fontWeight="700" color={t.text} fontFamily={t.font}>{played}</Text>
+                      <Text fontSize="xs" color={t.muted} fontFamily={t.font}>played</Text>
+                    </VStack>
+                    <VStack gap={0} align="center">
+                      <Text fontSize="xl" fontWeight="700" color={t.text} fontFamily={t.font}>{pts}</Text>
+                      <Text fontSize="xs" color={t.muted} fontFamily={t.font}>pts</Text>
+                    </VStack>
+                  </HStack>
+                );
+              })()}
             </VStack>
           </Box>
         </motion.div>
