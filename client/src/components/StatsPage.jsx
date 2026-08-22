@@ -132,7 +132,7 @@ export default function StatsPage({ token, maxGuesses = 6, mode = "daily" }) {
                       >
                         <Text fontSize="lg" flexShrink={0} w="32px" textAlign="center">{rankLabel(parseInt(week.rank))}</Text>
                         <Avatar.Root size="sm" flexShrink={0}>
-                          <Avatar.Image src={week.avatar_url} />
+                          <Avatar.Image src={week.avatar_url ? `${BASE_URL}/api/avatar?url=${encodeURIComponent(week.avatar_url)}` : undefined} />
                           <Avatar.Fallback>{week.name?.[0]}</Avatar.Fallback>
                         </Avatar.Root>
                         <VStack gap={0} align="flex-start" flex={1}>
