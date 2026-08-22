@@ -504,10 +504,7 @@ app.get("/api/leaderboard/daily", async (req, res) => {
 });
 
 // GET /api/leaderboard/hall-of-fame — one winner per week, oldest first (admin only)
-app.get("/api/leaderboard/hall-of-fame", requireAuth, async (req, res) => {
-  if (!ADMIN_EMAILS.includes(req.user.email)) {
-    return res.status(403).json({ error: "Forbidden" });
-  }
+app.get("/api/leaderboard/hall-of-fame", async (req, res) => {
   try {
     // For each Mon–Fri week that has completed games, find the top scorer
     // week_start = the Monday of that week (ISO date string)

@@ -6,7 +6,6 @@ import { Trophy } from "@phosphor-icons/react";
 import axios from "axios";
 import { t } from "../theme";
 import { useAuth } from "../useAuth";
-import { DEV_ACCOUNTS } from "../constants";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 
@@ -17,36 +16,17 @@ function shortName(name) {
 
 export default function HallOfFamePage() {
   const navigate = useNavigate();
-  const { user, getToken } = useAuth();
-  const isAdmin = user && DEV_ACCOUNTS.includes(user.email);
+  useAuth(); // keep auth context available if needed later
   const [weeks, setWeeks] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!isAdmin) return;
-    const token = getToken();
     axios
-      .get(`${BASE_URL}/api/leaderboard/hall-of-fame`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      .get(`${BASE_URL}/api/leaderboard/hall-of-fame`)
       .then((r) => setWeeks(r.data))
       .catch(() => setWeeks([]))
       .finally(() => setLoading(false));
-  }, [isAdmin]);
-
-  if (!isAdmin) {
-    return (
-      <Box minH="100vh" bg={t.bg} display="flex" alignItems="center" justifyContent="center" fontFamily={t.font}>
-        <VStack gap={3}>
-          <Text fontSize="3xl">🔒</Text>
-          <Text color={t.muted} fontFamily={t.font}>Admins only</Text>
-          <Box as="button" color={t.accent} fontFamily={t.font} fontSize="sm" fontWeight="600" onClick={() => navigate("/")}>
-            ← Back to home
-          </Box>
-        </VStack>
-      </Box>
-    );
-  }
+  }, []);
 
   return (
     <Box minH="100vh" bg={t.bg} display="flex" flexDir="column" alignItems="center" fontFamily={t.font}>
