@@ -78,21 +78,16 @@ function GameCard({ game }) {
       _hover={{ boxShadow: "0 4px 16px rgba(0,100,200,0.08)" }}
       transition="box-shadow 0.15s"
     >
-      {/* Row 1: avatar + name (left) · word (right) */}
-      <HStack justifyContent="space-between" alignItems="center" gap={3}>
-        <HStack gap={2} minW={0}>
-          <Avatar.Root size="sm" flexShrink={0}>
-            {game.player_avatar ? <Avatar.Image src={`${BASE_URL}/api/avatar?url=${encodeURIComponent(game.player_avatar)}`} /> : null}
-            <Avatar.Fallback bg={t.accent} color="white" fontSize="xs">
-              {(game.player_name || "?")[0]}
-            </Avatar.Fallback>
-          </Avatar.Root>
-          <Text fontWeight="700" color={t.text} fontSize="sm" fontFamily={t.font} noOfLines={1}>
-            {formatName(game.player_name)}
-          </Text>
-        </HStack>
-        <Text fontWeight="800" color={t.text} fontSize="lg" fontFamily={t.font} letterSpacing="0.1em" flexShrink={0}>
-          {game.word}
+      {/* Row 1: avatar + name */}
+      <HStack alignItems="center" gap={2}>
+        <Avatar.Root size="sm" flexShrink={0}>
+          {game.player_avatar ? <Avatar.Image src={`${BASE_URL}/api/avatar?url=${encodeURIComponent(game.player_avatar)}`} /> : null}
+          <Avatar.Fallback bg={t.accent} color="white" fontSize="xs">
+            {(game.player_name || "?")[0]}
+          </Avatar.Fallback>
+        </Avatar.Root>
+        <Text fontWeight="700" color={t.text} fontSize="sm" fontFamily={t.font} noOfLines={1}>
+          {formatName(game.player_name)}
         </Text>
       </HStack>
 
@@ -128,6 +123,12 @@ function GameCard({ game }) {
       {/* Expanded guess grid */}
       {expanded && (
         <Box mt={3} pt={3} borderTop={`1px solid ${t.border}`}>
+          <HStack mb={2} gap={2} alignItems="center">
+            <Text fontSize="xs" color={t.muted} fontFamily={t.font}>Answer:</Text>
+            <Text fontSize="sm" fontWeight="800" color={t.text} fontFamily="monospace" letterSpacing="0.1em">
+              {game.word}
+            </Text>
+          </HStack>
           {game.guesses && game.guesses.length > 0 ? (
             <VStack alignItems="flex-start" gap={2}>
               {game.guesses.map((g, i) => (
