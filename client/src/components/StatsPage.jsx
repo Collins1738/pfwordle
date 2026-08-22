@@ -140,7 +140,7 @@ export default function StatsPage({ token, maxGuesses = 6, mode = "daily" }) {
                             Week {i + 1}
                           </Text>
                           <Text fontSize="10px" color={t.muted} fontFamily={t.font}>
-                            out of {week.total_players}
+                            {parseInt(week.rank)} of {week.total_players} players
                           </Text>
                         </VStack>
                         <Text fontSize="sm" fontWeight="700" color={t.accent} fontFamily={t.font} flexShrink={0}>
