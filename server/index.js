@@ -634,6 +634,66 @@ app.get("/api/leaderboard/weekly", async (req, res) => {
   }
 });
 
+// GET /api/stats/weekly-history — user's position in each past completed week
+app.get("/api/stats/weekly-history", requireAuth, async (req, res) => {
+  try {
+    const todayET = getETDate();
+    const { rows } = await pool.query(
+      `WITH week_scores AS (
+         SELECT
+           u.id AS user_id,
+           u.name,
+           u.avatar_url,
+           (g.date - ((EXTRACT(DOW FROM g.date)::int + 6) % 7) * INTERVAL '1 day')::date AS week_start,
+           COALESCE(SUM(g.score), 0) AS total_score,
+           COUNT(*) FILTER (WHERE g.status = 'won') AS wins,
+           COUNT(*) AS played
+         FROM games g
+         JOIN users u ON u.id = g.user_id
+         WHERE g.mode = 'daily'
+           AND g.status IN ('won', 'lost')
+           AND EXTRACT(DOW FROM g.date) BETWEEN 1 AND 5
+         GROUP BY u.id, u.name, u.avatar_url, week_start
+       ),
+       week_meta AS (
+         SELECT
+           (g.date - ((EXTRACT(DOW FROM g.date)::int + 6) % 7) * INTERVAL '1 day')::date AS week_start,
+           COUNT(DISTINCT g.date) AS days_in_week
+         FROM games g
+         WHERE g.mode = 'daily'
+           AND g.status IN ('won', 'lost')
+           AND EXTRACT(DOW FROM g.date) BETWEEN 1 AND 5
+         GROUP BY 1
+       ),
+       valid_weeks AS (
+         SELECT week_start FROM week_meta
+         WHERE days_in_week >= 2
+           AND (week_start + INTERVAL '4 days')::date < $2::date
+       ),
+       ranked AS (
+         SELECT ws.*,
+           RANK() OVER (PARTITION BY ws.week_start ORDER BY ws.total_score DESC, ws.wins DESC) AS rank,
+           COUNT(*) OVER (PARTITION BY ws.week_start) AS total_players
+         FROM week_scores ws
+         JOIN valid_weeks vw ON ws.week_start = vw.week_start
+       )
+       SELECT week_start, name, avatar_url, total_score, wins, played, rank, total_players
+       FROM ranked
+       WHERE user_id = $1
+       ORDER BY week_start ASC`,
+      [req.user.id, todayET]
+    );
+    res.json(rows.map(r => ({
+      ...r,
+      week_start: r.week_start instanceof Date
+        ? r.week_start.toISOString().slice(0, 10)
+        : String(r.week_start).slice(0, 10),
+    })));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // GET /api/stats — personal stats for logged-in user
 app.get("/api/stats", requireAuth, async (req, res) => {
   const mode = req.query.mode === "practice" ? "practice" : "daily";
