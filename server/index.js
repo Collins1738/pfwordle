@@ -511,12 +511,12 @@ app.get("/api/leaderboard/hall-of-fame", requireAuth, async (req, res) => {
   try {
     // For each Mon–Fri week that has completed games, find the top scorer
     // week_start = the Monday of that week (ISO date string)
+    const todayET = getETDate();
     const { rows } = await pool.query(
       `WITH week_scores AS (
          SELECT
            u.name,
            u.avatar_url,
-           -- compute Monday of that game's week (subtract DOW-1 days, DOW 1=Mon...5=Fri)
            (g.date - ((EXTRACT(DOW FROM g.date)::int + 6) % 7) * INTERVAL '1 day')::date AS week_start,
            COALESCE(SUM(g.score), 0) AS total_score,
            COUNT(*) FILTER (WHERE g.status = 'won') AS wins,
@@ -528,15 +528,34 @@ app.get("/api/leaderboard/hall-of-fame", requireAuth, async (req, res) => {
            AND EXTRACT(DOW FROM g.date) BETWEEN 1 AND 5
          GROUP BY u.id, u.name, u.avatar_url, week_start
        ),
+       week_meta AS (
+         -- count distinct game days per week (to filter stubs)
+         SELECT
+           (g.date - ((EXTRACT(DOW FROM g.date)::int + 6) % 7) * INTERVAL '1 day')::date AS week_start,
+           COUNT(DISTINCT g.date) AS days_in_week
+         FROM games g
+         WHERE g.mode = 'daily'
+           AND g.status IN ('won', 'lost')
+           AND EXTRACT(DOW FROM g.date) BETWEEN 1 AND 5
+         GROUP BY 1
+       ),
+       valid_weeks AS (
+         -- only weeks where Friday has passed AND at least 2 game days existed
+         SELECT wm.week_start FROM week_meta wm
+         WHERE wm.days_in_week >= 2
+           AND (wm.week_start + INTERVAL '4 days')::date < $1::date
+       ),
        ranked AS (
-         SELECT *,
-           ROW_NUMBER() OVER (PARTITION BY week_start ORDER BY total_score DESC, wins DESC) AS rn
-         FROM week_scores
+         SELECT ws.*,
+           ROW_NUMBER() OVER (PARTITION BY ws.week_start ORDER BY ws.total_score DESC, ws.wins DESC) AS rn
+         FROM week_scores ws
+         JOIN valid_weeks vw ON ws.week_start = vw.week_start
        )
        SELECT name, avatar_url, week_start, total_score, wins, played
        FROM ranked
        WHERE rn = 1
-       ORDER BY week_start ASC`
+       ORDER BY week_start ASC`,
+      [todayET]
     );
     res.json(rows.map(r => ({
       ...r,
