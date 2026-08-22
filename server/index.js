@@ -485,15 +485,16 @@ app.get("/api/leaderboard/daily", async (req, res) => {
        LIMIT 50`,
       [today]
     );
-    // Enrich each row with the employee's title/department from the word (first name)
+    // Enrich each row with the player's own title/department (look up by their first name)
     const enriched = rows.map(row => {
-      const empInfo = row.word ? getEmployeeInfo(row.word) : null;
-      const emp = Array.isArray(empInfo) ? empInfo[0] : empInfo;
+      const firstName = row.name?.split(" ")[0]?.toUpperCase();
+      const empInfo = firstName ? getEmployeeInfo(firstName) : null;
+      const emp = Array.isArray(empInfo) ? empInfo.find(e => e.fullName === row.name) || empInfo[0] : empInfo;
       return {
         ...row,
         employee_title: emp?.slackTitle || emp?.title || null,
         employee_department: emp?.department || null,
-        employee_full_name: emp?.fullName || null,
+        employee_full_name: emp?.fullName || row.name,
       };
     });
     res.json(enriched);
