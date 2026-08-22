@@ -468,7 +468,7 @@ export default function HomePage() {
                 <>
                   <Box position="fixed" inset={0} zIndex={9} onClick={() => setAuthMenuOpen(false)} />
                   <Box
-                    position="absolute" top="0" left="calc(100% + 8px)"
+                    position="absolute" bottom="calc(100% + 8px)" left="50%" style={{ transform: "translateX(-50%)" }}
                     bg={t.surface} border={`1px solid ${t.border}`} borderRadius="xl"
                     p={3} zIndex={10} boxShadow="0 4px 20px rgba(0,100,200,0.1)" minW="140px" textAlign="center"
                   >
