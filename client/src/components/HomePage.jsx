@@ -7,6 +7,7 @@ import { t } from "../theme";
 import { useAuth } from "../useAuth";
 import { resumeGame } from "../api";
 import { DEV_ACCOUNTS } from "../constants";
+import UserMenuDropdown from "./UserMenuDropdown";
 import axios from "axios";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "";
@@ -467,38 +468,12 @@ export default function HomePage() {
                     bg={t.surface} border={`1px solid ${t.border}`} borderRadius="xl"
                     p={3} zIndex={10} boxShadow="0 4px 20px rgba(0,100,200,0.1)" minW="140px" textAlign="center"
                   >
-                    <Box
-                      as="button" w="100%"
-                      bg={t.bg} border={`1px solid ${t.border}`} borderRadius={t.radius}
-                      py={1.5} px={3} color={t.text} fontSize="xs" fontWeight="700"
-                      fontFamily={t.font} cursor="pointer" mb={1.5}
-                      onClick={() => { setAuthMenuOpen(false); navigate("/stats?mode=daily"); }}
-                      _hover={{ bg: t.border }}
-                    >
-                      My Stats
-                    </Box>
-                    {isDevAccount && (
-                      <Box
-                        as="button" w="100%"
-                        bg={t.overlay} border={`1px solid ${t.border}`} borderRadius={t.radius}
-                        py={1.5} px={3} color={t.accent} fontSize="xs" fontWeight="700"
-                        fontFamily={t.font} cursor="pointer" mb={1.5}
-                        onClick={() => { setAuthMenuOpen(false); navigate("/admin"); }}
-                        _hover={{ bg: t.accent + "22" }}
-                      >
-                        🛠 Admin
-                      </Box>
-                    )}
-                    <Box
-                      as="button" w="100%"
-                      bg="#fff0f0" border="1px solid #ffcccc" borderRadius={t.radius}
-                      py={1.5} px={3} color="#e05252" fontSize="xs" fontWeight="700"
-                      fontFamily={t.font} cursor="pointer"
-                      onClick={() => { logout(); setAuthMenuOpen(false); }}
-                      _hover={{ bg: "#ffe0e0" }}
-                    >
-                      Sign out
-                    </Box>
+                    <UserMenuDropdown
+                      user={user}
+                      isAdmin={!!isDevAccount}
+                      onClose={() => setAuthMenuOpen(false)}
+                      showStats
+                    />
                   </Box>
                 </>
               )}
