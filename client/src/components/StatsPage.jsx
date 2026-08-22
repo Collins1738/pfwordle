@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Box, Text, VStack, HStack, Spinner } from "@chakra-ui/react";
+import { Box, Text, VStack, HStack, Spinner, Avatar } from "@chakra-ui/react";
 import axios from "axios";
 import { t } from "../theme";
 
@@ -16,13 +16,7 @@ function StatBox({ value, label }) {
   );
 }
 
-function formatWeekRange(weekStart) {
-  const [y, m, d] = weekStart.split("-").map(Number);
-  const mon = new Date(Date.UTC(y, m - 1, d));
-  const fri = new Date(Date.UTC(y, m - 1, d + 4));
-  const fmt = (dt) => dt.toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" });
-  return `${fmt(mon)} – ${fmt(fri)}`;
-}
+
 
 function rankLabel(rank) {
   if (rank === 1) return "🥇";
@@ -137,12 +131,16 @@ export default function StatsPage({ token, maxGuesses = 6, mode = "daily" }) {
                         borderRadius="xl" px={4} py={2.5} gap={3}
                       >
                         <Text fontSize="lg" flexShrink={0} w="32px" textAlign="center">{rankLabel(parseInt(week.rank))}</Text>
+                        <Avatar.Root size="sm" flexShrink={0}>
+                          <Avatar.Image src={week.avatar_url} />
+                          <Avatar.Fallback>{week.name?.[0]}</Avatar.Fallback>
+                        </Avatar.Root>
                         <VStack gap={0} align="flex-start" flex={1}>
                           <Text fontSize="xs" fontWeight="700" color={t.text} fontFamily={t.font}>
-                            {formatWeekRange(week.week_start)}
+                            Week {i + 1}
                           </Text>
                           <Text fontSize="10px" color={t.muted} fontFamily={t.font}>
-                            {week.wins} win{week.wins !== 1 ? "s" : ""} · {week.played} played · out of {week.total_players}
+                            {week.wins} win{week.wins !== 1 ? "s" : ""} · out of {week.total_players}
                           </Text>
                         </VStack>
                         <Text fontSize="sm" fontWeight="700" color={t.accent} fontFamily={t.font} flexShrink={0}>

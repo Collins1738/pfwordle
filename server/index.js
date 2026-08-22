@@ -677,7 +677,7 @@ app.get("/api/stats/weekly-history", requireAuth, async (req, res) => {
          FROM week_scores ws
          JOIN valid_weeks vw ON ws.week_start = vw.week_start
        )
-       SELECT week_start, total_score, wins, played, rank, total_players
+       SELECT week_start, name, avatar_url, total_score, wins, played, rank, total_players
        FROM ranked
        WHERE user_id = $1
        ORDER BY week_start ASC`,
