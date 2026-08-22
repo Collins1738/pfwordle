@@ -154,6 +154,69 @@ function BoardModal({ row, onClose }) {
 }
 
 
+function ProfileModal({ row, onClose }) {
+  if (!row) return null;
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        style={{ position: "fixed", inset: 0, background: "rgba(0,50,120,0.4)", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center" }}
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.9 }}
+          transition={{ type: "spring", stiffness: 300, damping: 28 }}
+          onClick={e => e.stopPropagation()}
+          style={{ width: "100%", maxWidth: "320px", margin: "0 16px" }}
+        >
+          <Box bg={t.surface} border={`1px solid ${t.border}`} borderRadius="2xl" overflow="hidden">
+            <HStack px={4} py={3} borderBottom={`1px solid ${t.border}`} gap={3} justifyContent="flex-end">
+              <Box as="button" color={t.muted} onClick={onClose} fontSize="lg" cursor="pointer" lineHeight={1}>✕</Box>
+            </HStack>
+            <VStack px={6} py={6} gap={3} align="center">
+              <Avatar.Root size="xl">
+                <Avatar.Image src={row.avatar_url} />
+                <Avatar.Fallback fontSize="2xl">{row.name?.[0]}</Avatar.Fallback>
+              </Avatar.Root>
+              <VStack gap={1} align="center">
+                <Text fontSize="lg" fontWeight="700" color={t.text} fontFamily={t.font} textAlign="center">
+                  {row.employee_full_name || row.name}
+                </Text>
+                {row.employee_title && (
+                  <Text fontSize="sm" color={t.muted} fontFamily={t.font} textAlign="center">{row.employee_title}</Text>
+                )}
+                {row.employee_department && (
+                  <Box bg={t.accent + "22"} px={3} py={0.5} borderRadius="full">
+                    <Text fontSize="xs" color={t.accent} fontFamily={t.font} fontWeight="600">{row.employee_department}</Text>
+                  </Box>
+                )}
+              </VStack>
+              <HStack gap={4} pt={2}>
+                <VStack gap={0} align="center">
+                  <Text fontSize="xl" fontWeight="700" color={t.accent} fontFamily={t.font}>{row.wins}</Text>
+                  <Text fontSize="xs" color={t.muted} fontFamily={t.font}>wins</Text>
+                </VStack>
+                <VStack gap={0} align="center">
+                  <Text fontSize="xl" fontWeight="700" color={t.text} fontFamily={t.font}>{row.played}</Text>
+                  <Text fontSize="xs" color={t.muted} fontFamily={t.font}>played</Text>
+                </VStack>
+                <VStack gap={0} align="center">
+                  <Text fontSize="xl" fontWeight="700" color={t.text} fontFamily={t.font}>{row.total_score}</Text>
+                  <Text fontSize="xs" color={t.muted} fontFamily={t.font}>pts</Text>
+                </VStack>
+              </HStack>
+            </VStack>
+          </Box>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 export default function LeaderboardPage() {
   const { type } = useParams();
   const navigate = useNavigate();
@@ -161,6 +224,7 @@ export default function LeaderboardPage() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedRow, setSelectedRow] = useState(null);
+  const [selectedProfile, setSelectedProfile] = useState(null);
   const [shakingLock, setShakingLock] = useState(null);
   const [showLockMsg, setShowLockMsg] = useState(false);
 
@@ -214,6 +278,7 @@ export default function LeaderboardPage() {
         .lock-shaking { animation: lock-shake 0.55s ease; }
       `}</style>
       {selectedRow && <BoardModal row={selectedRow} onClose={() => setSelectedRow(null)} />}
+      {selectedProfile && <ProfileModal row={selectedProfile} onClose={() => setSelectedProfile(null)} />}
 
       <Box minH="100vh" bg={t.bg} display="flex" flexDir="column" alignItems="center" fontFamily={t.font}>
         {/* Header */}
@@ -286,9 +351,9 @@ export default function LeaderboardPage() {
                     key={i} px={4} py={3} gap={3}
                     borderBottom={i < data.length - 1 ? `1px solid ${t.border}` : "none"}
                     bg={isYou ? t.accent + "11" : "transparent"}
-                    cursor={!isWeekly && row.guesses?.length && hasPlayedToday ? "pointer" : "default"}
-                    onClick={!isWeekly && row.guesses?.length ? (e) => { e.stopPropagation(); handleRowClick(row, i); } : undefined}
-                    _hover={!isWeekly && row.guesses?.length && hasPlayedToday ? { bg: isYou ? t.accent + "22" : t.bg } : {}}
+                    cursor={isWeekly || (row.guesses?.length && hasPlayedToday) ? "pointer" : "default"}
+                    onClick={isWeekly ? () => setSelectedProfile(row) : (row.guesses?.length ? (e) => { e.stopPropagation(); handleRowClick(row, i); } : undefined)}
+                    _hover={isWeekly || (row.guesses?.length && hasPlayedToday) ? { bg: isYou ? t.accent + "22" : t.bg } : {}}
                     transition="background 0.1s"
                   >
                     <Text fontSize="sm" w="28px" textAlign="center" flexShrink={0} color={t.muted} fontFamily={t.font}>

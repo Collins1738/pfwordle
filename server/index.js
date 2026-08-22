@@ -553,7 +553,19 @@ app.get("/api/leaderboard/weekly", async (req, res) => {
        LIMIT 50`,
       [mondayStr, fridayStr]
     );
-    res.json(rows);
+    // Enrich with employee info (look up by first name)
+    const enrichedWeekly = rows.map(row => {
+      const firstName = row.name?.split(" ")[0]?.toUpperCase();
+      const empInfo = firstName ? getEmployeeInfo(firstName) : null;
+      const emp = Array.isArray(empInfo) ? empInfo.find(e => e.fullName === row.name) || empInfo[0] : empInfo;
+      return {
+        ...row,
+        employee_title: emp?.slackTitle || emp?.title || null,
+        employee_department: emp?.department || null,
+        employee_full_name: emp?.fullName || row.name,
+      };
+    });
+    res.json(enrichedWeekly);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
