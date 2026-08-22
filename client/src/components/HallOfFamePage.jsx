@@ -15,16 +15,6 @@ function shortName(name) {
   return parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1][0]}.` : parts[0];
 }
 
-function formatWeekRange(weekStart) {
-  // weekStart is YYYY-MM-DD (Monday)
-  const [y, m, d] = weekStart.split("-").map(Number);
-  const mon = new Date(Date.UTC(y, m - 1, d));
-  const fri = new Date(Date.UTC(y, m - 1, d + 4));
-  const fmt = (dt) =>
-    dt.toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric" });
-  return `${fmt(mon)} – ${fmt(fri)}, ${y}`;
-}
-
 export default function HallOfFamePage() {
   const navigate = useNavigate();
   const { user, getToken } = useAuth();
@@ -84,7 +74,7 @@ export default function HallOfFamePage() {
         </HStack>
       </Box>
 
-      <VStack w="100%" maxW="520px" px={4} py={5} gap={3} align="stretch">
+      <Box w="100%" maxW="520px" px={4} py={5}>
         {loading ? (
           <Box display="flex" justifyContent="center" py={12}>
             <Spinner color={t.accent} />
@@ -94,58 +84,54 @@ export default function HallOfFamePage() {
             No completed weeks yet 🏆
           </Text>
         ) : (
-          weeks.map((week, i) => (
-            <motion.div
-              key={week.week_start}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05, duration: 0.25 }}
-            >
-              <Box
-                bg={t.surface}
-                border={`1px solid ${t.border}`}
-                borderRadius="xl"
-                overflow="hidden"
+          <Box
+            display="grid"
+            gridTemplateColumns="repeat(3, 1fr)"
+            gap={3}
+          >
+            {weeks.map((week, i) => (
+              <motion.div
+                key={week.week_start}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: i * 0.04, duration: 0.2 }}
               >
-                {/* Week header */}
-                <HStack px={4} py={2.5} borderBottom={`1px solid ${t.border}`} justifyContent="space-between">
-                  <Text fontSize="xs" fontWeight="700" color={t.muted} fontFamily={t.font} letterSpacing="0.08em" textTransform="uppercase">
-                    Week {i + 1}
+                <Box
+                  bg={t.surface}
+                  border={`1px solid ${t.border}`}
+                  borderRadius="xl"
+                  display="flex"
+                  flexDir="column"
+                  alignItems="center"
+                  py={3}
+                  px={2}
+                  gap={1}
+                  textAlign="center"
+                >
+                  <Text fontSize="10px" color={t.muted} fontFamily={t.font} fontWeight="700" letterSpacing="0.06em" textTransform="uppercase">
+                    Wk {i + 1}
                   </Text>
-                  <Text fontSize="xs" color={t.muted} fontFamily={t.font}>
-                    {formatWeekRange(week.week_start)}
+                  <Box position="relative" mb={1}>
+                    <Avatar.Root size="md">
+                      <Avatar.Image src={week.avatar_url} />
+                      <Avatar.Fallback fontSize="md">{week.name?.[0]}</Avatar.Fallback>
+                    </Avatar.Root>
+                    <Box position="absolute" bottom="-4px" right="-6px" fontSize="13px" lineHeight={1}>
+                      🥇
+                    </Box>
+                  </Box>
+                  <Text fontSize="xs" fontWeight="700" color={t.text} fontFamily={t.font} noOfLines={1} w="100%">
+                    {shortName(week.name)}
                   </Text>
-                </HStack>
-
-                {/* Winner row */}
-                <HStack px={4} py={3} gap={3}>
-                  <Text fontSize="xl" flexShrink={0}>🥇</Text>
-                  <Avatar.Root size="md" flexShrink={0}>
-                    <Avatar.Image src={week.avatar_url} />
-                    <Avatar.Fallback>{week.name?.[0]}</Avatar.Fallback>
-                  </Avatar.Root>
-                  <VStack gap={0} align="flex-start" flex={1} minW={0}>
-                    <Text fontSize="md" fontWeight="700" color={t.text} fontFamily={t.font} noOfLines={1}>
-                      {shortName(week.name)}
-                    </Text>
-                    <HStack gap={2} mt={0.5}>
-                      <Text fontSize="xs" color={t.muted} fontFamily={t.font}>
-                        {week.wins} win{week.wins !== 1 ? "s" : ""} · {week.played} played
-                      </Text>
-                    </HStack>
-                  </VStack>
-                  <VStack gap={0} align="flex-end" flexShrink={0}>
-                    <Text fontSize="lg" fontWeight="700" color={t.accent} fontFamily={t.font}>
-                      {week.total_score}
-                    </Text>
-                    <Text fontSize="xs" color={t.muted} fontFamily={t.font}>pts</Text>
-                  </VStack>
-                </HStack>
-              </Box>
-            </motion.div>
-          ))
+                  <Text fontSize="xs" fontWeight="700" color={t.accent} fontFamily={t.font}>
+                    {week.total_score} pts
+                  </Text>
+                </Box>
+              </motion.div>
+            ))}
+          </Box>
         )}
-      </VStack>
+      </Box>
     </Box>
   );
 }
