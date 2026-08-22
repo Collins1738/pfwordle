@@ -27,15 +27,18 @@ function formatWeekRange(weekStart) {
 
 export default function HallOfFamePage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, getToken } = useAuth();
   const isAdmin = user && DEV_ACCOUNTS.includes(user.email);
   const [weeks, setWeeks] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!isAdmin) return;
+    const token = getToken();
     axios
-      .get(`${BASE_URL}/api/leaderboard/hall-of-fame`)
+      .get(`${BASE_URL}/api/leaderboard/hall-of-fame`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
       .then((r) => setWeeks(r.data))
       .catch(() => setWeeks([]))
       .finally(() => setLoading(false));
