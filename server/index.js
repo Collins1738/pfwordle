@@ -14,12 +14,6 @@ function getETDate(d = new Date()) {
   return d.toLocaleDateString("en-CA", { timeZone: "America/New_York" }); // en-CA gives YYYY-MM-DD
 }
 
-// Returns true if today is a weekday (Mon–Fri) in ET
-function isWeekdayET() {
-  const day = new Date().toLocaleDateString("en-US", { timeZone: "America/New_York", weekday: "short" });
-  return !["Sat", "Sun"].includes(day);
-}
-
 function calcScore(guessCount, maxGuesses, durationSeconds) {
   const perfect = 900;
   const deductPerGuess = Math.floor(perfect / maxGuesses);
@@ -115,11 +109,6 @@ app.get("/api/game/resume", async (req, res) => {
     userId = decoded.id;
   } catch { return res.status(401).json({ error: "Invalid token" }); }
 
-  // Block daily resume on weekends
-  if (!isWeekdayET()) {
-    return res.status(403).json({ error: "weekend", message: "Daily mode is only available Monday–Friday. See you Monday!" });
-  }
-
   const today = getETDate();
   const { rows } = await pool.query(
     `SELECT g.*, array_agg(
@@ -184,12 +173,6 @@ app.post("/api/game/start", async (req, res) => {
   const today = getETDate();
   const mode = req.body?.mode === "practice" ? "practice" : "daily";
   console.log(`[game/start] mode=${mode} hasAuth=${!!req.headers.authorization}`);
-
-  // Block daily mode on weekends
-  if (mode === "daily" && !isWeekdayET()) {
-    return res.status(403).json({ error: "weekend", message: "Daily mode is only available Monday–Friday. See you Monday!" });
-  }
-
   let word;
 
   if (mode === "practice") {
@@ -498,7 +481,7 @@ app.get("/api/leaderboard/daily", async (req, res) => {
        LEFT JOIN guesses gu ON gu.game_id = g.id
        WHERE g.date = $1 AND g.mode = 'daily' AND g.status IN ('won', 'lost')
        GROUP BY u.name, u.avatar_url, g.id, g.guess_count, g.duration_seconds, g.status
-       ORDER BY g.status DESC, g.guess_count ASC, g.duration_seconds ASC
+       ORDER BY g.status DESC, g.score DESC
        LIMIT 50`,
       [today]
     );
@@ -519,6 +502,7 @@ app.get("/api/leaderboard/alltime", async (req, res) => {
               COUNT(*) AS total_games
        FROM games g JOIN users u ON u.id = g.user_id
        WHERE g.mode = 'daily' AND g.status IN ('won', 'lost')
+         AND EXTRACT(DOW FROM g.date) BETWEEN 1 AND 5
        GROUP BY u.id, u.name, u.avatar_url
        ORDER BY wins DESC, avg_guesses ASC
        LIMIT 50`

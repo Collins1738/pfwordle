@@ -25,16 +25,11 @@ export default function HomePage() {
   const [weeklyLeaderboard, setWeeklyLeaderboard] = useState([]);
   const [loadingBoards, setLoadingBoards] = useState(true);
 
-  const isWeekend = (() => {
-    const day = new Date().toLocaleDateString("en-US", { timeZone: "America/New_York", weekday: "short" });
-    return ["Sat", "Sun"].includes(day);
-  })();
-
   useEffect(() => {
     const token = getToken();
     if (!token) return;
     resumeGame(token)
-      .then(data => { if (data.hasGame && !data.error) setDailyStatus(data.status); })
+      .then(data => { if (data.hasGame) setDailyStatus(data.status); })
       .catch(() => {});
   }, [user]);
 
@@ -58,7 +53,6 @@ export default function HomePage() {
   }, []);
 
   function handleDailyClick() {
-    if (isWeekend) return; // silently block on weekends
     if (!user) {
       setShaking(true);
       setToast(true);
@@ -278,28 +272,26 @@ export default function HomePage() {
             >
               {(() => {
                 const done = dailyStatus === "won" || dailyStatus === "lost";
-                const disabled = isWeekend || done;
                 return (
               <Box
                 as="button"
                 w="100%"
                 py={3}
                 borderRadius={t.radiusMd}
-                bg={disabled ? t.border : t.accent}
-                color={disabled ? t.muted : t.white}
+                bg={done ? t.border : t.accent}
+                color={done ? t.muted : t.white}
                 fontSize="lg"
                 fontWeight="700"
                 fontFamily={t.font}
-                cursor={isWeekend ? "not-allowed" : "pointer"}
-                boxShadow={disabled ? `0 4px 0 ${t.border}` : `0 4px 0 ${t.accentDark}`}
+                cursor="pointer"
+                boxShadow={done ? `0 4px 0 ${t.border}` : `0 4px 0 ${t.accentDark}`}
                 transition="all 0.3s ease"
-                opacity={disabled ? 0.7 : 1}
-                _hover={isWeekend ? {} : { transform: "translateY(-2px)", boxShadow: done ? `0 6px 0 ${t.border}` : `0 6px 0 ${t.accentDark}` }}
-                _active={isWeekend ? {} : { transform: "translateY(3px)", boxShadow: done ? `0 1px 0 ${t.border}` : `0 1px 0 ${t.accentDark}` }}
+                opacity={done ? 0.7 : 1}
+                _hover={{ transform: "translateY(-2px)", boxShadow: done ? `0 6px 0 ${t.border}` : `0 6px 0 ${t.accentDark}` }}
+                _active={{ transform: "translateY(3px)", boxShadow: done ? `0 1px 0 ${t.border}` : `0 1px 0 ${t.accentDark}` }}
                 onClick={handleDailyClick}
               >
-                <CalendarDots size={20} weight="duotone" style={{ display: "inline", marginRight: 8, verticalAlign: "middle" }} />
-                {isWeekend ? "Daily (Mon–Fri only)" : "Daily"}
+                <CalendarDots size={20} weight="duotone" style={{ display: "inline", marginRight: 8, verticalAlign: "middle" }} />Daily
               </Box>
                 );
               })()}
