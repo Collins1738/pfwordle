@@ -222,6 +222,7 @@ export default function App({ mode = "daily" }) {
       setBlurDraining(false);
       setCelebrating(false);
       setMedalInfo(null);
+      resumedComplete.current = false;
       if (mode === "practice") localStorage.setItem("practiceSessionId", data.sessionId);
       if (isDev) {
         getDebugAnswer(data.sessionId).then(d => setDebugAnswer(d.answer)).catch(() => {});
