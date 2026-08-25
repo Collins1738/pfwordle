@@ -481,7 +481,7 @@ app.get("/api/leaderboard/daily", async (req, res) => {
        LEFT JOIN guesses gu ON gu.game_id = g.id
        WHERE g.date = $1 AND g.mode = 'daily' AND g.status IN ('won', 'lost')
        GROUP BY u.name, u.avatar_url, g.id, g.guess_count, g.duration_seconds, g.status, g.word
-       ORDER BY g.score DESC, g.duration_seconds ASC
+       ORDER BY g.score DESC, g.guess_count ASC, g.duration_seconds ASC
        LIMIT 50`,
       [today]
     );
@@ -517,7 +517,8 @@ app.get("/api/leaderboard/hall-of-fame", async (req, res) => {
            (g.date - ((EXTRACT(DOW FROM g.date)::int + 6) % 7) * INTERVAL '1 day')::date AS week_start,
            COALESCE(SUM(g.score), 0) AS total_score,
            COUNT(*) FILTER (WHERE g.status = 'won') AS wins,
-           COUNT(*) AS played
+           COUNT(*) AS played,
+           COALESCE(SUM(g.guess_count), 0) AS total_guesses
          FROM games g
          JOIN users u ON u.id = g.user_id
          WHERE g.mode = 'daily'
@@ -544,11 +545,11 @@ app.get("/api/leaderboard/hall-of-fame", async (req, res) => {
        ),
        ranked AS (
          SELECT ws.*,
-           ROW_NUMBER() OVER (PARTITION BY ws.week_start ORDER BY ws.total_score DESC, ws.wins DESC) AS rn
+           ROW_NUMBER() OVER (PARTITION BY ws.week_start ORDER BY ws.total_score DESC, ws.total_guesses ASC) AS rn
          FROM week_scores ws
          JOIN valid_weeks vw ON ws.week_start = vw.week_start
        )
-       SELECT name, avatar_url, week_start, total_score, wins, played
+       SELECT name, avatar_url, week_start, total_score, wins, played, total_guesses
        FROM ranked
        WHERE rn = 1
        ORDER BY week_start ASC`,
@@ -606,13 +607,14 @@ app.get("/api/leaderboard/weekly", async (req, res) => {
       `SELECT u.name, u.avatar_url,
               COALESCE(SUM(g.score), 0) AS total_score,
               COUNT(*) FILTER (WHERE g.status = 'won') AS wins,
-              COUNT(*) AS played
+              COUNT(*) AS played,
+              COALESCE(SUM(g.guess_count), 0) AS total_guesses
        FROM games g JOIN users u ON u.id = g.user_id
        WHERE g.mode = 'daily'
          AND g.date >= $1 AND g.date <= $2
          AND g.status IN ('won', 'lost')
        GROUP BY u.id, u.name, u.avatar_url
-       ORDER BY total_score DESC, wins DESC
+       ORDER BY total_score DESC, total_guesses ASC
        LIMIT 50`,
       [mondayStr, fridayStr]
     );
@@ -647,7 +649,8 @@ app.get("/api/stats/weekly-history", requireAuth, async (req, res) => {
            (g.date - ((EXTRACT(DOW FROM g.date)::int + 6) % 7) * INTERVAL '1 day')::date AS week_start,
            COALESCE(SUM(g.score), 0) AS total_score,
            COUNT(*) FILTER (WHERE g.status = 'won') AS wins,
-           COUNT(*) AS played
+           COUNT(*) AS played,
+           COALESCE(SUM(g.guess_count), 0) AS total_guesses
          FROM games g
          JOIN users u ON u.id = g.user_id
          WHERE g.mode = 'daily'
@@ -672,12 +675,12 @@ app.get("/api/stats/weekly-history", requireAuth, async (req, res) => {
        ),
        ranked AS (
          SELECT ws.*,
-           RANK() OVER (PARTITION BY ws.week_start ORDER BY ws.total_score DESC, ws.wins DESC) AS rank,
+           RANK() OVER (PARTITION BY ws.week_start ORDER BY ws.total_score DESC, ws.total_guesses ASC) AS rank,
            COUNT(*) OVER (PARTITION BY ws.week_start) AS total_players
          FROM week_scores ws
          JOIN valid_weeks vw ON ws.week_start = vw.week_start
        )
-       SELECT week_start, name, avatar_url, total_score, wins, played, rank, total_players
+       SELECT week_start, name, avatar_url, total_score, wins, played, total_guesses, rank, total_players
        FROM ranked
        WHERE user_id = $1
        ORDER BY week_start ASC`,
