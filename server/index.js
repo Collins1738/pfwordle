@@ -158,6 +158,8 @@ app.get("/api/game/resume", async (req, res) => {
     avatarUrl: avatarUrlResume,
     employee: game.status !== "playing" ? empInfoResume : null,
     answer: game.status !== "playing" ? word : undefined,
+    ...(game.status !== "playing" && game.duration_seconds != null ? { durationSeconds: game.duration_seconds } : {}),
+    ...(game.status !== "playing" && game.score != null ? { score: game.score } : {}),
   });
 });
 
@@ -282,6 +284,15 @@ app.post("/api/game/:sessionId/guess", async (req, res) => {
   if (won) session.status = "won";
   if (lost) session.status = "lost";
 
+  // Compute duration + score once, before any async DB ops, so they're consistent
+  const finalDurationSeconds = session.status !== "playing" && session.startedAt
+    ? Math.round((Date.now() - session.startedAt) / 1000)
+    : null;
+  const finalScore = session.status === "won" && finalDurationSeconds != null
+    ? calcScore(session.guesses.length, session.maxGuesses, finalDurationSeconds)
+    : session.status === "won" ? calcScore(session.guesses.length, session.maxGuesses, 99999)
+    : 0;
+
   // Persist to DB if logged-in game
   if (session.gameId) {
     try {
@@ -290,21 +301,16 @@ app.post("/api/game/:sessionId/guess", async (req, res) => {
         [session.gameId, upperGuess, JSON.stringify(result)]
       );
       if (session.status !== "playing") {
-        const durationSeconds = Math.round((Date.now() - session.startedAt) / 1000);
-        const score = session.status === "won" ? calcScore(session.guesses.length, session.maxGuesses, durationSeconds) : 0;
         await pool.query(
           `UPDATE games SET status = $1, guess_count = $2, duration_seconds = $3, completed_at = NOW(), score = $5
            WHERE id = $4`,
-          [session.status, session.guesses.length, durationSeconds, session.gameId, score]
+          [session.status, session.guesses.length, finalDurationSeconds, session.gameId, finalScore]
         );
       }
     } catch (e) { console.error("DB save error:", e.message); }
   }
 
   const employee = session.status !== "playing" ? getEmployeeInfo(session.word) : null;
-  const durationSeconds = session.status !== "playing" && session.startedAt
-    ? Math.round((Date.now() - session.startedAt) / 1000)
-    : null;
 
   res.json({
     guess: upperGuess,
@@ -313,7 +319,8 @@ app.post("/api/game/:sessionId/guess", async (req, res) => {
     status: session.status,
     ...(session.status !== "playing" ? { answer: session.word } : {}),
     ...(employee ? { employee } : {}),
-    ...(durationSeconds != null ? { durationSeconds } : {}),
+    ...(finalDurationSeconds != null ? { durationSeconds: finalDurationSeconds } : {}),
+    ...(session.status !== "playing" ? { score: finalScore } : {}),
   });
 });
 

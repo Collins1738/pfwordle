@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Box, Text, Button, VStack, HStack } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
-import { DiceFive, ChartBar } from "@phosphor-icons/react";
+import { DiceFive, ChartBar, HouseLine, ArrowClockwise } from "@phosphor-icons/react";
 import { t } from "../theme";
 
 // Score out of 1000 based on guess count + time bonus
@@ -23,7 +23,7 @@ function calcScore(guessCount, maxGuesses, won, durationSeconds) {
 }
 
 function getScoreLabel(score) {
-  if (score >= 900) return { label: "Genius 🧠",             color: "#f5c518" };
+  if (score >= 900) return { label: "Genius 🧠",             color: t.accent };
   if (score >= 750) return { label: "Impressive 🔥",         color: t.accentAlt };
   if (score >= 550) return { label: "Solid 💪",              color: t.accent };
   if (score >= 350) return { label: "Getting there 👀",      color: t.muted };
@@ -73,10 +73,11 @@ function timeBonusLabel(durationSeconds) {
   return null;
 }
 
-export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLength, employee, durationSeconds, onPlayAgain, onShowStats, onPractice, instant = false, isDaily = false }) {
+export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLength, employee, durationSeconds, score: serverScore, onPlayAgain, onShowStats, onPractice, instant = false, isDaily = false }) {
   const navigate = useNavigate();
   const accentColor = won ? t.accent : t.present;
-  const score = calcScore(guesses.length, maxGuesses, won, durationSeconds);
+  // Use server-computed score if available (authoritative), fall back to client calc
+  const score = serverScore != null ? serverScore : calcScore(guesses.length, maxGuesses, won, durationSeconds);
   const { label: scoreLabelText, color: scoreColor } = getScoreLabel(score);
 
   const employees = Array.isArray(employee) ? employee : employee ? [employee] : [];
@@ -232,27 +233,79 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 1.8, type: "spring", stiffness: 200 }}
-              style={{ textAlign: "center" }}
+              style={{ textAlign: "center", width: "100%" }}
             >
               <Box
                 bg={t.surface} border="1px solid" borderColor={accentColor}
-                borderRadius="2xl" px={8} py={4}
+                borderRadius="2xl" px={6} py={4} w="100%"
               >
-                <Text fontSize="xs" color={t.muted} letterSpacing="0.15em" textTransform="uppercase" mb={1}>
-                  Score
+                <Text
+                  fontSize="xs" mb={1}
+                  color={score >= 1000 ? "#f5c518" : t.muted}
+                  letterSpacing="0.15em"
+                  textTransform="uppercase"
+                  fontWeight={score >= 1000 ? "700" : "400"}
+                  fontFamily={score >= 1000 ? "monospace" : t.font}
+                >
+                  {score >= 1000 ? "⭐ Perfect Score" : "Final Score"}
                 </Text>
-                <Text fontSize="4xl" fontWeight="black" color={scoreColor} lineHeight={1}>
+                <Text fontSize="4xl" fontWeight="black" color={score >= 1000 ? "#f5c518" : scoreColor} lineHeight={1}>
                   {score}
                 </Text>
-                <Text fontSize="sm" color={scoreColor} mt={1}>{scoreLabelText}</Text>
-                <Text fontSize="xs" color={t.muted} mt={2}>
-                  {guesses.length} guess{guesses.length !== 1 ? "es" : ""}
-                </Text>
-                {timeBonusLabel(durationSeconds) && (
-                  <Text fontSize="xs" color="#f5c518" mt={1} fontWeight="semibold">
-                    {timeBonusLabel(durationSeconds)}
-                  </Text>
-                )}
+                <Box mb={3} />
+
+                {/* Score breakdown */}
+                <VStack gap={1} align="stretch" borderTop={`1px solid ${t.border}`} pt={3}>
+                  {(() => {
+                    const perfect = 900;
+                    const deductPerGuess = Math.floor(perfect / maxGuesses);
+                    const base = Math.max(50, perfect - (guesses.length - 1) * deductPerGuess);
+                    const bonusAmt = durationSeconds != null
+                      ? durationSeconds < 60 ? 300
+                      : durationSeconds < 300 ? 200
+                      : durationSeconds < 600 ? 75
+                      : durationSeconds < 1800 ? 25
+                      : 0 : 0;
+                    return (
+                      <>
+                        <HStack justify="space-between">
+                          <Text fontSize="xs" color={t.accent}>
+                            Base ({guesses.length} guess{guesses.length !== 1 ? "es" : ""})
+                          </Text>
+                          <Text fontSize="xs" fontWeight="700" color={t.accent}>{base}</Text>
+                        </HStack>
+                        {bonusAmt > 0 && (() => {
+                          const d = durationSeconds;
+                          const tier = d < 60
+                            ? { label: "< 1 min",   color: t.accent, bg: t.accent + "28" }
+                            : d < 300
+                            ? { label: "< 5 mins",  color: t.accent, bg: t.accent + "18" }
+                            : d < 600
+                            ? { label: "< 10 mins", color: t.muted,  bg: t.border + "66" }
+                            : { label: "< 30 mins", color: t.muted,  bg: t.bg };
+                          return (
+                            <HStack justify="space-between">
+                              <Box bg={tier.bg} borderRadius="full" px={1.5} py={0.5}>
+                                <Text fontSize="9px" color={tier.color} fontFamily={t.font} fontWeight="700">{tier.label}</Text>
+                              </Box>
+                              <Text fontSize="xs" fontWeight="700" color={tier.color}>+{bonusAmt}</Text>
+                            </HStack>
+                          );
+                        })()}
+                        {bonusAmt === 0 && durationSeconds != null && (
+                          <HStack justify="space-between">
+                            <Text fontSize="xs" color={t.muted}>Time bonus</Text>
+                            <Text fontSize="xs" fontWeight="700" color={t.muted}>+0</Text>
+                          </HStack>
+                        )}
+                        <HStack justify="space-between" borderTop={`1px solid ${t.border}`} pt={1} mt={1}>
+                          <Text fontSize="xs" fontWeight="700" color={t.muted}>Total</Text>
+                          <Text fontSize="xs" fontWeight="800" color={scoreColor}>{score}{score >= 1000 ? " (max)" : ""}</Text>
+                        </HStack>
+                      </>
+                    );
+                  })()}
+                </VStack>
               </Box>
             </motion.div>
           )}
@@ -275,7 +328,7 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
                 onClick={onPlayAgain}
                 _hover={{ opacity: 0.9, transform: "translateY(-1px)" }}
               >
-                Play Again
+                <ArrowClockwise size={16} weight="duotone" style={{ display: "inline", marginRight: 4, verticalAlign: "middle" }} />Play Again
               </Button>
             ) : (
               <Box
@@ -308,7 +361,7 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
               onClick={() => navigate("/")}
               _hover={{ opacity: isDaily ? 0.9 : 1, bg: isDaily ? accentColor : t.bg, color: isDaily ? t.white : t.text }}
             >
-              🏠 Home
+              <HouseLine size={16} weight="duotone" style={{ display: "inline", marginRight: 6, verticalAlign: "middle" }} />Home
             </Button>
             {onShowStats && (
               <Button

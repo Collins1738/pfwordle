@@ -31,6 +31,7 @@ export default function App({ mode = "daily" }) {
   const [message, setMessage] = useState("");
   const [employee, setEmployee] = useState(null);
   const [duration, setDuration] = useState(null);
+  const [finalScore, setFinalScore] = useState(null);
   const [letterStatuses, setLetterStatuses] = useState({});
   const [wordLength, setWordLength] = useState(5);
   const [maxGuesses, setMaxGuesses] = useState(6);
@@ -76,6 +77,7 @@ export default function App({ mode = "daily" }) {
       setAnswer(null);
       setEmployee(null);
       setDuration(null);
+      setFinalScore(null);
       setMessage("");
       setLetterStatuses({});
       setDebugAnswer(null);
@@ -121,6 +123,8 @@ export default function App({ mode = "daily" }) {
               setAvatarUrl(data.avatarUrl || null);
               if (data.employee) setEmployee(data.employee);
               if (data.answer) setAnswer(data.answer);
+              if (data.durationSeconds != null) setDuration(data.durationSeconds);
+              if (data.score != null) setFinalScore(data.score);
               if (data.guesses?.length) restoreLetterStatuses(data.guesses);
               return;
             }
@@ -203,6 +207,7 @@ export default function App({ mode = "daily" }) {
           setAnswer(data.answer);
           setEmployee(data.employee || null);
           setDuration(data.durationSeconds ?? null);
+          setFinalScore(data.score ?? null);
           setMessage("");
           setShowResult(false);
           if (data.status === "won" && avatarUrl) {
@@ -259,6 +264,7 @@ export default function App({ mode = "daily" }) {
           wordLength={wordLength}
           employee={employee}
           durationSeconds={duration}
+          score={finalScore}
           instant={resumedComplete.current}
           isDaily={mode === "daily"}
           onPlayAgain={mode === "practice" ? () => newGame({}) : null}
