@@ -16,6 +16,9 @@
 - Cards should animate in with a cool staggered effect (e.g. fan out, cascade, or flip in sequence)
 - Already partially supported — `employee` field can be an array; result screen just needs to handle multiple cards
 
+### 🎯 Score cap review
+- Currently capped at 1000 via `Math.min(1000, base + timeBonus)` — consider raising or removing the cap so 1-guess + fast completion is meaningfully rewarded above slower 1-guess wins
+
 ### Other ideas
 - [ ] Share button (copy emoji grid like real Wordle)
 - [ ] Stats tracking (streak, win %, guess distribution) — localStorage
