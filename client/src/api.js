@@ -43,3 +43,8 @@ export async function resumeGame(token) {
   const res = await axios.get(`${BASE_URL}/api/game/resume`, { headers: authHeaders(token) });
   return res.data;
 }
+
+export async function getDailyLeaderboard() {
+  const res = await axios.get(`${BASE_URL}/api/leaderboard/daily`);
+  return res.data;
+}
