@@ -8,9 +8,29 @@
  *   showHeader  — show name + email at top (game header only)
  */
 import { useNavigate } from "react-router-dom";
-import { Box, Text } from "@chakra-ui/react";
+import { Box, Text, HStack } from "@chakra-ui/react";
+import { ChartBar, Wrench, Trophy, SignOut } from "@phosphor-icons/react";
 import { useAuth } from "../useAuth";
 import { t } from "../theme";
+
+function MenuItem({ icon: Icon, label, onClick, color, bg, hoverBg, iconColor }) {
+  return (
+    <Box
+      as="button" w="100%"
+      bg={bg || t.bg} border={`1px solid ${t.border}`} borderRadius={t.radius}
+      py={1.5} px={3} cursor="pointer"
+      onClick={onClick}
+      _hover={{ bg: hoverBg || t.border }}
+    >
+      <HStack gap={2} justifyContent="center">
+        <Icon size={14} weight="duotone" color={iconColor || color || t.muted} />
+        <Text fontSize="xs" fontWeight="700" fontFamily={t.font} color={color || t.text}>
+          {label}
+        </Text>
+      </HStack>
+    </Box>
+  );
+}
 
 export default function UserMenuDropdown({ user, isAdmin, onClose, showStats = false, showHeader = false }) {
   const navigate = useNavigate();
@@ -35,53 +55,47 @@ export default function UserMenuDropdown({ user, isAdmin, onClose, showStats = f
       )}
 
       {showStats && (
-        <Box
-          as="button" w="100%"
-          bg={t.bg} border={`1px solid ${t.border}`} borderRadius={t.radius}
-          py={1.5} px={3} color={t.text} fontSize="xs" fontWeight="700"
-          fontFamily={t.font} cursor="pointer"
+        <MenuItem
+          icon={ChartBar}
+          label="My Stats"
           onClick={() => go("/stats?mode=daily")}
-          _hover={{ bg: t.border }}
-        >
-          📊 My Stats
-        </Box>
+          color={t.text}
+          iconColor={t.accent}
+        />
       )}
 
       {isAdmin && (
         <>
-          <Box
-            as="button" w="100%" textAlign="center"
-            bg={t.overlay} border={`1px solid ${t.border}`} borderRadius={t.radius}
-            py={1.5} px={3} color={t.accent} fontSize="xs" fontWeight="700"
-            fontFamily={t.font} cursor="pointer"
+          <MenuItem
+            icon={Wrench}
+            label="Admin"
             onClick={() => go("/admin")}
-            _hover={{ bg: t.accent + "22" }}
-          >
-            🛠 Admin
-          </Box>
-          <Box
-            as="button" w="100%" textAlign="center"
-            bg={t.overlay} border={`1px solid ${t.border}`} borderRadius={t.radius}
-            py={1.5} px={3} color="#f5a623" fontSize="xs" fontWeight="700"
-            fontFamily={t.font} cursor="pointer"
+            color={t.accent}
+            iconColor={t.accent}
+            bg={t.overlay}
+            hoverBg={t.accent + "22"}
+          />
+          <MenuItem
+            icon={Trophy}
+            label="Hall of Fame"
             onClick={() => go("/hall-of-fame")}
-            _hover={{ bg: "#f5a62322" }}
-          >
-            🏆 Hall of Fame
-          </Box>
+            color="#f5a623"
+            iconColor="#f5a623"
+            bg={t.overlay}
+            hoverBg="#f5a62322"
+          />
         </>
       )}
 
-      <Box
-        as="button" w="100%" textAlign="center"
-        bg="#fff0f0" border="1px solid #ffcccc" borderRadius={t.radius}
-        py={1.5} px={3} color="#e05252" fontSize="xs" fontWeight="700"
-        fontFamily={t.font} cursor="pointer"
+      <MenuItem
+        icon={SignOut}
+        label="Sign out"
         onClick={() => { logout(); onClose(); }}
-        _hover={{ bg: "#ffe0e0" }}
-      >
-        Sign out
-      </Box>
+        color="#e05252"
+        iconColor="#e05252"
+        bg="#fff0f0"
+        hoverBg="#ffe0e0"
+      />
     </Box>
   );
 }
