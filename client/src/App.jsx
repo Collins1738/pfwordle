@@ -7,7 +7,7 @@ import EmployeeCard from "./components/EmployeeCard";
 
 import ResultScreen from "./components/ResultScreen";
 import UserMenuDropdown from "./components/UserMenuDropdown";
-import { startGame, submitGuess, getDebugAnswer, resumeGame, getGameState } from "./api";
+import { startGame, submitGuess, getDebugAnswer, resumeGame, getGameState, getDailyLeaderboard } from "./api";
 import { useAuth } from "./useAuth";
 import { t } from "./theme";
 import { DEV_ACCOUNTS } from "./constants";
@@ -38,6 +38,7 @@ export default function App({ mode = "daily" }) {
   const [debugAnswer, setDebugAnswer] = useState(null);
   const [debugOpen, setDebugOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(null);
+  const [medalInfo, setMedalInfo] = useState(null); // null | { medal: 'gold'|'silver'|'bronze', rank: 1|2|3 }
   const [blurDraining, setBlurDraining] = useState(false);
   const [shakingRow, setShakingRow] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
@@ -84,6 +85,7 @@ export default function App({ mode = "daily" }) {
       setAvatarUrl(data.avatarUrl || null);
       setBlurDraining(false);
       setCelebrating(false);
+      setMedalInfo(null);
       if (mode === "practice") localStorage.setItem("practiceSessionId", data.sessionId);
       if (isDev) {
         getDebugAnswer(data.sessionId).then(d => setDebugAnswer(d.answer)).catch(() => {});
@@ -207,9 +209,29 @@ export default function App({ mode = "daily" }) {
           setAnswer(data.answer);
           setEmployee(data.employee || null);
           setDuration(data.durationSeconds ?? null);
-          setFinalScore(data.score ?? null);
+          const thisScore = data.score ?? null;
+          setFinalScore(thisScore);
           setMessage("");
           setShowResult(false);
+
+          // For daily wins: check if this score is a new top-3 high score
+          if (mode === "daily" && data.status === "won" && thisScore != null) {
+            getDailyLeaderboard().then(board => {
+              // board is sorted by score DESC; find top 3 already-finished entries
+              const top3 = board.slice(0, 3);
+              let medal = null;
+              const rank3Score = top3.length >= 3 ? Number(top3[2].score) : -1;
+              if (thisScore > rank3Score || top3.length < 3) {
+                const rank1Score = top3.length >= 1 ? Number(top3[0].score) : -1;
+                const rank2Score = top3.length >= 2 ? Number(top3[1].score) : -1;
+                if (thisScore >= rank1Score) medal = { medal: "gold", rank: 1 };
+                else if (thisScore >= rank2Score) medal = { medal: "silver", rank: 2 };
+                else medal = { medal: "bronze", rank: 3 };
+              }
+              setMedalInfo(medal);
+            }).catch(() => {});
+          }
+
           if (data.status === "won" && avatarUrl) {
             // After tile flips: drain blur + dance tiles, then show result
             const blurDrainDuration = 1000;
@@ -267,6 +289,7 @@ export default function App({ mode = "daily" }) {
           score={finalScore}
           instant={resumedComplete.current}
           isDaily={mode === "daily"}
+          medalInfo={medalInfo}
           onPlayAgain={mode === "practice" ? () => newGame({}) : null}
           onPractice={null}
           onShowStats={null}

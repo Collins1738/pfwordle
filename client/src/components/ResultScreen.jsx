@@ -73,7 +73,13 @@ function timeBonusLabel(durationSeconds) {
   return null;
 }
 
-export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLength, employee, durationSeconds, score: serverScore, onPlayAgain, onShowStats, onPractice, instant = false, isDaily = false }) {
+const MEDAL_CONFIG = {
+  gold:   { emoji: "🥇", label: "New #1!",         color: "#f5c518", bg: "#fffbea", border: "#f5c518" },
+  silver: { emoji: "🥈", label: "New #2!",         color: "#8a9bb0", bg: "#f4f7fa", border: "#8a9bb0" },
+  bronze: { emoji: "🥉", label: "New #3!",         color: "#cd7f32", bg: "#fdf6ee", border: "#cd7f32" },
+};
+
+export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLength, employee, durationSeconds, score: serverScore, onPlayAgain, onShowStats, onPractice, instant = false, isDaily = false, medalInfo = null }) {
   const navigate = useNavigate();
   const accentColor = won ? t.accent : t.present;
   // Use server-computed score if available (authoritative), fall back to client calc
@@ -311,6 +317,37 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
           )}
 
 
+
+          {/* Medal banner — daily only, when score is a new top-3 high score */}
+          {isDaily && won && medalInfo && (() => {
+            const cfg = MEDAL_CONFIG[medalInfo.medal];
+            return (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.85, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ delay: 2.4, type: "spring", stiffness: 220, damping: 18 }}
+                style={{ width: "100%" }}
+              >
+                <Box
+                  w="100%"
+                  bg={cfg.bg}
+                  border={`2px solid ${cfg.border}`}
+                  borderRadius="2xl"
+                  px={5} py={4}
+                  textAlign="center"
+                  boxShadow={`0 4px 18px ${cfg.color}44`}
+                >
+                  <Text fontSize="3xl" lineHeight={1} mb={1}>{cfg.emoji}</Text>
+                  <Text fontSize="lg" fontWeight="800" color={cfg.color} fontFamily={t.font} lineHeight={1.1}>
+                    {cfg.label}
+                  </Text>
+                  <Text fontSize="sm" color={t.muted} fontFamily={t.font} mt={1}>
+                    You're #{medalInfo.rank} on today's leaderboard
+                  </Text>
+                </Box>
+              </motion.div>
+            );
+          })()}
 
           {/* Buttons */}
           <motion.div
