@@ -221,7 +221,7 @@ export default function App({ mode = "daily" }) {
               const top3 = board.slice(0, 3);
               let medal = null;
               const rank3Score = top3.length >= 3 ? Number(top3[2].score) : -1;
-              if (thisScore > rank3Score || top3.length < 3) {
+              if (thisScore >= rank3Score || top3.length < 3) {
                 const rank1Score = top3.length >= 1 ? Number(top3[0].score) : -1;
                 const rank2Score = top3.length >= 2 ? Number(top3[1].score) : -1;
                 if (thisScore >= rank1Score) medal = { medal: "gold", rank: 1 };
