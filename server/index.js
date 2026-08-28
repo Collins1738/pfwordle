@@ -34,7 +34,7 @@ const PERMITFLOW_NAMES = Object.keys(EMPLOYEE_MAP).filter(firstName => {
   const word = NAME_MODE === "full"
     ? EMPLOYEE_MAP[firstName].fullName.replace(/\s+/g, "").replace(/[^a-zA-Z]/g, "").toUpperCase()
     : firstName;
-  return word.length >= 3 && word.length <= 8;
+  return word.length >= 3 && word.length <= 7;
 });
 
 
@@ -127,7 +127,7 @@ app.get("/api/game/resume", async (req, res) => {
   const game = rows[0];
   const guessHistory = game.guesses || [];
   const word = game.word;
-  const maxGuesses = Math.max(6, word.length);
+  const maxGuesses = 6;
 
   // Rebuild in-memory session
   const sessionId = generateSessionId();
@@ -219,7 +219,7 @@ app.post("/api/game/start", async (req, res) => {
         wordLength: word.length,
         guesses: [],
         status: "playing",
-        maxGuesses: Math.max(6, word.length),
+        maxGuesses: 6,
         userId,
         gameId,
         mode,
@@ -227,11 +227,11 @@ app.post("/api/game/start", async (req, res) => {
       });
       const empInfo = getEmployeeInfo(word);
       const avatarUrl = Array.isArray(empInfo) ? empInfo[0]?.avatarUrl : empInfo?.avatarUrl || "";
-      return res.json({ sessionId, wordLength: word.length, maxGuesses: Math.max(6, word.length), mode, avatarUrl });
+      return res.json({ sessionId, wordLength: word.length, maxGuesses: 6, mode, avatarUrl });
     } catch (err) { console.error("[game/start] auth/db error:", err.message); /* fall through to anonymous */ }
   }
 
-  const maxGuesses = Math.max(6, word.length);
+  const maxGuesses = 6;
   // Save anonymous practice games to DB (user_id = NULL, player shown as "Anonymous")
   let anonGameId = null;
   if (mode === "practice") {
