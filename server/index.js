@@ -34,7 +34,7 @@ const PERMITFLOW_NAMES = Object.keys(EMPLOYEE_MAP).filter(firstName => {
   const word = NAME_MODE === "full"
     ? EMPLOYEE_MAP[firstName].fullName.replace(/\s+/g, "").replace(/[^a-zA-Z]/g, "").toUpperCase()
     : firstName;
-  return word.length >= 3 && word.length <= 8;
+  return word.length >= 3 && word.length <= 7;
 });
 
 
