@@ -15,6 +15,50 @@ import { DEV_ACCOUNTS } from "./constants";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 
+// Canvas-based avatar: hides the source URL from the DOM / right-click menu
+function AvatarCanvas({ proxyUrl, blurPx, isBlacked, blurDraining, accent }) {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    const cssSize = 36;
+    canvas.width = cssSize * dpr;
+    canvas.height = cssSize * dpr;
+    const ctx = canvas.getContext("2d");
+    ctx.scale(dpr, dpr);
+    const size = cssSize;
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      ctx.clearRect(0, 0, size, size);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+      ctx.clip();
+      const scale = 1.3;
+      const offset = (size - size * scale) / 2;
+      ctx.drawImage(img, offset, offset, size * scale, size * scale);
+      ctx.restore();
+    };
+    img.src = proxyUrl;
+  }, [proxyUrl]);
+
+  return (
+    <Box
+      w="36px" h="36px" borderRadius="full" overflow="hidden"
+      border={`2px solid ${accent}`} flexShrink={0} position="relative"
+    >
+      <canvas ref={canvasRef} style={{ display: "block", width: "36px", height: "36px", filter: `blur(${blurPx}px)`, transition: blurDraining ? "filter 1s ease-out" : "filter 0.6s ease-out" }} />
+      <Box
+        position="absolute" inset={0} bg="black" borderRadius="full"
+        style={{ opacity: isBlacked ? 1 : 0, transition: "opacity 0.6s ease-out", pointerEvents: "none" }}
+      />
+    </Box>
+  );
+}
+
 export default function App({ mode = "daily" }) {
   const { user, logout, getToken } = useAuth();
   const navigate = useNavigate();
@@ -454,24 +498,13 @@ export default function App({ mode = "daily" }) {
             const naturalBlur = guesses.length === 1 ? 8 : Math.max(0, 6 - guesses.length);
             const blurPx = blurDraining ? 0 : naturalBlur;
             return (
-              <Box w="36px" h="36px" borderRadius="full" overflow="hidden" border={`2px solid ${t.accent}`} flexShrink={0} position="relative">
-                <Box
-                  as="img" src={proxyUrl} w="100%" h="100%" objectFit="cover" display="block"
-                  style={{
-                    filter: `blur(${blurPx}px)`,
-                    transform: "scale(1.3)",
-                    transition: blurDraining ? "filter 1s ease-out" : "filter 0.6s ease-out",
-                  }}
-                />
-                <Box
-                  position="absolute" inset={0} bg="black" borderRadius="full"
-                  style={{
-                    opacity: isBlacked ? 1 : 0,
-                    transition: "opacity 0.6s ease-out",
-                    pointerEvents: "none",
-                  }}
-                />
-              </Box>
+              <AvatarCanvas
+                proxyUrl={proxyUrl}
+                blurPx={blurPx}
+                isBlacked={isBlacked}
+                blurDraining={blurDraining}
+                accent={t.accent}
+              />
             );
           })()}
         </Box>
