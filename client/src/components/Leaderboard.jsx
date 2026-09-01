@@ -90,7 +90,7 @@ export default function Leaderboard({ onClose }) {
                 ) : tab === "weekly" ? (
                   <HStack gap={0} align="center">
                     <Text color={t.muted} fontSize="xs" fontFamily={t.font} textAlign="right" w="16px">{row.played}</Text>
-                    <Text color={t.muted} fontSize="xs" textAlign="center" w="20px">|</Text>
+                    <Text color={t.muted} fontSize="xs" textAlign="center" w="14px">|</Text>
                     <Text color={t.accent} fontWeight="bold" fontSize="xs" fontFamily={t.font} textAlign="right" w="52px">{row.total_score} pts</Text>
                   </HStack>
                 ) : (
