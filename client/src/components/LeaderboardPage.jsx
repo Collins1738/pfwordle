@@ -318,8 +318,10 @@ export default function LeaderboardPage() {
           ) : (
             <Box bg={t.surface} border={`1px solid ${t.border}`} borderRadius="xl" overflow="hidden">
               {isWeekly && (
-                <HStack px={4} py={2} borderBottom={`1px solid ${t.border}`} justify="flex-end">
-                  <Text fontSize="10px" color={t.muted} fontFamily={t.font} fontWeight="600" letterSpacing="0.05em" textTransform="uppercase" w="84px" textAlign="right">played | pts</Text>
+                <HStack px={4} py={2} borderBottom={`1px solid ${t.border}`} justify="flex-end" gap={0}>
+                  <Text fontSize="10px" color={t.muted} fontFamily={t.font} fontWeight="600" letterSpacing="0.05em" textTransform="uppercase" w="16px" textAlign="right">P</Text>
+                  <Text fontSize="10px" color={t.muted} fontFamily={t.font} fontWeight="600" pl="6px" pr="3px">|</Text>
+                  <Text fontSize="10px" color={t.muted} fontFamily={t.font} fontWeight="600" letterSpacing="0.05em" textTransform="uppercase" w="52px" textAlign="right">pts</Text>
                 </HStack>
               )}
               {data.map((row, i) => {

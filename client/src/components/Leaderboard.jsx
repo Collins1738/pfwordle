@@ -64,8 +64,10 @@ export default function Leaderboard({ onClose }) {
         ) : (
           <VStack gap={2} align="stretch">
             {tab === "weekly" && (
-              <HStack justify="flex-end" px={1}>
-                <Text fontSize="10px" color={t.muted} fontFamily={t.font} fontWeight="600" letterSpacing="0.05em" textTransform="uppercase" w="84px" textAlign="right">played | pts</Text>
+              <HStack justify="flex-end" px={1} gap={0}>
+                <Text fontSize="10px" color={t.muted} fontFamily={t.font} fontWeight="600" letterSpacing="0.05em" textTransform="uppercase" w="16px" textAlign="right">P</Text>
+                <Text fontSize="10px" color={t.muted} fontFamily={t.font} fontWeight="600" pl="6px" pr="3px">|</Text>
+                <Text fontSize="10px" color={t.muted} fontFamily={t.font} fontWeight="600" letterSpacing="0.05em" textTransform="uppercase" w="52px" textAlign="right">pts</Text>
               </HStack>
             )}
             {data.map((row, i) => (
