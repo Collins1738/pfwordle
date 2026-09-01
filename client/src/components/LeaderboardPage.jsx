@@ -378,7 +378,7 @@ export default function LeaderboardPage() {
                           {row.total_score ?? 0} pts
                         </Text>
                         <Text fontSize="xs" color={t.muted} fontFamily={t.font}>
-                          {row.wins}W · {row.played} game{row.played !== 1 ? "s" : ""}
+                          {row.played} game{row.played !== 1 ? "s" : ""}
                         </Text>
                       </VStack>
                     )}
