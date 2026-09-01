@@ -317,6 +317,11 @@ export default function LeaderboardPage() {
             <Text color={t.muted} textAlign="center" py={12} fontFamily={t.font}>No entries yet 👀</Text>
           ) : (
             <Box bg={t.surface} border={`1px solid ${t.border}`} borderRadius="xl" overflow="hidden">
+              {isWeekly && (
+                <HStack px={4} py={2} borderBottom={`1px solid ${t.border}`} justify="flex-end" gap={3}>
+                  <Text fontSize="10px" color={t.muted} fontFamily={t.font} fontWeight="600" letterSpacing="0.05em" textTransform="uppercase">played · pts</Text>
+                </HStack>
+              )}
               {data.map((row, i) => {
                 const isYou = user && row.name === user.name;
                 const wordLength = row.guesses?.[0]?.result?.length || 5;
@@ -374,9 +379,7 @@ export default function LeaderboardPage() {
                     )}
                     {isWeekly && (
                       <HStack gap={1.5} flexShrink={0} align="center">
-                        <Text fontSize="xs" color={t.muted} fontFamily={t.font}>
-                          {row.played} game{row.played !== 1 ? "s" : ""}
-                        </Text>
+                        <Text fontSize="xs" color={t.muted} fontFamily={t.font}>{row.played}</Text>
                         <Text fontSize="xs" color={t.muted} fontFamily={t.font}>·</Text>
                         <Text fontSize="xs" color={t.accent} fontFamily={t.font} fontWeight="700">
                           {row.total_score ?? 0} pts

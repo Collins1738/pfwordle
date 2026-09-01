@@ -63,6 +63,11 @@ export default function Leaderboard({ onClose }) {
           <Text color={t.muted} textAlign="center" py={8} fontFamily={t.font}>No games yet today 👀</Text>
         ) : (
           <VStack gap={2} align="stretch">
+            {tab === "weekly" && (
+              <HStack justify="flex-end" px={1}>
+                <Text fontSize="10px" color={t.muted} fontFamily={t.font} fontWeight="600" letterSpacing="0.05em" textTransform="uppercase">played · pts</Text>
+              </HStack>
+            )}
             {data.map((row, i) => (
               <HStack key={i} bg={t.bg} borderRadius="lg" px={3} py={2} gap={3} border={`1px solid ${t.border}`}>
                 <Text fontSize="lg" w="32px" textAlign="center" color={medals[i] ? "inherit" : t.muted}>
@@ -84,7 +89,7 @@ export default function Leaderboard({ onClose }) {
                   </VStack>
                 ) : tab === "weekly" ? (
                   <HStack gap={1.5} align="center">
-                    <Text color={t.muted} fontSize="xs" fontFamily={t.font}>{row.played} game{row.played !== 1 ? "s" : ""}</Text>
+                    <Text color={t.muted} fontSize="xs" fontFamily={t.font}>{row.played}</Text>
                     <Text color={t.muted} fontSize="xs">·</Text>
                     <Text color={t.accent} fontWeight="bold" fontSize="sm" fontFamily={t.font}>{row.total_score} pts</Text>
                   </HStack>
