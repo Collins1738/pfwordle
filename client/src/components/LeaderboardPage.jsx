@@ -319,7 +319,7 @@ export default function LeaderboardPage() {
             <Box bg={t.surface} border={`1px solid ${t.border}`} borderRadius="xl" overflow="hidden">
               {isWeekly && (
                 <HStack px={4} py={2} borderBottom={`1px solid ${t.border}`} justify="flex-end">
-                  <Text fontSize="10px" color={t.muted} fontFamily={t.font} fontWeight="600" letterSpacing="0.05em" textTransform="uppercase" w="84px" textAlign="right">played · pts</Text>
+                  <Text fontSize="10px" color={t.muted} fontFamily={t.font} fontWeight="600" letterSpacing="0.05em" textTransform="uppercase" w="84px" textAlign="right">played | pts</Text>
                 </HStack>
               )}
               {data.map((row, i) => {
@@ -380,7 +380,7 @@ export default function LeaderboardPage() {
                     {isWeekly && (
                       <HStack gap={0} flexShrink={0} align="center">
                         <Text fontSize="xs" color={t.muted} fontFamily={t.font} textAlign="right" w="16px">{row.played}</Text>
-                        <Text fontSize="xs" color={t.muted} fontFamily={t.font} textAlign="center" w="16px">·</Text>
+                        <Text fontSize="xs" color={t.muted} fontFamily={t.font} textAlign="center" w="16px">|</Text>
                         <Text fontSize="xs" color={t.accent} fontFamily={t.font} fontWeight="700" textAlign="right" w="52px">
                           {row.total_score ?? 0} pts
                         </Text>
