@@ -379,9 +379,9 @@ export default function LeaderboardPage() {
                     )}
                     {isWeekly && (
                       <HStack gap={0} flexShrink={0} align="center">
-                        <Text fontSize="xs" color={t.muted} fontFamily={t.font} textAlign="right" w="16px">{row.played}</Text>
-                        <Text fontSize="xs" color={t.muted} fontFamily={t.font} textAlign="center" w="14px">|</Text>
-                        <Text fontSize="xs" color={t.accent} fontFamily={t.font} fontWeight="700" textAlign="right" w="52px">
+                        <Text fontSize="xs" color={t.muted} fontFamily={t.font} w="16px" textAlign="right">{row.played}</Text>
+                        <Text fontSize="xs" color={t.muted} fontFamily={t.font} pl="6px" pr="3px">|</Text>
+                        <Text fontSize="xs" color={t.accent} fontFamily={t.font} fontWeight="700" w="52px" textAlign="right">
                           {row.total_score ?? 0} pts
                         </Text>
                       </HStack>
