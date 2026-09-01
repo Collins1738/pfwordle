@@ -321,7 +321,7 @@ export default function LeaderboardPage() {
                 <HStack px={4} py={2} borderBottom={`1px solid ${t.border}`} justify="flex-end" gap={0}>
                   <Text fontSize="10px" color={t.muted} fontFamily={t.font} fontWeight="600" letterSpacing="0.05em" textTransform="uppercase" w="16px" textAlign="right">P</Text>
                   <Text fontSize="10px" color={t.muted} fontFamily={t.font} fontWeight="600" pl="6px" pr="3px">|</Text>
-                  <Text fontSize="10px" color={t.muted} fontFamily={t.font} fontWeight="600" letterSpacing="0.05em" textTransform="uppercase" w="52px" textAlign="right">pts</Text>
+                  <Text fontSize="10px" color={t.muted} fontFamily={t.font} fontWeight="600" letterSpacing="0.05em" textTransform="uppercase" w="52px" textAlign="center">pts</Text>
                 </HStack>
               )}
               {data.map((row, i) => {
@@ -383,7 +383,7 @@ export default function LeaderboardPage() {
                       <HStack gap={0} flexShrink={0} align="center">
                         <Text fontSize="xs" color={t.muted} fontFamily={t.font} w="16px" textAlign="right">{row.played}</Text>
                         <Text fontSize="xs" color={t.muted} fontFamily={t.font} pl="6px" pr="3px">|</Text>
-                        <Text fontSize="xs" color={t.accent} fontFamily={t.font} fontWeight="700" w="52px" textAlign="right">
+                        <Text fontSize="xs" color={t.accent} fontFamily={t.font} fontWeight="700" w="52px" textAlign="center">
                           {row.total_score ?? 0} pts
                         </Text>
                       </HStack>
