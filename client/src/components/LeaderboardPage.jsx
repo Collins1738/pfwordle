@@ -381,7 +381,7 @@ export default function LeaderboardPage() {
                       <HStack gap={0} flexShrink={0} align="center">
                         <Text fontSize="xs" color={t.muted} fontFamily={t.font} textAlign="right" w="16px">{row.played}</Text>
                         <Text fontSize="xs" color={t.muted} fontFamily={t.font} textAlign="center" w="20px">|</Text>
-                        <Text fontSize="xs" color={t.accent} fontFamily={t.font} fontWeight="700" textAlign="left" w="52px">
+                        <Text fontSize="xs" color={t.accent} fontFamily={t.font} fontWeight="700" textAlign="left" w="auto">
                           {row.total_score ?? 0} pts
                         </Text>
                       </HStack>
