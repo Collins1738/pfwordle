@@ -65,7 +65,7 @@ export default function Leaderboard({ onClose }) {
           <VStack gap={2} align="stretch">
             {tab === "weekly" && (
               <HStack justify="flex-end" px={1}>
-                <Text fontSize="10px" color={t.muted} fontFamily={t.font} fontWeight="600" letterSpacing="0.05em" textTransform="uppercase">played · pts</Text>
+                <Text fontSize="10px" color={t.muted} fontFamily={t.font} fontWeight="600" letterSpacing="0.05em" textTransform="uppercase" w="84px" textAlign="right">played · pts</Text>
               </HStack>
             )}
             {data.map((row, i) => (
@@ -88,10 +88,10 @@ export default function Leaderboard({ onClose }) {
                     )}
                   </VStack>
                 ) : tab === "weekly" ? (
-                  <HStack gap={1.5} align="center">
-                    <Text color={t.muted} fontSize="xs" fontFamily={t.font}>{row.played}</Text>
-                    <Text color={t.muted} fontSize="xs">·</Text>
-                    <Text color={t.accent} fontWeight="bold" fontSize="sm" fontFamily={t.font}>{row.total_score} pts</Text>
+                  <HStack gap={0} align="center">
+                    <Text color={t.muted} fontSize="xs" fontFamily={t.font} textAlign="right" w="16px">{row.played}</Text>
+                    <Text color={t.muted} fontSize="xs" textAlign="center" w="16px">·</Text>
+                    <Text color={t.accent} fontWeight="bold" fontSize="sm" fontFamily={t.font} textAlign="right" w="52px">{row.total_score} pts</Text>
                   </HStack>
                 ) : (
                   <VStack gap={0} align="flex-end">
