@@ -85,7 +85,7 @@ export default function Leaderboard({ onClose }) {
                 ) : tab === "weekly" ? (
                   <VStack gap={0} align="flex-end">
                     <Text color={t.accent} fontWeight="bold" fontSize="sm" fontFamily={t.font}>{row.total_score} pts</Text>
-                    <Text color={t.muted} fontSize="xs">{row.wins} win{row.wins !== 1 ? "s" : ""}</Text>
+                    <Text color={t.muted} fontSize="xs">{row.wins}W · {row.played} game{row.played !== 1 ? "s" : ""}</Text>
                   </VStack>
                 ) : (
                   <VStack gap={0} align="flex-end">

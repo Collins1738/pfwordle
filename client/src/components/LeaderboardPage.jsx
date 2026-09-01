@@ -373,9 +373,14 @@ export default function LeaderboardPage() {
                       <Text fontSize="xs" color={t.present} fontFamily={t.font} fontWeight="700" flexShrink={0}>❌</Text>
                     )}
                     {isWeekly && (
-                      <Text fontSize="xs" color={t.accent} fontFamily={t.font} fontWeight="700" flexShrink={0}>
-                        {row.total_score ?? 0} pts
-                      </Text>
+                      <VStack gap={0} align="flex-end" flexShrink={0}>
+                        <Text fontSize="xs" color={t.accent} fontFamily={t.font} fontWeight="700">
+                          {row.total_score ?? 0} pts
+                        </Text>
+                        <Text fontSize="xs" color={t.muted} fontFamily={t.font}>
+                          {row.wins}W · {row.played} game{row.played !== 1 ? "s" : ""}
+                        </Text>
+                      </VStack>
                     )}
                     {!isWeekly && row.guesses?.length > 0 && (
                       <VStack gap={0.5} align="center" flexShrink={0}>
