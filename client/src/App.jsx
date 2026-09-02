@@ -17,7 +17,7 @@ const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 
 // Avatar with server-side blur: the server applies blur so the client never has the full image
 // until the game is over. On win, we load the full image and animate CSS blur from ~3px → 0.
-function AvatarCanvas({ blurredUrl, fullUrl, isBlacked, blurDraining, accent }) {
+function AvatarCanvas({ blurredUrl, fullUrl, isBlacked, blurDraining, accent, borderBlurPx = 0 }) {
   const [drainStarted, setDrainStarted] = useState(false);
   const [fullLoaded, setFullLoaded] = useState(false);
   // Two slots for crossfading between blur levels
@@ -70,8 +70,12 @@ function AvatarCanvas({ blurredUrl, fullUrl, isBlacked, blurDraining, accent }) 
   return (
     <Box
       w="36px" h="36px" borderRadius="full" overflow="hidden"
-      border={`2px solid ${accent}`} flexShrink={0} position="relative"
-      style={{ background: "black" }}
+      flexShrink={0} position="relative"
+      style={{
+        background: "black",
+        boxShadow: `0 0 0 ${borderBlurPx > 0 ? 2 : 2}px ${accent}, 0 0 ${borderBlurPx}px ${borderBlurPx}px ${accent}`,
+        transition: "box-shadow 0.6s ease-out",
+      }}
     >
       {/* Two crossfading blur layers */}
       {layers.map(layer => layer.url && (
@@ -541,6 +545,9 @@ export default function App({ mode = "daily" }) {
             const isBlacked = guesses.length === 0 && !blurDraining;
             const blurredUrl = `${BASE_URL}/api/avatar/session/${sessionId}?g=${guesses.length}`;
             const fullUrl = `${BASE_URL}/api/avatar/session/${sessionId}?g=done`;
+            // Border blur: mirror the image blur level (matches BLUR_LEVELS_BY_GUESS on server)
+            const BORDER_BLUR = [18, 18, 10, 6, 3, 1]; // by guess count, px
+            const borderBlurPx = blurDraining ? 0 : (BORDER_BLUR[guesses.length] ?? 1);
             return (
               <Box position="relative" display="inline-flex" alignItems="center" justifyContent="center">
                 <AvatarCanvas
@@ -549,6 +556,7 @@ export default function App({ mode = "daily" }) {
                   isBlacked={isBlacked}
                   blurDraining={blurDraining}
                   accent={t.accent}
+                  borderBlurPx={borderBlurPx}
                 />
                 {/* Message overlay — text fades, box snaps away */}
                 {message && (
