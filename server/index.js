@@ -425,10 +425,12 @@ app.get("/api/avatar/session/:sessionId", async (req, res) => {
   const avatarUrl = Array.isArray(empInfo) ? empInfo[0]?.avatarUrl : empInfo?.avatarUrl;
   if (!avatarUrl) return res.status(404).end();
 
-  // Determine blur level from session state — server decides, client has no say
+  // Determine blur level:
+  // - client sends g=done to explicitly request the full image (only during reveal animation)
+  // - otherwise always blur based on guess count, even after win (so background stays blurred during drain)
   let level;
-  if (session.status !== "playing") {
-    level = 0; // game over — full image
+  if (req.query.g === "done") {
+    level = 0; // explicit full-image request
   } else {
     const guessCount = session.guesses.length;
     level = BLUR_LEVELS_BY_GUESS[guessCount] ?? 1;
