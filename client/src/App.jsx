@@ -504,9 +504,10 @@ export default function App({ mode = "daily" }) {
           )}
           {!message && avatarUrl && (() => {
             const isBlacked = guesses.length === 0 && !blurDraining;
-            // Blur level: 5 (most) before any guesses, steps down each guess, 0 = clear
-            // We keep level 1 (near-clear) until blurDraining so the server never sends full img mid-game
-            const blurLevel = blurDraining ? 0 : Math.max(1, 5 - guesses.length);
+            // Blur level: stays heavy for first 2 guesses, then steps down gradually
+            // 0 guesses → 5, 1 guess → 5, 2 → 4, 3 → 3, 4 → 2, 5 → 1
+            const BLUR_LEVELS = [5, 5, 4, 3, 2, 1];
+            const blurLevel = blurDraining ? 0 : (BLUR_LEVELS[guesses.length] ?? 1);
             const encodedUrl = encodeURIComponent(avatarUrl);
             const blurredUrl = `${BASE_URL}/api/avatar/blurred?url=${encodedUrl}&level=${blurLevel}`;
             const fullUrl = `${BASE_URL}/api/avatar/blurred?url=${encodedUrl}&level=0`;
