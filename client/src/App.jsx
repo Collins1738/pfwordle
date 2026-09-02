@@ -95,8 +95,8 @@ function AvatarCanvas({ blurredUrl, fullUrl, isBlacked, blurDraining, accent, bo
         transition: "box-shadow 0.6s ease-out",
       }}
     >
-      {/* Two crossfading blur layers — new fades in on top, old stays solid underneath */}
-      {layers.map(layer => layer.url && (
+      {/* Two crossfading blur layers — hidden while isBlacked */}
+      {!isBlacked && layers.map(layer => layer.url && (
         <img
           key={layer.key}
           src={layer.url}
