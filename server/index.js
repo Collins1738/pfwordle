@@ -4,10 +4,14 @@ const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
 const passport = require("passport");
+const sharp = require("sharp");
 const { getRandomWordOfLength, isValidWord, VALID_BY_LENGTH } = require("./words");
 const { EMPLOYEE_MAP } = require("./names");
 const { migrate, pool } = require("./db");
 const { setupAuth, requireAuth } = require("./auth");
+
+// In-memory blur cache: key = "url|level" → Buffer
+const blurCache = new Map();
 
 // Get current date in America/New_York (ET) as YYYY-MM-DD
 function getETDate(d = new Date()) {
@@ -368,6 +372,61 @@ app.get("/api/avatar", (req, res) => {
     res.set("Cache-Control", "public, max-age=86400");
     upstream.pipe(res);
   }).on("error", () => res.status(502).end());
+});
+
+// GET /api/avatar/blurred?url=...&level=0-5 — server-side blurred avatar
+// level 5 = most blurred (first guess), level 0 = clear (reveal)
+// Results are cached in memory by url+level.
+const BLUR_SIGMAS = [0, 2, 6, 12, 22, 40]; // index = level (0=clear, 5=most blurred)
+app.get("/api/avatar/blurred", async (req, res) => {
+  const url = req.query.url;
+  const level = Math.min(5, Math.max(0, parseInt(req.query.level, 10) || 0));
+  if (!url || !url.startsWith("http")) return res.status(400).end();
+
+  const cacheKey = `${url}|${level}`;
+  if (blurCache.has(cacheKey)) {
+    res.set("Content-Type", "image/jpeg");
+    res.set("Cache-Control", "public, max-age=86400");
+    return res.send(blurCache.get(cacheKey));
+  }
+
+  try {
+    // Fetch the original image
+    const imageBuffer = await new Promise((resolve, reject) => {
+      const lib = url.startsWith("https") ? https : http;
+      const chunks = [];
+      lib.get(url, (upstream) => {
+        upstream.on("data", chunk => chunks.push(chunk));
+        upstream.on("end", () => resolve(Buffer.concat(chunks)));
+        upstream.on("error", reject);
+      }).on("error", reject);
+    });
+
+    let processed;
+    if (level === 0) {
+      // No blur — just re-encode as JPEG
+      processed = await sharp(imageBuffer).jpeg({ quality: 85 }).toBuffer();
+    } else {
+      processed = await sharp(imageBuffer)
+        .blur(BLUR_SIGMAS[level])
+        .jpeg({ quality: 80 })
+        .toBuffer();
+    }
+
+    // Cap cache size at 500 entries to avoid unbounded memory growth
+    if (blurCache.size >= 500) {
+      const firstKey = blurCache.keys().next().value;
+      blurCache.delete(firstKey);
+    }
+    blurCache.set(cacheKey, processed);
+
+    res.set("Content-Type", "image/jpeg");
+    res.set("Cache-Control", "public, max-age=86400");
+    res.send(processed);
+  } catch (e) {
+    console.error("[avatar/blurred] error:", e.message);
+    res.status(502).end();
+  }
 });
 
 // GET /api/employees — full roster from CSV

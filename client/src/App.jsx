@@ -15,42 +15,52 @@ import { DEV_ACCOUNTS } from "./constants";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 
-// Canvas-based avatar: hides the source URL from the DOM / right-click menu
-function AvatarCanvas({ proxyUrl, blurPx, isBlacked, blurDraining, accent }) {
-  const canvasRef = useRef(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const dpr = window.devicePixelRatio || 1;
-    const cssSize = 36;
-    canvas.width = cssSize * dpr;
-    canvas.height = cssSize * dpr;
-    const ctx = canvas.getContext("2d");
-    ctx.scale(dpr, dpr);
-    const size = cssSize;
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      ctx.clearRect(0, 0, size, size);
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
-      ctx.clip();
-      const scale = 1.3;
-      const offset = (size - size * scale) / 2;
-      ctx.drawImage(img, offset, offset, size * scale, size * scale);
-      ctx.restore();
-    };
-    img.src = proxyUrl;
-  }, [proxyUrl]);
-
+// Avatar with server-side blur: the server applies blur so the client never has the full image
+// until the game is over. isBlacked = solid black before first guess.
+function AvatarCanvas({ blurredUrl, fullUrl, isBlacked, blurDraining, accent }) {
+  // While draining, crossfade from blurred to full image
   return (
     <Box
       w="36px" h="36px" borderRadius="full" overflow="hidden"
       border={`2px solid ${accent}`} flexShrink={0} position="relative"
+      style={{ background: "black" }}
     >
-      <canvas ref={canvasRef} style={{ display: "block", width: "36px", height: "36px", filter: `blur(${blurPx}px)`, transition: blurDraining ? "filter 1s ease-out" : "filter 0.6s ease-out" }} />
+      {/* Blurred image — always present until fully drained */}
+      {blurredUrl && (
+        <Box
+          as="img"
+          src={blurredUrl}
+          w="36px" h="36px"
+          style={{
+            display: "block",
+            objectFit: "cover",
+            borderRadius: "50%",
+            position: "absolute",
+            inset: 0,
+            opacity: blurDraining ? 0 : 1,
+            transition: "opacity 1s ease-out",
+            pointerEvents: "none",
+          }}
+        />
+      )}
+      {/* Full image — fades in during drain */}
+      {fullUrl && blurDraining && (
+        <Box
+          as="img"
+          src={fullUrl}
+          w="36px" h="36px"
+          style={{
+            display: "block",
+            objectFit: "cover",
+            borderRadius: "50%",
+            position: "absolute",
+            inset: 0,
+            opacity: 1,
+            pointerEvents: "none",
+          }}
+        />
+      )}
+      {/* Black overlay before first guess */}
       <Box
         position="absolute" inset={0} bg="black" borderRadius="full"
         style={{ opacity: isBlacked ? 1 : 0, transition: "opacity 0.6s ease-out", pointerEvents: "none" }}
@@ -493,14 +503,17 @@ export default function App({ mode = "daily" }) {
             </Box>
           )}
           {!message && avatarUrl && (() => {
-            const proxyUrl = `${BASE_URL}/api/avatar?url=${encodeURIComponent(avatarUrl)}`;
             const isBlacked = guesses.length === 0 && !blurDraining;
-            const naturalBlur = guesses.length === 1 ? 8 : Math.max(0, 6 - guesses.length);
-            const blurPx = blurDraining ? 0 : naturalBlur;
+            // Blur level: 5 (most) before any guesses, steps down each guess, 0 = clear
+            // We keep level 1 (near-clear) until blurDraining so the server never sends full img mid-game
+            const blurLevel = blurDraining ? 0 : Math.max(1, 5 - guesses.length);
+            const encodedUrl = encodeURIComponent(avatarUrl);
+            const blurredUrl = `${BASE_URL}/api/avatar/blurred?url=${encodedUrl}&level=${blurLevel}`;
+            const fullUrl = `${BASE_URL}/api/avatar/blurred?url=${encodedUrl}&level=0`;
             return (
               <AvatarCanvas
-                proxyUrl={proxyUrl}
-                blurPx={blurPx}
+                blurredUrl={blurredUrl}
+                fullUrl={fullUrl}
                 isBlacked={isBlacked}
                 blurDraining={blurDraining}
                 accent={t.accent}
