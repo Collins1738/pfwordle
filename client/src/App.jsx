@@ -95,7 +95,7 @@ function AvatarCanvas({ blurredUrl, fullUrl, isBlacked, blurDraining, accent, bo
         transition: "box-shadow 0.6s ease-out",
       }}
     >
-      {/* Two crossfading blur layers — hidden while isBlacked */}
+      {/* Two crossfading blur layers — hidden while isBlacked, visible during drain as base */}
       {!isBlacked && layers.map(layer => layer.url && (
         <img
           key={layer.key}
@@ -112,9 +112,17 @@ function AvatarCanvas({ blurredUrl, fullUrl, isBlacked, blurDraining, accent, bo
       {fullUrl && blurDraining && (
         <img
           src={fullUrl}
+          ref={el => {
+            // If image is already cached, onLoad won't fire — trigger manually
+            if (el && el.complete && !fullLoaded) {
+              setFullLoaded(true);
+              setTimeout(() => setDrainStarted(true), 30);
+            }
+          }}
           onLoad={() => { setFullLoaded(true); setTimeout(() => setDrainStarted(true), 30); }}
           style={{
             ...imgStyle,
+            zIndex: 10,
             opacity: fullLoaded ? 1 : 0,
             filter: drainStarted ? "blur(0px)" : "blur(8px)",
             transition: drainStarted ? "filter 1s ease-out" : "none",
