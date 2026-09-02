@@ -15,11 +15,15 @@ import { DEV_ACCOUNTS } from "./constants";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 
+// Border glow blur by guess count (px) — mirrors server-side BLUR_LEVELS_BY_GUESS
+const BORDER_BLUR = [18, 18, 10, 6, 3, 1];
+
 // Avatar with server-side blur: the server applies blur so the client never has the full image
 // until the game is over. On win, we load the full image and animate CSS blur from ~3px → 0.
 function AvatarCanvas({ blurredUrl, fullUrl, isBlacked, blurDraining, accent, borderBlurPx = 0 }) {
   const [drainStarted, setDrainStarted] = useState(false);
   const [fullLoaded, setFullLoaded] = useState(false);
+  const drainTriggered = useRef(false);
   // Two slots for crossfading between blur levels
   const [layers, setLayers] = useState([{ url: null, opacity: 1, zIndex: 2, key: 0 }, { url: null, opacity: 0, zIndex: 1, key: 1 }]);
   const activeLayer = useRef(0); // which layer is currently on top
@@ -63,6 +67,7 @@ function AvatarCanvas({ blurredUrl, fullUrl, isBlacked, blurDraining, accent, bo
     if (blurDraining) {
       setFullLoaded(false);
       setDrainStarted(false);
+      drainTriggered.current = false;
     }
   }, [blurDraining]);
 
@@ -114,12 +119,18 @@ function AvatarCanvas({ blurredUrl, fullUrl, isBlacked, blurDraining, accent, bo
           src={fullUrl}
           ref={el => {
             // If image is already cached, onLoad won't fire — trigger manually
-            if (el && el.complete && !fullLoaded) {
+            if (el && el.complete && !drainTriggered.current) {
+              drainTriggered.current = true;
               setFullLoaded(true);
               setTimeout(() => setDrainStarted(true), 30);
             }
           }}
-          onLoad={() => { setFullLoaded(true); setTimeout(() => setDrainStarted(true), 30); }}
+          onLoad={() => {
+            if (drainTriggered.current) return;
+            drainTriggered.current = true;
+            setFullLoaded(true);
+            setTimeout(() => setDrainStarted(true), 30);
+          }}
           style={{
             ...imgStyle,
             zIndex: 10,
@@ -573,8 +584,6 @@ export default function App({ mode = "daily" }) {
             const isBlacked = guesses.length === 0 && !blurDraining;
             const blurredUrl = `${BASE_URL}/api/avatar/session/${sessionId}?g=${guesses.length}`;
             const fullUrl = `${BASE_URL}/api/avatar/session/${sessionId}?g=done`;
-            // Border blur: mirror the image blur level (matches BLUR_LEVELS_BY_GUESS on server)
-            const BORDER_BLUR = [18, 18, 10, 6, 3, 1]; // by guess count, px
             const borderBlurPx = blurDraining ? 0 : (BORDER_BLUR[guesses.length] ?? 1);
             return (
               <Box position="relative" display="inline-flex" alignItems="center" justifyContent="center">
