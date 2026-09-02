@@ -68,12 +68,20 @@ function AvatarCanvas({ blurredUrl, fullUrl, isBlacked, blurDraining, accent, bo
   };
 
   return (
+    // Outer ring: clips the glow at its edge
+    <Box
+      w="42px" h="42px" borderRadius="full" overflow="hidden"
+      flexShrink={0} position="relative"
+      display="flex" alignItems="center" justifyContent="center"
+      style={{ background: "transparent" }}
+    >
+    {/* Inner circle: image + animated glow border */}
     <Box
       w="36px" h="36px" borderRadius="full" overflow="hidden"
-      flexShrink={0} position="relative"
+      position="relative"
       style={{
         background: "black",
-        boxShadow: `0 0 0 ${borderBlurPx > 0 ? 2 : 2}px ${accent}, 0 0 ${borderBlurPx}px ${borderBlurPx}px ${accent}`,
+        boxShadow: `0 0 0 2px ${accent}, 0 0 ${borderBlurPx}px ${borderBlurPx}px ${accent}`,
         transition: "box-shadow 0.6s ease-out",
       }}
     >
@@ -107,6 +115,7 @@ function AvatarCanvas({ blurredUrl, fullUrl, isBlacked, blurDraining, accent, bo
         position="absolute" inset={0} bg="black" borderRadius="full"
         style={{ opacity: isBlacked ? 1 : 0, transition: "opacity 0.6s ease-out", pointerEvents: "none" }}
       />
+    </Box>
     </Box>
   );
 }
