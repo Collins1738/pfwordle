@@ -47,8 +47,8 @@ function AvatarCanvas({ blurredUrl, fullUrl, isBlacked, blurDraining, accent }) 
       border={`2px solid ${accent}`} flexShrink={0} position="relative"
       style={{ background: "black" }}
     >
-      {/* Server-blurred image — fades in on each new blur level */}
-      {blurredUrl && !blurDraining && (
+      {/* Server-blurred image — always shown as base layer, fades in on each new guess */}
+      {blurredUrl && (
         <Box
           as="img"
           src={blurredUrl}
@@ -65,7 +65,7 @@ function AvatarCanvas({ blurredUrl, fullUrl, isBlacked, blurDraining, accent }) 
           }}
         />
       )}
-      {/* Full image with CSS blur animating to 0 on win */}
+      {/* Full image overlaid on top during drain — starts blurry, animates to clear */}
       {fullUrl && blurDraining && (
         <Box
           as="img"
@@ -77,8 +77,8 @@ function AvatarCanvas({ blurredUrl, fullUrl, isBlacked, blurDraining, accent }) 
             borderRadius: "50%",
             position: "absolute",
             inset: 0,
-            filter: drainStarted ? "blur(0px)" : "blur(6px)",
-            transition: "filter 1s ease-out",
+            filter: drainStarted ? "blur(0px)" : "blur(8px)",
+            transition: drainStarted ? "filter 1s ease-out" : "none",
             pointerEvents: "none",
           }}
         />
