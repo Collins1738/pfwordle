@@ -502,15 +502,12 @@ export default function App({ mode = "daily" }) {
               {message}
             </Box>
           )}
-          {!message && avatarUrl && (() => {
+          {!message && sessionId && avatarUrl && (() => {
             const isBlacked = guesses.length === 0 && !blurDraining;
-            // Blur level: stays heavy for first 2 guesses, then steps down gradually
-            // 0 guesses → 5, 1 guess → 5, 2 → 4, 3 → 3, 4 → 2, 5 → 1
-            const BLUR_LEVELS = [5, 5, 4, 3, 2, 1];
-            const blurLevel = blurDraining ? 0 : (BLUR_LEVELS[guesses.length] ?? 1);
-            const encodedUrl = encodeURIComponent(avatarUrl);
-            const blurredUrl = `${BASE_URL}/api/avatar/blurred?url=${encodedUrl}&level=${blurLevel}`;
-            const fullUrl = `${BASE_URL}/api/avatar/blurred?url=${encodedUrl}&level=0`;
+            // Server decides blur level based on session state — client just passes sessionId
+            // Add guess count as cache-buster so browser re-fetches after each guess
+            const blurredUrl = `${BASE_URL}/api/avatar/session/${sessionId}?g=${guesses.length}`;
+            const fullUrl = `${BASE_URL}/api/avatar/session/${sessionId}?g=done`;
             return (
               <AvatarCanvas
                 blurredUrl={blurredUrl}

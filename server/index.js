@@ -374,57 +374,60 @@ app.get("/api/avatar", (req, res) => {
   }).on("error", () => res.status(502).end());
 });
 
-// GET /api/avatar/blurred?url=...&level=0-5 — server-side blurred avatar
-// level 5 = most blurred (first guess), level 0 = clear (reveal)
-// Results are cached in memory by url+level.
+// Server-side blur helpers
 const BLUR_SIGMAS = [0, 2, 6, 12, 22, 40]; // index = level (0=clear, 5=most blurred)
-app.get("/api/avatar/blurred", async (req, res) => {
-  const url = req.query.url;
-  const level = Math.min(5, Math.max(0, parseInt(req.query.level, 10) || 0));
-  if (!url || !url.startsWith("http")) return res.status(400).end();
+const BLUR_LEVELS_BY_GUESS = [5, 5, 4, 3, 2, 1]; // guess count → blur level
 
-  const cacheKey = `${url}|${level}`;
-  if (blurCache.has(cacheKey)) {
-    res.set("Content-Type", "image/jpeg");
-    res.set("Cache-Control", "public, max-age=86400");
-    return res.send(blurCache.get(cacheKey));
+async function fetchAndBlur(avatarUrl, level) {
+  const cacheKey = `${avatarUrl}|${level}`;
+  if (blurCache.has(cacheKey)) return blurCache.get(cacheKey);
+
+  const imageBuffer = await new Promise((resolve, reject) => {
+    const lib = avatarUrl.startsWith("https") ? https : http;
+    const chunks = [];
+    lib.get(avatarUrl, (upstream) => {
+      upstream.on("data", chunk => chunks.push(chunk));
+      upstream.on("end", () => resolve(Buffer.concat(chunks)));
+      upstream.on("error", reject);
+    }).on("error", reject);
+  });
+
+  const sigma = BLUR_SIGMAS[level] || 0;
+  const processed = sigma > 0
+    ? await sharp(imageBuffer).blur(sigma).jpeg({ quality: 80 }).toBuffer()
+    : await sharp(imageBuffer).jpeg({ quality: 85 }).toBuffer();
+
+  if (blurCache.size >= 500) blurCache.delete(blurCache.keys().next().value);
+  blurCache.set(cacheKey, processed);
+  return processed;
+}
+
+// GET /api/avatar/session/:sessionId — serves the avatar at the correct blur level
+// for the current game state. No url or level params accepted from client.
+app.get("/api/avatar/session/:sessionId", async (req, res) => {
+  const session = sessions.get(req.params.sessionId);
+  if (!session || !session.word) return res.status(404).end();
+
+  const empInfo = getEmployeeInfo(session.word);
+  const avatarUrl = Array.isArray(empInfo) ? empInfo[0]?.avatarUrl : empInfo?.avatarUrl;
+  if (!avatarUrl) return res.status(404).end();
+
+  // Determine blur level from session state — server decides, client has no say
+  let level;
+  if (session.status !== "playing") {
+    level = 0; // game over — full image
+  } else {
+    const guessCount = session.guesses.length;
+    level = BLUR_LEVELS_BY_GUESS[guessCount] ?? 1;
   }
 
   try {
-    // Fetch the original image
-    const imageBuffer = await new Promise((resolve, reject) => {
-      const lib = url.startsWith("https") ? https : http;
-      const chunks = [];
-      lib.get(url, (upstream) => {
-        upstream.on("data", chunk => chunks.push(chunk));
-        upstream.on("end", () => resolve(Buffer.concat(chunks)));
-        upstream.on("error", reject);
-      }).on("error", reject);
-    });
-
-    let processed;
-    if (level === 0) {
-      // No blur — just re-encode as JPEG
-      processed = await sharp(imageBuffer).jpeg({ quality: 85 }).toBuffer();
-    } else {
-      processed = await sharp(imageBuffer)
-        .blur(BLUR_SIGMAS[level])
-        .jpeg({ quality: 80 })
-        .toBuffer();
-    }
-
-    // Cap cache size at 500 entries to avoid unbounded memory growth
-    if (blurCache.size >= 500) {
-      const firstKey = blurCache.keys().next().value;
-      blurCache.delete(firstKey);
-    }
-    blurCache.set(cacheKey, processed);
-
+    const buf = await fetchAndBlur(avatarUrl, level);
     res.set("Content-Type", "image/jpeg");
-    res.set("Cache-Control", "public, max-age=86400");
-    res.send(processed);
+    res.set("Cache-Control", "no-store"); // don't cache session responses — level changes per guess
+    res.send(buf);
   } catch (e) {
-    console.error("[avatar/blurred] error:", e.message);
+    console.error("[avatar/session] error:", e.message);
     res.status(502).end();
   }
 });
