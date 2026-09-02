@@ -111,6 +111,7 @@ export default function App({ mode = "daily" }) {
   const [showResult, setShowResult] = useState(false);
   const [answer, setAnswer] = useState(null);
   const [message, setMessage] = useState("");
+  const [msgVisible, setMsgVisible] = useState(false);
   const [employee, setEmployee] = useState(null);
   const [duration, setDuration] = useState(null);
   const [finalScore, setFinalScore] = useState(null);
@@ -329,6 +330,9 @@ export default function App({ mode = "daily" }) {
       } catch (e) {
         const msg = e?.response?.data?.error || "Invalid guess";
         setMessage(msg);
+        setMsgVisible(true);
+        // Fade text out at 1.6s, remove box at 2s
+        setTimeout(() => setMsgVisible(false), 1600);
         setTimeout(() => setMessage(""), 2000);
         if (msg.toLowerCase().includes("valid word") || msg.toLowerCase().includes("invalid")) {
           setShakingRow(true);
@@ -536,26 +540,27 @@ export default function App({ mode = "daily" }) {
                   blurDraining={blurDraining}
                   accent={t.accent}
                 />
-                {/* Message overlay — floats above avatar, fades out automatically */}
-                <Box
-                  position="absolute"
-                  left="50%" top="50%"
-                  style={{ transform: "translate(-50%, -50%)", whiteSpace: "nowrap", pointerEvents: "none" }}
-                  bg="white" color={msgColor} px={4} py={1} borderRadius="10px"
-                  fontWeight="700" fontSize="sm" fontFamily={t.font}
-                  border="2px solid" borderColor={msgColor}
-                  boxShadow="0 2px 8px rgba(0,100,200,0.1)"
-                  zIndex={10}
-                  style={{
-                    transform: "translate(-50%, -50%)",
-                    whiteSpace: "nowrap",
-                    pointerEvents: "none",
-                    opacity: message ? 1 : 0,
-                    transition: message ? "opacity 0.1s" : "opacity 0.5s ease-out",
-                  }}
-                >
-                  {message}
-                </Box>
+                {/* Message overlay — text fades, box snaps away */}
+                {message && (
+                  <Box
+                    position="absolute"
+                    left="50%" top="50%"
+                    bg="white" color={msgColor} px={4} py={1} borderRadius="10px"
+                    fontWeight="700" fontSize="sm" fontFamily={t.font}
+                    border="2px solid" borderColor={msgColor}
+                    boxShadow="0 2px 8px rgba(0,100,200,0.1)"
+                    zIndex={10}
+                    style={{
+                      transform: "translate(-50%, -50%)",
+                      whiteSpace: "nowrap",
+                      pointerEvents: "none",
+                      opacity: msgVisible ? 1 : 0,
+                      transition: "opacity 0.35s ease-out",
+                    }}
+                  >
+                    {message}
+                  </Box>
+                )}
               </Box>
             );
           })()}
