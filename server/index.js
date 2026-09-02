@@ -375,7 +375,11 @@ app.get("/api/avatar", (req, res) => {
 });
 
 // Server-side blur helpers
-const BLUR_SIGMAS = [0, 2, 6, 12, 22, 40]; // index = level (0=clear, 5=most blurred)
+// Image is resized to 72px (2x for retina) before blurring so Sharp sigma ≈ CSS blur px on 36px display
+// Old CSS values by guess: 0→6px, 1→8px, 2→4px, 3→3px, 4→2px, 5→1px
+// We double them since we render at 72px: multiply by 2 and add a bit for server-side feel
+const BLUR_SIGMAS = [0, 3, 5, 8, 10, 18]; // index = level (0=clear, 5=most blurred)
+// level mapping: 0 guesses→5, 1→5, 2→4, 3→3, 4→2, 5→1
 const BLUR_LEVELS_BY_GUESS = [5, 5, 4, 3, 2, 1]; // guess count → blur level
 
 async function fetchUrl(url, redirects = 5) {
@@ -400,9 +404,11 @@ async function fetchAndBlur(avatarUrl, level) {
   const imageBuffer = await fetchUrl(avatarUrl);
 
   const sigma = BLUR_SIGMAS[level] || 0;
+  // Resize to 72px (2× retina) so sigma values are consistent regardless of source image size
+  const base = sharp(imageBuffer).resize(72, 72, { fit: "cover" });
   const processed = sigma > 0
-    ? await sharp(imageBuffer).blur(sigma).jpeg({ quality: 80 }).toBuffer()
-    : await sharp(imageBuffer).jpeg({ quality: 85 }).toBuffer();
+    ? await base.blur(sigma).jpeg({ quality: 80 }).toBuffer()
+    : await base.jpeg({ quality: 85 }).toBuffer();
 
   if (blurCache.size >= 500) blurCache.delete(blurCache.keys().next().value);
   blurCache.set(cacheKey, processed);
