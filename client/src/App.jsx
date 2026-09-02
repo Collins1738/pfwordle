@@ -19,10 +19,21 @@ const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 // until the game is over. On win, we load the full image and animate CSS blur from ~3px → 0.
 function AvatarCanvas({ blurredUrl, fullUrl, isBlacked, blurDraining, accent }) {
   const [drainStarted, setDrainStarted] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const prevUrl = useRef(null);
+
+  // Animate opacity 0→1 whenever the blurred image URL changes (new guess = new blur level)
+  useEffect(() => {
+    if (blurredUrl && blurredUrl !== prevUrl.current) {
+      prevUrl.current = blurredUrl;
+      setVisible(false);
+      const t = setTimeout(() => setVisible(true), 20);
+      return () => clearTimeout(t);
+    }
+  }, [blurredUrl]);
 
   useEffect(() => {
     if (blurDraining) {
-      // Small delay so browser has time to load the full image before animating
       const t = setTimeout(() => setDrainStarted(true), 50);
       return () => clearTimeout(t);
     } else {
@@ -36,7 +47,7 @@ function AvatarCanvas({ blurredUrl, fullUrl, isBlacked, blurDraining, accent }) 
       border={`2px solid ${accent}`} flexShrink={0} position="relative"
       style={{ background: "black" }}
     >
-      {/* Server-blurred image — shown during gameplay */}
+      {/* Server-blurred image — fades in on each new blur level */}
       {blurredUrl && !blurDraining && (
         <Box
           as="img"
@@ -48,6 +59,8 @@ function AvatarCanvas({ blurredUrl, fullUrl, isBlacked, blurDraining, accent }) 
             borderRadius: "50%",
             position: "absolute",
             inset: 0,
+            opacity: visible ? 1 : 0,
+            transition: "opacity 0.6s ease-out",
             pointerEvents: "none",
           }}
         />
