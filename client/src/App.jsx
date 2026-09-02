@@ -21,31 +21,41 @@ function AvatarCanvas({ blurredUrl, fullUrl, isBlacked, blurDraining, accent, bo
   const [drainStarted, setDrainStarted] = useState(false);
   const [fullLoaded, setFullLoaded] = useState(false);
   // Two slots for crossfading between blur levels
-  const [layers, setLayers] = useState([{ url: null, opacity: 1, key: 0 }, { url: null, opacity: 0, key: 1 }]);
+  const [layers, setLayers] = useState([{ url: null, opacity: 1, zIndex: 2, key: 0 }, { url: null, opacity: 0, zIndex: 1, key: 1 }]);
   const activeLayer = useRef(0); // which layer is currently on top
 
-  // When blurredUrl changes, load new image into the inactive layer and crossfade
+  // When blurredUrl changes, load new image into the inactive layer (on top),
+  // fade it in, then snap the old layer away — old stays at full opacity so no dark gap.
   useEffect(() => {
     if (!blurredUrl || blurDraining) return;
     const next = activeLayer.current === 0 ? 1 : 0;
     const cur = activeLayer.current;
-    // Put new url into next layer (invisible)
+    // Load new url into next layer, invisible, behind current (zIndex)
     setLayers(prev => {
       const l = [...prev];
-      l[next] = { ...l[next], url: blurredUrl, opacity: 0 };
+      l[next] = { ...l[next], url: blurredUrl, opacity: 0, zIndex: 2 };
+      l[cur]  = { ...l[cur],  zIndex: 1 };
       return l;
     });
-    // After paint, fade next in and cur out
-    const t = setTimeout(() => {
-      activeLayer.current = next;
+    // Fade new layer in (old stays fully visible underneath)
+    const t1 = setTimeout(() => {
       setLayers(prev => {
         const l = [...prev];
         l[next] = { ...l[next], opacity: 1 };
-        l[cur] = { ...l[cur], opacity: 0 };
         return l;
       });
     }, 30);
-    return () => clearTimeout(t);
+    // Once new is fully visible, snap old away
+    const t2 = setTimeout(() => {
+      activeLayer.current = next;
+      setLayers(prev => {
+        const l = [...prev];
+        l[cur] = { ...l[cur], opacity: 0, zIndex: 1 };
+        l[next] = { ...l[next], zIndex: 2 };
+        return l;
+      });
+    }, 600);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [blurredUrl, blurDraining]);
 
   // Drain: wait for full image to load, then animate blur away
@@ -85,7 +95,7 @@ function AvatarCanvas({ blurredUrl, fullUrl, isBlacked, blurDraining, accent, bo
         transition: "box-shadow 0.6s ease-out",
       }}
     >
-      {/* Two crossfading blur layers */}
+      {/* Two crossfading blur layers — new fades in on top, old stays solid underneath */}
       {layers.map(layer => layer.url && (
         <img
           key={layer.key}
@@ -93,6 +103,7 @@ function AvatarCanvas({ blurredUrl, fullUrl, isBlacked, blurDraining, accent, bo
           style={{
             ...imgStyle,
             opacity: layer.opacity,
+            zIndex: layer.zIndex,
             transition: "opacity 0.5s ease-out",
           }}
         />
