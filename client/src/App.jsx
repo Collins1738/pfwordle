@@ -19,24 +19,24 @@ const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 // until the game is over. On win, we load the full image and animate CSS blur from ~3px → 0.
 function AvatarCanvas({ blurredUrl, fullUrl, isBlacked, blurDraining, accent }) {
   const [drainStarted, setDrainStarted] = useState(false);
-  const [visible, setVisible] = useState(false);
-  const prevUrl = useRef(null);
+  const [fullLoaded, setFullLoaded] = useState(false);
+  const [visible, setVisible] = useState(true);
+  const prevBlurredUrl = useRef(null);
 
-  // Animate opacity 0→1 whenever the blurred image URL changes (new guess = new blur level)
+  // Fade in on each new blur level (new guess)
   useEffect(() => {
-    if (blurredUrl && blurredUrl !== prevUrl.current) {
-      prevUrl.current = blurredUrl;
+    if (blurredUrl && blurredUrl !== prevBlurredUrl.current) {
+      prevBlurredUrl.current = blurredUrl;
       setVisible(false);
       const t = setTimeout(() => setVisible(true), 20);
       return () => clearTimeout(t);
     }
   }, [blurredUrl]);
 
+  // Drain: wait for full image to load, then animate blur away
   useEffect(() => {
     if (blurDraining) {
-      const t = setTimeout(() => setDrainStarted(true), 50);
-      return () => clearTimeout(t);
-    } else {
+      setFullLoaded(false);
       setDrainStarted(false);
     }
   }, [blurDraining]);
@@ -65,18 +65,23 @@ function AvatarCanvas({ blurredUrl, fullUrl, isBlacked, blurDraining, accent }) 
           }}
         />
       )}
-      {/* Full image overlaid on top during drain — starts blurry, animates to clear */}
+      {/* Full image — preloaded invisibly, then animates blur to 0 once loaded */}
       {fullUrl && blurDraining && (
         <Box
           as="img"
           src={fullUrl}
           w="36px" h="36px"
+          onLoad={() => {
+            setFullLoaded(true);
+            setTimeout(() => setDrainStarted(true), 30);
+          }}
           style={{
             display: "block",
             objectFit: "cover",
             borderRadius: "50%",
             position: "absolute",
             inset: 0,
+            opacity: fullLoaded ? 1 : 0,
             filter: drainStarted ? "blur(0px)" : "blur(8px)",
             transition: drainStarted ? "filter 1s ease-out" : "none",
             pointerEvents: "none",
@@ -525,10 +530,8 @@ export default function App({ mode = "daily" }) {
               {message}
             </Box>
           )}
-          {!message && sessionId && avatarUrl && (() => {
+          {sessionId && avatarUrl && (() => {
             const isBlacked = guesses.length === 0 && !blurDraining;
-            // Server decides blur level based on session state — client just passes sessionId
-            // Add guess count as cache-buster so browser re-fetches after each guess
             const blurredUrl = `${BASE_URL}/api/avatar/session/${sessionId}?g=${guesses.length}`;
             const fullUrl = `${BASE_URL}/api/avatar/session/${sessionId}?g=done`;
             return (
