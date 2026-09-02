@@ -255,7 +255,7 @@ export default function LeaderboardPage() {
       {selectedRow && <BoardModal row={selectedRow} onClose={() => setSelectedRow(null)} />}
       {selectedProfile && <ProfileModal row={selectedProfile} onClose={() => setSelectedProfile(null)} />}
 
-      <Box h="100vh" bg={t.bg} display="flex" flexDir="column" alignItems="center" fontFamily={t.font} overflow="hidden">
+      <Box bg={t.bg} display="flex" flexDir="column" alignItems="center" fontFamily={t.font} style={{ height: "100dvh", overflow: "hidden" }}>
         {/* Sticky header + tabs — full width backdrop, content capped at 520px */}
         <Box w="100%" bg={t.surface} borderBottom={`1px solid ${t.border}`} display="flex" flexDir="column" alignItems="center" flexShrink={0}>
           {/* Header */}
@@ -314,7 +314,7 @@ export default function LeaderboardPage() {
         </Box>
 
         {/* Scrollable list area */}
-        <Box w="100%" flex={1} overflowY="auto" display="flex" flexDir="column" alignItems="center">
+        <Box w="100%" flex={1} display="flex" flexDir="column" alignItems="center" style={{ overflowY: "scroll", WebkitOverflowScrolling: "touch" }}>
         <VStack w="100%" maxW="520px" px={4} py={4} gap={0} align="stretch">
           {loading ? (
             <Box display="flex" justifyContent="center" py={12}><Spinner color={t.accent} /></Box>
