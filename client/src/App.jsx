@@ -329,6 +329,7 @@ export default function App({ mode = "daily" }) {
       } catch (e) {
         const msg = e?.response?.data?.error || "Invalid guess";
         setMessage(msg);
+        setTimeout(() => setMessage(""), 2000);
         if (msg.toLowerCase().includes("valid word") || msg.toLowerCase().includes("invalid")) {
           setShakingRow(true);
           setTimeout(() => setShakingRow(false), 500);
@@ -522,26 +523,40 @@ export default function App({ mode = "daily" }) {
 
       <VStack gap={0} w="100%" maxW="520px" px={3}>
         <Box h="36px" display="flex" alignItems="center" justifyContent="center" mt={1} position="relative">
-          {message && (
-            <Box bg="white" color={msgColor} px={4} py={1} borderRadius="10px"
-              fontWeight="700" fontFamily="'Fredoka', sans-serif" fontSize="sm"
-              border="2px solid" borderColor={msgColor}
-              boxShadow="0 2px 8px rgba(0,100,200,0.1)" fontFamily={t.font}>
-              {message}
-            </Box>
-          )}
           {sessionId && avatarUrl && (() => {
             const isBlacked = guesses.length === 0 && !blurDraining;
             const blurredUrl = `${BASE_URL}/api/avatar/session/${sessionId}?g=${guesses.length}`;
             const fullUrl = `${BASE_URL}/api/avatar/session/${sessionId}?g=done`;
             return (
-              <AvatarCanvas
-                blurredUrl={blurredUrl}
-                fullUrl={fullUrl}
-                isBlacked={isBlacked}
-                blurDraining={blurDraining}
-                accent={t.accent}
-              />
+              <Box position="relative" display="inline-flex" alignItems="center" justifyContent="center">
+                <AvatarCanvas
+                  blurredUrl={blurredUrl}
+                  fullUrl={fullUrl}
+                  isBlacked={isBlacked}
+                  blurDraining={blurDraining}
+                  accent={t.accent}
+                />
+                {/* Message overlay — floats above avatar, fades out automatically */}
+                <Box
+                  position="absolute"
+                  left="50%" top="50%"
+                  style={{ transform: "translate(-50%, -50%)", whiteSpace: "nowrap", pointerEvents: "none" }}
+                  bg="white" color={msgColor} px={4} py={1} borderRadius="10px"
+                  fontWeight="700" fontSize="sm" fontFamily={t.font}
+                  border="2px solid" borderColor={msgColor}
+                  boxShadow="0 2px 8px rgba(0,100,200,0.1)"
+                  zIndex={10}
+                  style={{
+                    transform: "translate(-50%, -50%)",
+                    whiteSpace: "nowrap",
+                    pointerEvents: "none",
+                    opacity: message ? 1 : 0,
+                    transition: message ? "opacity 0.1s" : "opacity 0.5s ease-out",
+                  }}
+                >
+                  {message}
+                </Box>
+              </Box>
             );
           })()}
         </Box>
