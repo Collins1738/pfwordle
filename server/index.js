@@ -378,19 +378,26 @@ app.get("/api/avatar", (req, res) => {
 const BLUR_SIGMAS = [0, 2, 6, 12, 22, 40]; // index = level (0=clear, 5=most blurred)
 const BLUR_LEVELS_BY_GUESS = [5, 5, 4, 3, 2, 1]; // guess count → blur level
 
+async function fetchUrl(url, redirects = 5) {
+  return new Promise((resolve, reject) => {
+    const lib = url.startsWith("https") ? https : http;
+    lib.get(url, (res) => {
+      if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location && redirects > 0) {
+        return fetchUrl(res.headers.location, redirects - 1).then(resolve).catch(reject);
+      }
+      const chunks = [];
+      res.on("data", chunk => chunks.push(chunk));
+      res.on("end", () => resolve(Buffer.concat(chunks)));
+      res.on("error", reject);
+    }).on("error", reject);
+  });
+}
+
 async function fetchAndBlur(avatarUrl, level) {
   const cacheKey = `${avatarUrl}|${level}`;
   if (blurCache.has(cacheKey)) return blurCache.get(cacheKey);
 
-  const imageBuffer = await new Promise((resolve, reject) => {
-    const lib = avatarUrl.startsWith("https") ? https : http;
-    const chunks = [];
-    lib.get(avatarUrl, (upstream) => {
-      upstream.on("data", chunk => chunks.push(chunk));
-      upstream.on("end", () => resolve(Buffer.concat(chunks)));
-      upstream.on("error", reject);
-    }).on("error", reject);
-  });
+  const imageBuffer = await fetchUrl(avatarUrl);
 
   const sigma = BLUR_SIGMAS[level] || 0;
   const processed = sigma > 0
