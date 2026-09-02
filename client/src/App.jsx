@@ -15,46 +15,137 @@ import { DEV_ACCOUNTS } from "./constants";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 
-// Canvas-based avatar: hides the source URL from the DOM / right-click menu
-function AvatarCanvas({ proxyUrl, blurPx, isBlacked, blurDraining, accent }) {
-  const canvasRef = useRef(null);
+// Border glow blur by guess count (px) — mirrors server-side BLUR_LEVELS_BY_GUESS
+const BORDER_BLUR = [18, 18, 10, 6, 3, 1];
 
+// Avatar with server-side blur: the server applies blur so the client never has the full image
+// until the game is over. On win, we load the full image and animate CSS blur from ~3px → 0.
+function AvatarCanvas({ blurredUrl, fullUrl, isBlacked, blurDraining, accent, borderBlurPx = 0 }) {
+  const [drainStarted, setDrainStarted] = useState(false);
+  const [fullLoaded, setFullLoaded] = useState(false);
+  const drainTriggered = useRef(false);
+  // Two slots for crossfading between blur levels
+  const [layers, setLayers] = useState([{ url: null, opacity: 1, zIndex: 2, key: 0 }, { url: null, opacity: 0, zIndex: 1, key: 1 }]);
+  const activeLayer = useRef(0); // which layer is currently on top
+
+  // When blurredUrl changes, load new image into the inactive layer (on top),
+  // fade it in, then snap the old layer away — old stays at full opacity so no dark gap.
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const dpr = window.devicePixelRatio || 1;
-    const cssSize = 36;
-    canvas.width = cssSize * dpr;
-    canvas.height = cssSize * dpr;
-    const ctx = canvas.getContext("2d");
-    ctx.scale(dpr, dpr);
-    const size = cssSize;
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      ctx.clearRect(0, 0, size, size);
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
-      ctx.clip();
-      const scale = 1.3;
-      const offset = (size - size * scale) / 2;
-      ctx.drawImage(img, offset, offset, size * scale, size * scale);
-      ctx.restore();
-    };
-    img.src = proxyUrl;
-  }, [proxyUrl]);
+    if (!blurredUrl || blurDraining) return;
+    const next = activeLayer.current === 0 ? 1 : 0;
+    const cur = activeLayer.current;
+    // Load new url into next layer, invisible, behind current (zIndex)
+    setLayers(prev => {
+      const l = [...prev];
+      l[next] = { ...l[next], url: blurredUrl, opacity: 0, zIndex: 2 };
+      l[cur]  = { ...l[cur],  zIndex: 1 };
+      return l;
+    });
+    // Fade new layer in (old stays fully visible underneath)
+    const t1 = setTimeout(() => {
+      setLayers(prev => {
+        const l = [...prev];
+        l[next] = { ...l[next], opacity: 1 };
+        return l;
+      });
+    }, 30);
+    // Once new is fully visible, snap old away
+    const t2 = setTimeout(() => {
+      activeLayer.current = next;
+      setLayers(prev => {
+        const l = [...prev];
+        l[cur] = { ...l[cur], opacity: 0, zIndex: 1 };
+        l[next] = { ...l[next], zIndex: 2 };
+        return l;
+      });
+    }, 600);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [blurredUrl, blurDraining]);
+
+  // Drain: wait for full image to load, then animate blur away
+  useEffect(() => {
+    if (blurDraining) {
+      setFullLoaded(false);
+      setDrainStarted(false);
+      drainTriggered.current = false;
+    }
+  }, [blurDraining]);
+
+  const imgStyle = {
+    display: "block",
+    objectFit: "cover",
+    borderRadius: "50%",
+    position: "absolute",
+    inset: 0,
+    width: "36px",
+    height: "36px",
+    pointerEvents: "none",
+  };
 
   return (
+    // Outer ring: clips the glow at its edge
+    <Box
+      w="42px" h="42px" borderRadius="full" overflow="hidden"
+      flexShrink={0} position="relative"
+      display="flex" alignItems="center" justifyContent="center"
+      style={{ background: "transparent" }}
+    >
+    {/* Inner circle: image + animated glow border */}
     <Box
       w="36px" h="36px" borderRadius="full" overflow="hidden"
-      border={`2px solid ${accent}`} flexShrink={0} position="relative"
+      position="relative"
+      style={{
+        background: "black",
+        boxShadow: `0 0 0 2px ${accent}, 0 0 ${borderBlurPx}px ${borderBlurPx}px ${accent}`,
+        transition: "box-shadow 0.6s ease-out",
+      }}
     >
-      <canvas ref={canvasRef} style={{ display: "block", width: "36px", height: "36px", filter: `blur(${blurPx}px)`, transition: blurDraining ? "filter 1s ease-out" : "filter 0.6s ease-out" }} />
+      {/* Two crossfading blur layers — hidden while isBlacked, visible during drain as base */}
+      {!isBlacked && layers.map(layer => layer.url && (
+        <img
+          key={layer.key}
+          src={layer.url}
+          style={{
+            ...imgStyle,
+            opacity: layer.opacity,
+            zIndex: layer.zIndex,
+            transition: "opacity 0.5s ease-out",
+          }}
+        />
+      ))}
+      {/* Full image — loads hidden, animates CSS blur from 8px→0 on win */}
+      {fullUrl && blurDraining && (
+        <img
+          src={fullUrl}
+          ref={el => {
+            // If image is already cached, onLoad won't fire — trigger manually
+            if (el && el.complete && !drainTriggered.current) {
+              drainTriggered.current = true;
+              setFullLoaded(true);
+              setTimeout(() => setDrainStarted(true), 30);
+            }
+          }}
+          onLoad={() => {
+            if (drainTriggered.current) return;
+            drainTriggered.current = true;
+            setFullLoaded(true);
+            setTimeout(() => setDrainStarted(true), 30);
+          }}
+          style={{
+            ...imgStyle,
+            zIndex: 10,
+            opacity: fullLoaded ? 1 : 0,
+            filter: drainStarted ? "blur(0px)" : "blur(8px)",
+            transition: drainStarted ? "filter 1s ease-out" : "none",
+          }}
+        />
+      )}
+      {/* Black overlay before first guess */}
       <Box
         position="absolute" inset={0} bg="black" borderRadius="full"
         style={{ opacity: isBlacked ? 1 : 0, transition: "opacity 0.6s ease-out", pointerEvents: "none" }}
       />
+    </Box>
     </Box>
   );
 }
@@ -73,6 +164,7 @@ export default function App({ mode = "daily" }) {
   const [showResult, setShowResult] = useState(false);
   const [answer, setAnswer] = useState(null);
   const [message, setMessage] = useState("");
+  const [msgVisible, setMsgVisible] = useState(false);
   const [employee, setEmployee] = useState(null);
   const [duration, setDuration] = useState(null);
   const [finalScore, setFinalScore] = useState(null);
@@ -291,6 +383,10 @@ export default function App({ mode = "daily" }) {
       } catch (e) {
         const msg = e?.response?.data?.error || "Invalid guess";
         setMessage(msg);
+        setMsgVisible(true);
+        // Fade text out at 1.6s, remove box at 2s
+        setTimeout(() => setMsgVisible(false), 1600);
+        setTimeout(() => setMessage(""), 2000);
         if (msg.toLowerCase().includes("valid word") || msg.toLowerCase().includes("invalid")) {
           setShakingRow(true);
           setTimeout(() => setShakingRow(false), 500);
@@ -484,27 +580,43 @@ export default function App({ mode = "daily" }) {
 
       <VStack gap={0} w="100%" maxW="520px" px={3}>
         <Box h="36px" display="flex" alignItems="center" justifyContent="center" mt={1} position="relative">
-          {message && (
-            <Box bg="white" color={msgColor} px={4} py={1} borderRadius="10px"
-              fontWeight="700" fontFamily="'Fredoka', sans-serif" fontSize="sm"
-              border="2px solid" borderColor={msgColor}
-              boxShadow="0 2px 8px rgba(0,100,200,0.1)" fontFamily={t.font}>
-              {message}
-            </Box>
-          )}
-          {!message && avatarUrl && (() => {
-            const proxyUrl = `${BASE_URL}/api/avatar?url=${encodeURIComponent(avatarUrl)}`;
+          {sessionId && avatarUrl && (() => {
             const isBlacked = guesses.length === 0 && !blurDraining;
-            const naturalBlur = guesses.length === 1 ? 8 : Math.max(0, 6 - guesses.length);
-            const blurPx = blurDraining ? 0 : naturalBlur;
+            const blurredUrl = `${BASE_URL}/api/avatar/session/${sessionId}?g=${guesses.length}`;
+            const fullUrl = `${BASE_URL}/api/avatar/session/${sessionId}?g=done`;
+            const borderBlurPx = blurDraining ? 0 : (BORDER_BLUR[guesses.length] ?? 1);
             return (
-              <AvatarCanvas
-                proxyUrl={proxyUrl}
-                blurPx={blurPx}
-                isBlacked={isBlacked}
-                blurDraining={blurDraining}
-                accent={t.accent}
-              />
+              <Box position="relative" display="inline-flex" alignItems="center" justifyContent="center">
+                <AvatarCanvas
+                  blurredUrl={blurredUrl}
+                  fullUrl={fullUrl}
+                  isBlacked={isBlacked}
+                  blurDraining={blurDraining}
+                  accent={t.accent}
+                  borderBlurPx={borderBlurPx}
+                />
+                {/* Message overlay — text fades, box snaps away */}
+                {message && (
+                  <Box
+                    position="absolute"
+                    left="50%" top="50%"
+                    bg="white" color={msgColor} px={4} py={1} borderRadius="10px"
+                    fontWeight="700" fontSize="sm" fontFamily={t.font}
+                    border="2px solid" borderColor={msgColor}
+                    boxShadow="0 2px 8px rgba(0,100,200,0.1)"
+                    zIndex={10}
+                    style={{
+                      transform: "translate(-50%, -50%)",
+                      whiteSpace: "nowrap",
+                      pointerEvents: "none",
+                      opacity: msgVisible ? 1 : 0,
+                      transition: "opacity 0.35s ease-out",
+                    }}
+                  >
+                    {message}
+                  </Box>
+                )}
+              </Box>
             );
           })()}
         </Box>

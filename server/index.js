@@ -4,10 +4,14 @@ const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
 const passport = require("passport");
+const sharp = require("sharp");
 const { getRandomWordOfLength, isValidWord, VALID_BY_LENGTH } = require("./words");
 const { EMPLOYEE_MAP } = require("./names");
 const { migrate, pool } = require("./db");
 const { setupAuth, requireAuth } = require("./auth");
+
+// In-memory blur cache: key = "url|level" → Buffer
+const blurCache = new Map();
 
 // Get current date in America/New_York (ET) as YYYY-MM-DD
 function getETDate(d = new Date()) {
@@ -368,6 +372,79 @@ app.get("/api/avatar", (req, res) => {
     res.set("Cache-Control", "public, max-age=86400");
     upstream.pipe(res);
   }).on("error", () => res.status(502).end());
+});
+
+// Server-side blur helpers
+// Image is resized to 72px (2x for retina) before blurring so Sharp sigma ≈ CSS blur px on 36px display
+// Old CSS values by guess: 0→6px, 1→8px, 2→4px, 3→3px, 4→2px, 5→1px
+// We double them since we render at 72px: multiply by 2 and add a bit for server-side feel
+const BLUR_SIGMAS = [0, 3, 5, 8, 10, 18]; // index = level (0=clear, 5=most blurred)
+// level mapping: 0 guesses→5, 1→5, 2→4, 3→3, 4→2, 5→1
+const BLUR_LEVELS_BY_GUESS = [5, 5, 4, 3, 2, 1]; // guess count → blur level
+
+async function fetchUrl(url, redirects = 5) {
+  return new Promise((resolve, reject) => {
+    const lib = url.startsWith("https") ? https : http;
+    lib.get(url, (res) => {
+      if ([301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location && redirects > 0) {
+        return fetchUrl(res.headers.location, redirects - 1).then(resolve).catch(reject);
+      }
+      const chunks = [];
+      res.on("data", chunk => chunks.push(chunk));
+      res.on("end", () => resolve(Buffer.concat(chunks)));
+      res.on("error", reject);
+    }).on("error", reject);
+  });
+}
+
+async function fetchAndBlur(avatarUrl, level) {
+  const cacheKey = `${avatarUrl}|${level}`;
+  if (blurCache.has(cacheKey)) return blurCache.get(cacheKey);
+
+  const imageBuffer = await fetchUrl(avatarUrl);
+
+  const sigma = BLUR_SIGMAS[level] || 0;
+  // Resize to 72px (2× retina) so sigma values are consistent regardless of source image size
+  const base = sharp(imageBuffer).resize(72, 72, { fit: "cover" });
+  const processed = sigma > 0
+    ? await base.blur(sigma).jpeg({ quality: 80 }).toBuffer()
+    : await base.jpeg({ quality: 85 }).toBuffer();
+
+  if (blurCache.size >= 500) blurCache.delete(blurCache.keys().next().value);
+  blurCache.set(cacheKey, processed);
+  return processed;
+}
+
+// GET /api/avatar/session/:sessionId — serves the avatar at the correct blur level
+// for the current game state. No url or level params accepted from client.
+app.get("/api/avatar/session/:sessionId", async (req, res) => {
+  const session = sessions.get(req.params.sessionId);
+  if (!session || !session.word) return res.status(404).end();
+
+  const empInfo = getEmployeeInfo(session.word);
+  const avatarUrl = Array.isArray(empInfo) ? empInfo[0]?.avatarUrl : empInfo?.avatarUrl;
+  if (!avatarUrl) return res.status(404).end();
+
+  // Determine blur level:
+  // - g=done only returns unblurred if game is actually over — prevents mid-game cheating
+  // - otherwise always blur based on guess count
+  const guessCount = session.guesses.length;
+  let level;
+  if (req.query.g === "done" && session.status !== "playing") {
+    level = 0;
+  } else {
+    level = BLUR_LEVELS_BY_GUESS[guessCount] ?? 1;
+  }
+
+  try {
+    const buf = await fetchAndBlur(avatarUrl, level);
+    res.set("Content-Type", "image/jpeg");
+    res.set("Cache-Control", "no-store"); // don't cache session responses — level changes per guess
+    res.send(buf);
+  } catch (e) {
+    console.error("[avatar/session] error:", e.message);
+    res.status(502).end();
+  }
 });
 
 // GET /api/employees — full roster from CSV
