@@ -20,18 +20,33 @@ const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 function AvatarCanvas({ blurredUrl, fullUrl, isBlacked, blurDraining, accent }) {
   const [drainStarted, setDrainStarted] = useState(false);
   const [fullLoaded, setFullLoaded] = useState(false);
-  const [visible, setVisible] = useState(true);
-  const prevBlurredUrl = useRef(null);
+  // Two slots for crossfading between blur levels
+  const [layers, setLayers] = useState([{ url: null, opacity: 1, key: 0 }, { url: null, opacity: 0, key: 1 }]);
+  const activeLayer = useRef(0); // which layer is currently on top
 
-  // Fade in on each new blur level (new guess)
+  // When blurredUrl changes, load new image into the inactive layer and crossfade
   useEffect(() => {
-    if (blurredUrl && blurredUrl !== prevBlurredUrl.current) {
-      prevBlurredUrl.current = blurredUrl;
-      setVisible(false);
-      const t = setTimeout(() => setVisible(true), 20);
-      return () => clearTimeout(t);
-    }
-  }, [blurredUrl]);
+    if (!blurredUrl || blurDraining) return;
+    const next = activeLayer.current === 0 ? 1 : 0;
+    const cur = activeLayer.current;
+    // Put new url into next layer (invisible)
+    setLayers(prev => {
+      const l = [...prev];
+      l[next] = { ...l[next], url: blurredUrl, opacity: 0 };
+      return l;
+    });
+    // After paint, fade next in and cur out
+    const t = setTimeout(() => {
+      activeLayer.current = next;
+      setLayers(prev => {
+        const l = [...prev];
+        l[next] = { ...l[next], opacity: 1 };
+        l[cur] = { ...l[cur], opacity: 0 };
+        return l;
+      });
+    }, 30);
+    return () => clearTimeout(t);
+  }, [blurredUrl, blurDraining]);
 
   // Drain: wait for full image to load, then animate blur away
   useEffect(() => {
@@ -41,50 +56,45 @@ function AvatarCanvas({ blurredUrl, fullUrl, isBlacked, blurDraining, accent }) 
     }
   }, [blurDraining]);
 
+  const imgStyle = {
+    display: "block",
+    objectFit: "cover",
+    borderRadius: "50%",
+    position: "absolute",
+    inset: 0,
+    width: "36px",
+    height: "36px",
+    pointerEvents: "none",
+  };
+
   return (
     <Box
       w="36px" h="36px" borderRadius="full" overflow="hidden"
       border={`2px solid ${accent}`} flexShrink={0} position="relative"
       style={{ background: "black" }}
     >
-      {/* Server-blurred image — always shown as base layer, fades in on each new guess */}
-      {blurredUrl && (
-        <Box
-          as="img"
-          src={blurredUrl}
-          w="36px" h="36px"
+      {/* Two crossfading blur layers */}
+      {layers.map(layer => layer.url && (
+        <img
+          key={layer.key}
+          src={layer.url}
           style={{
-            display: "block",
-            objectFit: "cover",
-            borderRadius: "50%",
-            position: "absolute",
-            inset: 0,
-            opacity: visible ? 1 : 0,
-            transition: "opacity 0.6s ease-out",
-            pointerEvents: "none",
+            ...imgStyle,
+            opacity: layer.opacity,
+            transition: "opacity 0.5s ease-out",
           }}
         />
-      )}
-      {/* Full image — preloaded invisibly, then animates blur to 0 once loaded */}
+      ))}
+      {/* Full image — loads hidden, animates CSS blur from 8px→0 on win */}
       {fullUrl && blurDraining && (
-        <Box
-          as="img"
+        <img
           src={fullUrl}
-          w="36px" h="36px"
-          onLoad={() => {
-            setFullLoaded(true);
-            setTimeout(() => setDrainStarted(true), 30);
-          }}
+          onLoad={() => { setFullLoaded(true); setTimeout(() => setDrainStarted(true), 30); }}
           style={{
-            display: "block",
-            objectFit: "cover",
-            borderRadius: "50%",
-            position: "absolute",
-            inset: 0,
+            ...imgStyle,
             opacity: fullLoaded ? 1 : 0,
             filter: drainStarted ? "blur(0px)" : "blur(8px)",
             transition: drainStarted ? "filter 1s ease-out" : "none",
-            pointerEvents: "none",
           }}
         />
       )}
