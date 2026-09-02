@@ -16,17 +16,28 @@ import { DEV_ACCOUNTS } from "./constants";
 const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 
 // Avatar with server-side blur: the server applies blur so the client never has the full image
-// until the game is over. isBlacked = solid black before first guess.
+// until the game is over. On win, we load the full image and animate CSS blur from ~3px → 0.
 function AvatarCanvas({ blurredUrl, fullUrl, isBlacked, blurDraining, accent }) {
-  // While draining, crossfade from blurred to full image
+  const [drainStarted, setDrainStarted] = useState(false);
+
+  useEffect(() => {
+    if (blurDraining) {
+      // Small delay so browser has time to load the full image before animating
+      const t = setTimeout(() => setDrainStarted(true), 50);
+      return () => clearTimeout(t);
+    } else {
+      setDrainStarted(false);
+    }
+  }, [blurDraining]);
+
   return (
     <Box
       w="36px" h="36px" borderRadius="full" overflow="hidden"
       border={`2px solid ${accent}`} flexShrink={0} position="relative"
       style={{ background: "black" }}
     >
-      {/* Blurred image — always present until fully drained */}
-      {blurredUrl && (
+      {/* Server-blurred image — shown during gameplay */}
+      {blurredUrl && !blurDraining && (
         <Box
           as="img"
           src={blurredUrl}
@@ -37,13 +48,11 @@ function AvatarCanvas({ blurredUrl, fullUrl, isBlacked, blurDraining, accent }) 
             borderRadius: "50%",
             position: "absolute",
             inset: 0,
-            opacity: blurDraining ? 0 : 1,
-            transition: "opacity 1s ease-out",
             pointerEvents: "none",
           }}
         />
       )}
-      {/* Full image — fades in during drain */}
+      {/* Full image with CSS blur animating to 0 on win */}
       {fullUrl && blurDraining && (
         <Box
           as="img"
@@ -55,7 +64,8 @@ function AvatarCanvas({ blurredUrl, fullUrl, isBlacked, blurDraining, accent }) 
             borderRadius: "50%",
             position: "absolute",
             inset: 0,
-            opacity: 1,
+            filter: drainStarted ? "blur(0px)" : "blur(6px)",
+            transition: "filter 1s ease-out",
             pointerEvents: "none",
           }}
         />
