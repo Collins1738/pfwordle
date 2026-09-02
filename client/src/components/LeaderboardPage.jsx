@@ -255,39 +255,42 @@ export default function LeaderboardPage() {
       {selectedRow && <BoardModal row={selectedRow} onClose={() => setSelectedRow(null)} />}
       {selectedProfile && <ProfileModal row={selectedProfile} onClose={() => setSelectedProfile(null)} />}
 
-      <Box minH="100vh" bg={t.bg} display="flex" flexDir="column" alignItems="center" fontFamily={t.font}>
-        {/* Header */}
-        <Box w="100%" maxW="520px" bg={t.surface} borderBottom={`1px solid ${t.border}`} py={3} px={4}>
-          <HStack justifyContent="space-between" alignItems="center">
-            <Box as="button" onClick={() => navigate("/")} color={t.muted} fontSize="sm" cursor="pointer" fontFamily={t.font} _hover={{ color: t.text }}>
-              ← Home
-            </Box>
-            <HStack gap={2}>
-              <Trophy size={18} weight="duotone" color={t.accent} />
-              <Heading size="sm" color={t.text} fontFamily={t.font}>
-                {isWeekly ? "This Week" : "Today"}
-              </Heading>
+      <Box bg={t.bg} display="flex" flexDir="column" alignItems="center" fontFamily={t.font} style={{ height: "100dvh", overflow: "hidden" }}>
+        {/* Sticky header + tabs — full width backdrop, content capped at 520px */}
+        <Box w="100%" bg={t.surface} borderBottom={`1px solid ${t.border}`} display="flex" flexDir="column" alignItems="center" flexShrink={0}>
+          {/* Header */}
+          <Box w="100%" maxW="520px" py={3} px={4}>
+            <HStack justifyContent="space-between" alignItems="center">
+              <Box as="button" onClick={() => navigate("/")} color={t.muted} fontSize="sm" cursor="pointer" fontFamily={t.font} _hover={{ color: t.text }}>
+                ← Home
+              </Box>
+              <HStack gap={2}>
+                <Trophy size={18} weight="duotone" color={t.accent} />
+                <Heading size="sm" color={t.text} fontFamily={t.font}>
+                  {isWeekly ? "This Week" : "Today"}
+                </Heading>
+              </HStack>
+              <Box w="48px" />
             </HStack>
-            <Box w="48px" />
-          </HStack>
-        </Box>
+          </Box>
 
-        {/* Tab toggle */}
-        <Box w="100%" maxW="520px" display="flex" borderBottom={`1px solid ${t.border}`} bg={t.surface}>
-          {["daily", "weekly"].map(tab => (
-            <Box
-              key={tab} flex={1} textAlign="center" py={2} cursor="pointer"
-              bg={type === tab ? "white" : "transparent"}
-              color={type === tab ? t.accent : t.muted}
-              fontWeight={type === tab ? "700" : "500"}
-              fontFamily={t.font} fontSize="sm"
-              borderBottom={type === tab ? `2px solid ${t.accent}` : "2px solid transparent"}
-              transition="all 0.15s"
-              onClick={() => navigate(`/leaderboard/${tab}`)}
-            >
-              {tab === "daily" ? "Today" : "This Week"}
-            </Box>
-          ))}
+          {/* Tab toggle */}
+          <Box w="100%" maxW="520px" display="flex">
+            {["daily", "weekly"].map(tab => (
+              <Box
+                key={tab} flex={1} textAlign="center" py={2} cursor="pointer"
+                bg={type === tab ? "white" : "transparent"}
+                color={type === tab ? t.accent : t.muted}
+                fontWeight={type === tab ? "700" : "500"}
+                fontFamily={t.font} fontSize="sm"
+                borderBottom={type === tab ? `2px solid ${t.accent}` : "2px solid transparent"}
+                transition="all 0.15s"
+                onClick={() => navigate(`/leaderboard/${tab}`)}
+              >
+                {tab === "daily" ? "Today" : "This Week"}
+              </Box>
+            ))}
+          </Box>
         </Box>
 
         {/* Lock toast */}
@@ -310,6 +313,8 @@ export default function LeaderboardPage() {
           </Box>
         </Box>
 
+        {/* Scrollable list area */}
+        <Box w="100%" flex={1} display="flex" flexDir="column" alignItems="center" style={{ overflowY: "scroll", WebkitOverflowScrolling: "touch" }}>
         <VStack w="100%" maxW="520px" px={4} py={4} gap={0} align="stretch">
           {loading ? (
             <Box display="flex" justifyContent="center" py={12}><Spinner color={t.accent} /></Box>
@@ -421,6 +426,7 @@ export default function LeaderboardPage() {
             </Box>
           )}
         </VStack>
+        </Box>
       </Box>
     </>
   );
