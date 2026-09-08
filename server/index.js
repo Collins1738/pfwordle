@@ -30,6 +30,11 @@ function calcScore(guessCount, maxGuesses, durationSeconds) {
   return Math.min(1000, base + timeBonus);
 }
 
+// NFL season holidays — games on these dates are excluded from weekly/all-time calculations
+const NFL_HOLIDAYS = [
+  "2026-09-07", // Labor Day
+];
+
 // Feature flag: "first" = first names only, "full" = full names (first + last)
 const NAME_MODE = "first";
 
@@ -608,6 +613,7 @@ app.get("/api/leaderboard/hall-of-fame", async (req, res) => {
          WHERE g.mode = 'daily'
            AND g.status IN ('won', 'lost')
            AND EXTRACT(DOW FROM g.date) BETWEEN 1 AND 5
+           AND g.date != ALL($2::date[])
          GROUP BY u.id, u.name, u.avatar_url, week_start
        ),
        week_meta AS (
@@ -619,6 +625,7 @@ app.get("/api/leaderboard/hall-of-fame", async (req, res) => {
          WHERE g.mode = 'daily'
            AND g.status IN ('won', 'lost')
            AND EXTRACT(DOW FROM g.date) BETWEEN 1 AND 5
+           AND g.date != ALL($2::date[])
          GROUP BY 1
        ),
        valid_weeks AS (
@@ -637,7 +644,7 @@ app.get("/api/leaderboard/hall-of-fame", async (req, res) => {
        FROM ranked
        WHERE rn = 1
        ORDER BY week_start ASC`,
-      [todayET]
+      [todayET, NFL_HOLIDAYS]
     );
     res.json(rows.map(r => ({
       ...r,
@@ -662,9 +669,11 @@ app.get("/api/leaderboard/alltime", async (req, res) => {
        FROM games g JOIN users u ON u.id = g.user_id
        WHERE g.mode = 'daily' AND g.status IN ('won', 'lost')
          AND EXTRACT(DOW FROM g.date) BETWEEN 1 AND 5
+         AND g.date != ALL($1::date[])
        GROUP BY u.id, u.name, u.avatar_url
        ORDER BY wins DESC, avg_guesses ASC
-       LIMIT 50`
+       LIMIT 50`,
+      [NFL_HOLIDAYS]
     );
     res.json(rows);
   } catch (e) {
@@ -697,10 +706,11 @@ app.get("/api/leaderboard/weekly", async (req, res) => {
        WHERE g.mode = 'daily'
          AND g.date >= $1 AND g.date <= $2
          AND g.status IN ('won', 'lost')
+         AND g.date != ALL($3::date[])
        GROUP BY u.id, u.name, u.avatar_url
        ORDER BY total_score DESC, total_guesses ASC
        LIMIT 50`,
-      [mondayStr, fridayStr]
+      [mondayStr, fridayStr, NFL_HOLIDAYS]
     );
     // Enrich with employee info (look up by first name)
     const enrichedWeekly = rows.map(row => {
@@ -740,6 +750,7 @@ app.get("/api/stats/weekly-history", requireAuth, async (req, res) => {
          WHERE g.mode = 'daily'
            AND g.status IN ('won', 'lost')
            AND EXTRACT(DOW FROM g.date) BETWEEN 1 AND 5
+           AND g.date != ALL($3::date[])
          GROUP BY u.id, u.name, u.avatar_url, week_start
        ),
        week_meta AS (
@@ -750,6 +761,7 @@ app.get("/api/stats/weekly-history", requireAuth, async (req, res) => {
          WHERE g.mode = 'daily'
            AND g.status IN ('won', 'lost')
            AND EXTRACT(DOW FROM g.date) BETWEEN 1 AND 5
+           AND g.date != ALL($3::date[])
          GROUP BY 1
        ),
        valid_weeks AS (
@@ -768,7 +780,7 @@ app.get("/api/stats/weekly-history", requireAuth, async (req, res) => {
        FROM ranked
        WHERE user_id = $1
        ORDER BY week_start ASC`,
-      [req.user.id, todayET]
+      [req.user.id, todayET, NFL_HOLIDAYS]
     );
     res.json(rows.map(r => ({
       ...r,
