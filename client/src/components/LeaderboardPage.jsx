@@ -240,7 +240,7 @@ function LeaderboardList({ data, loading, isWeekly, user, hasPlayedToday, shakin
                 {!isWeekly && row.guesses?.length > 0 && (
                   <VStack gap={0.5} align="center" flexShrink={0}>
                     <Box position="relative">
-                      <Box opacity={hasPlayedToday ? 0.75 : 1} style={hasPlayedToday ? {} : { filter: "blur(1.5px)" }}>
+                      <Box opacity={hasPlayedToday ? 0.75 : 1} style={hasPlayedToday ? {} : { filter: "blur(4px)" }}>
                         <MiniBoard guesses={row.guesses} maxGuesses={maxGuesses} wordLength={wordLength} size={5} />
                       </Box>
                       {!hasPlayedToday && (
