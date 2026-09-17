@@ -187,7 +187,6 @@ app.post("/api/game/start", async (req, res) => {
   let word;
 
   if (mode === "practice") {
-    // Random Permitflow name
     const randomFirst = PERMITFLOW_NAMES[Math.floor(Math.random() * PERMITFLOW_NAMES.length)];
     word = getAnswerWord(randomFirst);
   } else {

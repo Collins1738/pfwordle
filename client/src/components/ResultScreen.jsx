@@ -1,8 +1,120 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Box, Text, Button, VStack, HStack } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
 import { DiceFive, ChartBar, HouseLine, ArrowClockwise } from "@phosphor-icons/react";
 import { t } from "../theme";
+
+function EmployeeCardInner({ emp, accentColor }) {
+  return (
+    <Box
+      w="100%" bg={t.surface}
+      border="1px solid" borderColor={accentColor}
+      borderRadius="xl" overflow="hidden"
+      boxShadow={`0 4px 16px ${accentColor}33`}
+    >
+      <Box h="52px" bg={accentColor} position="relative" display="flex" alignItems="flex-end" justifyContent="center">
+        <Box position="absolute" bottom="-24px" w="48px" h="48px" borderRadius="full" overflow="hidden" border={`3px solid ${t.surface}`}>
+          {emp.avatarUrl ? (
+            <img src={`/api/avatar?url=${encodeURIComponent(emp.avatarUrl)}`} alt={emp.fullName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          ) : (
+            <Box w="100%" h="100%" bg={accentColor} display="flex" alignItems="center" justifyContent="center">
+              <Text fontSize="lg" fontWeight="bold" color={t.white}>{emp.fullName?.[0]}</Text>
+            </Box>
+          )}
+        </Box>
+      </Box>
+      <VStack gap={0.5} pt="32px" pb={2} px={2} textAlign="center">
+        <Text fontSize="xs" fontWeight="700" fontFamily={t.font} color={t.text} noOfLines={1}>{emp.fullName}</Text>
+        {(emp.slackTitle || emp.title) && (
+          <Text fontSize="9px" color={t.muted} noOfLines={1}>{emp.slackTitle || emp.title}</Text>
+        )}
+        {emp.department && (
+          <Box bg={accentColor + "22"} border="1px solid" borderColor={accentColor + "66"} borderRadius="full" px={2} py={0.5}>
+            <Text fontSize="8px" color={accentColor} fontWeight="semibold">{emp.department}</Text>
+          </Box>
+        )}
+      </VStack>
+    </Box>
+  );
+}
+
+// Renders a stacked deck of cards, each animating in one by one.
+// Clicking the front card cycles it to the back and brings the next one to front.
+function EmployeeCardDeck({ employees, accentColor }) {
+  const n = employees.length;
+  const [order, setOrder] = useState(() => employees.map((_, i) => i)); // order[0] = front
+  const [dealtIn, setDealtIn] = useState(false); // true once all deal-in animations are done
+  const [flipping, setFlipping] = useState(false);
+
+  // After the last card finishes dealing in, lock into steady state (initial={false})
+  // so re-renders from order/flipping state changes never re-trigger the deal animation
+  useEffect(() => {
+    const lastDealDelay = 1.0 + (n - 1) * 0.4; // front card deals last
+    const timer = setTimeout(() => setDealtIn(true), (lastDealDelay + 1.0) * 1000);
+    return () => clearTimeout(timer);
+  }, [n]);
+
+  function cycleCard() {
+    if (flipping || n <= 1 || !dealtIn) return;
+    setFlipping(true);
+    setOrder(prev => {
+      const next = [...prev];
+      next.push(next.shift());
+      return next;
+    });
+    setTimeout(() => setFlipping(false), 400);
+  }
+
+  return (
+    <Box position="relative" w="100%" h="160px" style={{ perspective: "800px" }}>
+      {/* Render back-to-front so front (order[0]) is on top */}
+      {[...order].reverse().map((empIdx, reversedIdx) => {
+        const stackPos = n - 1 - reversedIdx; // 0 = front
+        const isFront = stackPos === 0;
+        const offsetY = stackPos * -6;
+        const rotate = isFront ? 0 : stackPos % 2 === 0 ? stackPos * 2 : -(stackPos * 2);
+        const cardScale = 1 - stackPos * 0.04;
+        const dealDelay = 1.0 + (n - 1 - stackPos) * 0.4;
+
+        return (
+          <motion.div
+            key={employees[empIdx].fullName}
+            style={{
+              position: "absolute",
+              top: 0, left: 0, right: 0,
+              zIndex: n - stackPos,
+              originX: 0.5,
+              originY: 1,
+              cursor: isFront && n > 1 ? "pointer" : "default",
+            }}
+            // Once dealtIn, use initial={false} — framer-motion will ONLY react to animate changes,
+            // never re-run the entry animation. This is what keeps back cards stable on tap.
+            initial={dealtIn ? false : { y: -100, scale: 0.75, opacity: 0 }}
+            animate={{
+              y: offsetY,
+              scale: cardScale,
+              opacity: 1,
+              rotate,
+            }}
+            transition={
+              dealtIn
+                ? { type: "spring", stiffness: 220, damping: 26 }
+                : { type: "spring", stiffness: 180, damping: 24, delay: dealDelay }
+            }
+            onClick={isFront ? cycleCard : undefined}
+          >
+
+            <EmployeeCardInner
+              emp={employees[empIdx]}
+              accentColor={accentColor}
+            />
+          </motion.div>
+        );
+      })}
+    </Box>
+  );
+}
 
 // Score out of 1000 based on guess count + time bonus
 function calcScore(guessCount, maxGuesses, won, durationSeconds) {
@@ -87,7 +199,6 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
   const { label: scoreLabelText, color: scoreColor } = getScoreLabel(score);
 
   const employees = Array.isArray(employee) ? employee : employee ? [employee] : [];
-  const emp = employees[0];
 
   return (
     <AnimatePresence>
@@ -139,7 +250,7 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
             )}
           </motion.div>
 
-          {/* Tiles + Employee card side by side */}
+          {/* Tiles + Employee card(s) side by side */}
           <HStack gap={4} align="center" w="100%">
             {/* Guess grid */}
             <VStack gap={1} flexShrink={0}>
@@ -172,64 +283,44 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
               })}
             </VStack>
 
-            {/* Employee card */}
-            {emp && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: won ? 1.2 : 1.0, duration: 0.4 }}
-                style={{ flex: 1, minWidth: 0 }}
-              >
-                <Box
-                  w="100%" bg={t.surface}
-                  border="1px solid" borderColor={t.border}
-                  borderRadius="xl" overflow="hidden"
-                >
-                  <Box
-                    h="80px" bg={accentColor}
-                    display="flex" alignItems="flex-end" justifyContent="center"
-                    position="relative"
+            {/* Employee card(s) — deck UI for multiple, single card for one */}
+            {employees.length > 0 && (
+              <Box style={{ flex: 1, minWidth: 0 }}>
+                {employees.length === 1 ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: won ? 1.2 : 1.0, duration: 0.4 }}
                   >
-                    <Box
-                      position="absolute" bottom="-36px"
-                      w="72px" h="72px" borderRadius="full"
-                      overflow="hidden"
-                      border={`3px solid ${t.surface}`}
-                    >
-                      {emp.avatarUrl ? (
-                        <img
-                          src={`/api/avatar?url=${encodeURIComponent(emp.avatarUrl)}`}
-                          alt={emp.fullName}
-                          style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                        />
-                      ) : (
-                        <Box w="100%" h="100%" bg={accentColor}
-                          display="flex" alignItems="center" justifyContent="center">
-                          <Text fontSize="xl" fontWeight="bold" color={t.white}>
-                            {emp.fullName?.[0]}
-                          </Text>
+                  <Box w="100%" bg={t.surface} border="1px solid" borderColor={t.border} borderRadius="xl" overflow="hidden" boxShadow={`0 4px 16px ${accentColor}33`}>
+                    <Box h="52px" bg={accentColor} position="relative" display="flex" alignItems="flex-end" justifyContent="center">
+                      <Box position="absolute" bottom="-24px" w="48px" h="48px" borderRadius="full" overflow="hidden" border={`3px solid ${t.surface}`}>
+                        {employees[0].avatarUrl ? (
+                          <img src={`/api/avatar?url=${encodeURIComponent(employees[0].avatarUrl)}`} alt={employees[0].fullName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        ) : (
+                          <Box w="100%" h="100%" bg={accentColor} display="flex" alignItems="center" justifyContent="center">
+                            <Text fontSize="lg" fontWeight="bold" color={t.white}>{employees[0].fullName?.[0]}</Text>
+                          </Box>
+                        )}
+                      </Box>
+                    </Box>
+                    <VStack gap={0.5} pt="32px" pb={2} px={2} textAlign="center">
+                      <Text fontSize="xs" fontWeight="700" fontFamily={t.font} color={t.text} noOfLines={1}>{employees[0].fullName}</Text>
+                      {(employees[0].slackTitle || employees[0].title) && (
+                        <Text fontSize="9px" color={t.muted} noOfLines={1}>{employees[0].slackTitle || employees[0].title}</Text>
+                      )}
+                      {employees[0].department && (
+                        <Box bg={accentColor + "22"} border="1px solid" borderColor={accentColor + "66"} borderRadius="full" px={2} py={0.5}>
+                          <Text fontSize="8px" color={accentColor} fontWeight="semibold">{employees[0].department}</Text>
                         </Box>
                       )}
-                    </Box>
+                    </VStack>
                   </Box>
-                  <VStack gap={1} pt="44px" pb={3} px={2} textAlign="center">
-                    <Text fontSize="sm" fontWeight="700" fontFamily={t.font} color={t.text} noOfLines={1}>{emp.fullName}</Text>
-                    {(emp.slackTitle || emp.title) && (
-                      <Text fontSize="10px" color={t.muted} noOfLines={2}>{emp.slackTitle || emp.title}</Text>
-                    )}
-                    {emp.department && (
-                      <Box
-                        bg={accentColor + "22"} border="1px solid" borderColor={accentColor + "66"}
-                        borderRadius="full" px={2} py={0.5} mt={0.5}
-                      >
-                        <Text fontSize="9px" color={accentColor} fontWeight="semibold">
-                          {emp.department}
-                        </Text>
-                      </Box>
-                    )}
-                  </VStack>
-                </Box>
-              </motion.div>
+                  </motion.div>
+                ) : (
+                  <EmployeeCardDeck employees={employees} accentColor={accentColor} />
+                )}
+              </Box>
             )}
           </HStack>
 
