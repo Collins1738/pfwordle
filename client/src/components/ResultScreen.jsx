@@ -1,67 +1,114 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Box, Text, Button, VStack, HStack } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
 import { DiceFive, ChartBar, HouseLine, ArrowClockwise } from "@phosphor-icons/react";
 import { t } from "../theme";
 
-// Renders a stacked deck of cards, each animating in one by one
+function EmployeeCardInner({ emp, accentColor }) {
+  return (
+    <Box
+      w="100%" bg={t.surface}
+      border="1px solid" borderColor={accentColor}
+      borderRadius="xl" overflow="hidden"
+      boxShadow={`0 4px 16px ${accentColor}33`}
+    >
+      <Box h="52px" bg={accentColor} position="relative" display="flex" alignItems="flex-end" justifyContent="center">
+        <Box position="absolute" bottom="-24px" w="48px" h="48px" borderRadius="full" overflow="hidden" border={`3px solid ${t.surface}`}>
+          {emp.avatarUrl ? (
+            <img src={`/api/avatar?url=${encodeURIComponent(emp.avatarUrl)}`} alt={emp.fullName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          ) : (
+            <Box w="100%" h="100%" bg={accentColor} display="flex" alignItems="center" justifyContent="center">
+              <Text fontSize="lg" fontWeight="bold" color={t.white}>{emp.fullName?.[0]}</Text>
+            </Box>
+          )}
+        </Box>
+      </Box>
+      <VStack gap={0.5} pt="32px" pb={2} px={2} textAlign="center">
+        <Text fontSize="xs" fontWeight="700" fontFamily={t.font} color={t.text} noOfLines={1}>{emp.fullName}</Text>
+        {(emp.slackTitle || emp.title) && (
+          <Text fontSize="9px" color={t.muted} noOfLines={1}>{emp.slackTitle || emp.title}</Text>
+        )}
+        {emp.department && (
+          <Box bg={accentColor + "22"} border="1px solid" borderColor={accentColor + "66"} borderRadius="full" px={2} py={0.5}>
+            <Text fontSize="8px" color={accentColor} fontWeight="semibold">{emp.department}</Text>
+          </Box>
+        )}
+      </VStack>
+    </Box>
+  );
+}
+
+// Renders a stacked deck of cards, each animating in one by one.
+// Clicking the front card cycles it to the back and brings the next one to front.
 function EmployeeCardDeck({ employees, accentColor }) {
   const n = employees.length;
+  const [order, setOrder] = useState(() => employees.map((_, i) => i)); // order[0] = front
+  const [dealtIn, setDealtIn] = useState(false); // true once all deal-in animations are done
+  const [flipping, setFlipping] = useState(false);
+
+  // After the last card finishes dealing in, lock into steady state (initial={false})
+  // so re-renders from order/flipping state changes never re-trigger the deal animation
+  useEffect(() => {
+    const lastDealDelay = 1.0 + (n - 1) * 0.4; // front card deals last
+    const timer = setTimeout(() => setDealtIn(true), (lastDealDelay + 1.0) * 1000);
+    return () => clearTimeout(timer);
+  }, [n]);
+
+  function cycleCard() {
+    if (flipping || n <= 1 || !dealtIn) return;
+    setFlipping(true);
+    setOrder(prev => {
+      const next = [...prev];
+      next.push(next.shift());
+      return next;
+    });
+    setTimeout(() => setFlipping(false), 400);
+  }
+
   return (
-    <Box position="relative" w="100%" h="160px">
-      {/* Render back-to-front so front card (index 0) is on top */}
-      {[...employees].reverse().map((emp, reversedIdx) => {
-        const stackPos = n - 1 - reversedIdx; // 0 = front card
+    <Box position="relative" w="100%" h="160px" style={{ perspective: "800px" }}>
+      {/* Render back-to-front so front (order[0]) is on top */}
+      {[...order].reverse().map((empIdx, reversedIdx) => {
+        const stackPos = n - 1 - reversedIdx; // 0 = front
+        const isFront = stackPos === 0;
         const offsetY = stackPos * -6;
-        const rotate = stackPos === 0 ? 0 : stackPos % 2 === 0 ? stackPos * 2 : -(stackPos * 2);
+        const rotate = isFront ? 0 : stackPos % 2 === 0 ? stackPos * 2 : -(stackPos * 2);
         const cardScale = 1 - stackPos * 0.04;
-        // back card (stackPos n-1) animates in first, front card last
-        // +1.0 offset so cards appear after the result screen tiles animate in
-        const delay = 1.0 + (n - 1 - stackPos) * 0.25;
+        const dealDelay = 1.0 + (n - 1 - stackPos) * 0.4;
 
         return (
           <motion.div
-            key={emp.fullName}
+            key={employees[empIdx].fullName}
             style={{
               position: "absolute",
               top: 0, left: 0, right: 0,
               zIndex: n - stackPos,
               originX: 0.5,
               originY: 1,
+              cursor: isFront && n > 1 ? "pointer" : "default",
             }}
-            initial={{ y: -100, scale: 0.75, opacity: 0 }}
-            animate={{ y: offsetY, scale: cardScale, opacity: 1, rotate }}
-            transition={{ type: "spring", stiffness: 300, damping: 28, delay }}
+            // Once dealtIn, use initial={false} — framer-motion will ONLY react to animate changes,
+            // never re-run the entry animation. This is what keeps back cards stable on tap.
+            initial={dealtIn ? false : { y: -100, scale: 0.75, opacity: 0 }}
+            animate={{
+              y: offsetY,
+              scale: cardScale,
+              opacity: 1,
+              rotate,
+            }}
+            transition={
+              dealtIn
+                ? { type: "spring", stiffness: 220, damping: 26 }
+                : { type: "spring", stiffness: 180, damping: 24, delay: dealDelay }
+            }
+            onClick={isFront ? cycleCard : undefined}
           >
-            <Box
-              w="100%" bg={t.surface}
-              border="1px solid" borderColor={stackPos === 0 ? accentColor : t.border}
-              borderRadius="xl" overflow="hidden"
-              boxShadow={stackPos === 0 ? `0 4px 16px ${accentColor}33` : "none"}
-            >
-              <Box h="52px" bg={accentColor} position="relative" display="flex" alignItems="flex-end" justifyContent="center">
-                <Box position="absolute" bottom="-24px" w="48px" h="48px" borderRadius="full" overflow="hidden" border={`3px solid ${t.surface}`}>
-                  {emp.avatarUrl ? (
-                    <img src={`/api/avatar?url=${encodeURIComponent(emp.avatarUrl)}`} alt={emp.fullName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  ) : (
-                    <Box w="100%" h="100%" bg={accentColor} display="flex" alignItems="center" justifyContent="center">
-                      <Text fontSize="lg" fontWeight="bold" color={t.white}>{emp.fullName?.[0]}</Text>
-                    </Box>
-                  )}
-                </Box>
-              </Box>
-              <VStack gap={0.5} pt="32px" pb={2} px={2} textAlign="center">
-                <Text fontSize="xs" fontWeight="700" fontFamily={t.font} color={t.text} noOfLines={1}>{emp.fullName}</Text>
-                {(emp.slackTitle || emp.title) && (
-                  <Text fontSize="9px" color={t.muted} noOfLines={1}>{emp.slackTitle || emp.title}</Text>
-                )}
-                {emp.department && (
-                  <Box bg={accentColor + "22"} border="1px solid" borderColor={accentColor + "66"} borderRadius="full" px={2} py={0.5}>
-                    <Text fontSize="8px" color={accentColor} fontWeight="semibold">{emp.department}</Text>
-                  </Box>
-                )}
-              </VStack>
-            </Box>
+
+            <EmployeeCardInner
+              emp={employees[empIdx]}
+              accentColor={accentColor}
+            />
           </motion.div>
         );
       })}
