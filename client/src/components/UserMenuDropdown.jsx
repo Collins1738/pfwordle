@@ -47,29 +47,28 @@ export default function UserMenuDropdown({ user, isAdmin, onClose, showStats = f
         </Box>
       )}
 
+      <Box
+        as="button" w="100%" textAlign="center"
+        bg={t.overlay} border={`1px solid ${t.border}`} borderRadius={t.radius}
+        py={1.5} px={3} color="#f5a623" fontSize="xs" fontWeight="700"
+        fontFamily={t.font} cursor="pointer"
+        onClick={() => go("/hall-of-fame")}
+        _hover={{ bg: "#f5a62322" }}
+      >
+        🏆 Hall of Fame
+      </Box>
+
       {isAdmin && (
-        <>
-          <Box
-            as="button" w="100%" textAlign="center"
-            bg={t.overlay} border={`1px solid ${t.border}`} borderRadius={t.radius}
-            py={1.5} px={3} color={t.accent} fontSize="xs" fontWeight="700"
-            fontFamily={t.font} cursor="pointer"
-            onClick={() => go("/admin")}
-            _hover={{ bg: t.accent + "22" }}
-          >
-            🛠 Admin
-          </Box>
-          <Box
-            as="button" w="100%" textAlign="center"
-            bg={t.overlay} border={`1px solid ${t.border}`} borderRadius={t.radius}
-            py={1.5} px={3} color="#f5a623" fontSize="xs" fontWeight="700"
-            fontFamily={t.font} cursor="pointer"
-            onClick={() => go("/hall-of-fame")}
-            _hover={{ bg: "#f5a62322" }}
-          >
-            🏆 Hall of Fame
-          </Box>
-        </>
+        <Box
+          as="button" w="100%" textAlign="center"
+          bg={t.overlay} border={`1px solid ${t.border}`} borderRadius={t.radius}
+          py={1.5} px={3} color={t.accent} fontSize="xs" fontWeight="700"
+          fontFamily={t.font} cursor="pointer"
+          onClick={() => go("/admin")}
+          _hover={{ bg: t.accent + "22" }}
+        >
+          🛠 Admin
+        </Box>
       )}
 
       <Box
