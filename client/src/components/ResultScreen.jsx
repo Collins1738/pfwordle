@@ -287,6 +287,11 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
             {employees.length > 0 && (
               <Box style={{ flex: 1, minWidth: 0 }}>
                 {employees.length === 1 ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: won ? 1.2 : 1.0, duration: 0.4 }}
+                  >
                   <Box w="100%" bg={t.surface} border="1px solid" borderColor={t.border} borderRadius="xl" overflow="hidden" boxShadow={`0 4px 16px ${accentColor}33`}>
                     <Box h="52px" bg={accentColor} position="relative" display="flex" alignItems="flex-end" justifyContent="center">
                       <Box position="absolute" bottom="-24px" w="48px" h="48px" borderRadius="full" overflow="hidden" border={`3px solid ${t.surface}`}>
@@ -311,6 +316,7 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
                       )}
                     </VStack>
                   </Box>
+                  </motion.div>
                 ) : (
                   <EmployeeCardDeck employees={employees} accentColor={accentColor} />
                 )}
