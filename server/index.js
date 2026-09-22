@@ -591,7 +591,7 @@ app.get("/api/leaderboard/daily", async (req, res) => {
   }
 });
 
-// GET /api/leaderboard/hall-of-fame — one winner per week, oldest first (admin only)
+// GET /api/leaderboard/hall-of-fame — top 3 per week, oldest first
 app.get("/api/leaderboard/hall-of-fame", async (req, res) => {
   try {
     // For each Mon–Fri week that has completed games, find the top scorer
@@ -639,18 +639,30 @@ app.get("/api/leaderboard/hall-of-fame", async (req, res) => {
          FROM week_scores ws
          JOIN valid_weeks vw ON ws.week_start = vw.week_start
        )
-       SELECT name, avatar_url, week_start, total_score, wins, played, total_guesses
+       SELECT name, avatar_url, week_start, total_score, wins, played, total_guesses, rn
        FROM ranked
-       WHERE rn = 1
-       ORDER BY week_start ASC`,
+       WHERE rn <= 3
+       ORDER BY week_start ASC, rn ASC`,
       [todayET, NFL_HOLIDAYS]
     );
-    res.json(rows.map(r => ({
-      ...r,
-      week_start: r.week_start instanceof Date
+    // Group by week, each week has gold/silver/bronze entries
+    const weekMap = new Map();
+    for (const r of rows) {
+      const week_start = r.week_start instanceof Date
         ? r.week_start.toISOString().slice(0, 10)
-        : String(r.week_start).slice(0, 10),
-    })));
+        : String(r.week_start).slice(0, 10);
+      if (!weekMap.has(week_start)) weekMap.set(week_start, { week_start, entries: [] });
+      weekMap.get(week_start).entries.push({
+        name: r.name,
+        avatar_url: r.avatar_url,
+        total_score: r.total_score,
+        wins: r.wins,
+        played: r.played,
+        total_guesses: r.total_guesses,
+        rank: Number(r.rn), // 1=gold, 2=silver, 3=bronze
+      });
+    }
+    res.json([...weekMap.values()]);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
