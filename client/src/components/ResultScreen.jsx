@@ -459,14 +459,27 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
                 <ArrowClockwise size={16} weight="duotone" style={{ display: "inline", marginRight: 4, verticalAlign: "middle" }} />Play Again
               </Button>
             ) : (
-              <Box
-                w="100%" textAlign="center" py={3}
-                bg={t.bg} border={`1px solid ${t.border}`} borderRadius={t.radiusMd}
-              >
-                <Text fontFamily={t.font} fontWeight="600" color={t.muted} fontSize="sm">
-                  🕛 Come back tomorrow for the next one!
-                </Text>
-              </Box>
+              isDaily ? (
+                <Button
+                  w="100%" bg={accentColor} color={t.white}
+                  size="md" borderRadius={t.radiusMd}
+                  fontFamily={t.font} fontWeight="600"
+                  boxShadow={`0 4px 0 ${accentColor}cc`}
+                  onClick={() => navigate("/leaderboard/daily")}
+                  _hover={{ opacity: 0.9, transform: "translateY(-1px)" }}
+                >
+                  <ChartBar size={16} weight="duotone" style={{ display: "inline", marginRight: 6, verticalAlign: "middle" }} />View Leaderboard
+                </Button>
+              ) : (
+                <Box
+                  w="100%" textAlign="center" py={3}
+                  bg={t.bg} border={`1px solid ${t.border}`} borderRadius={t.radiusMd}
+                >
+                  <Text fontFamily={t.font} fontWeight="600" color={t.muted} fontSize="sm">
+                    🕛 Come back tomorrow for the next one!
+                  </Text>
+                </Box>
+              )
             )}
             {onPractice && (
               <Button
