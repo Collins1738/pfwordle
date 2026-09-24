@@ -494,13 +494,12 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
               </Button>
             )}
             <Button
-              w="100%" bg={isDaily ? accentColor : t.surface} color={isDaily ? t.white : t.muted}
+              w="100%" bg={t.surface} color={t.muted}
               size="md" borderRadius={t.radiusMd}
               fontFamily={t.font} fontWeight="600"
-              border={isDaily ? "none" : `2px solid ${t.border}`}
-              boxShadow={isDaily ? `0 4px 0 ${accentColor}cc` : "none"}
+              border={`2px solid ${t.border}`}
               onClick={() => navigate("/")}
-              _hover={{ opacity: isDaily ? 0.9 : 1, bg: isDaily ? accentColor : t.bg, color: isDaily ? t.white : t.text }}
+              _hover={{ bg: t.bg, color: t.text }}
             >
               <HouseLine size={16} weight="duotone" style={{ display: "inline", marginRight: 6, verticalAlign: "middle" }} />Home
             </Button>
