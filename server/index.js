@@ -162,13 +162,6 @@ app.get("/api/game/resume", async (req, res) => {
 // GET /api/health — Railway healthcheck
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 
-// GET /api/daily — returns today's name (for display/hint, not the answer directly)
-app.get("/api/daily", (req, res) => {
-  const name = getDailyName();
-  if (!name) return res.status(503).json({ error: "No employees loaded yet" });
-  res.json({ wordLength: name.length, date: getETDate() });
-});
-
 // POST /api/game/start — start a new game
 app.post("/api/game/start", async (req, res) => {
   const sessionId = generateSessionId();

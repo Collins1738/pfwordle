@@ -15,10 +15,6 @@ export async function startGame({ word, length, daily, mode } = {}, token) {
   return res.data;
 }
 
-export async function getDaily() {
-  const res = await axios.get(`${BASE_URL}/api/daily`);
-  return res.data;
-}
 
 export async function submitGuess(sessionId, guess, token) {
   const res = await axios.post(
