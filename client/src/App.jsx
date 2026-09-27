@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Box, VStack, Text, Heading, Avatar, HStack } from "@chakra-ui/react";
 import Board from "./components/Board";
 import Keyboard from "./components/Keyboard";
-import EmployeeCard from "./components/EmployeeCard";
+
 
 import ResultScreen from "./components/ResultScreen";
 import UserMenuDropdown from "./components/UserMenuDropdown";
