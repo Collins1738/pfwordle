@@ -5,6 +5,15 @@ import { useState, useRef, useEffect } from "react";
 import { DiceFive, ChartBar, HouseLine, ArrowClockwise } from "@phosphor-icons/react";
 import { t } from "../theme";
 
+function formatTenure(months) {
+  if (!months && months !== 0) return null;
+  const years = Math.floor(months / 12);
+  const rem = months % 12;
+  if (years === 0) return `${months} month${months !== 1 ? "s" : ""}`;
+  if (rem === 0) return `${years} yr${years !== 1 ? "s" : ""}`;
+  return `${years} yr${years !== 1 ? "s" : ""} ${rem} mo`;
+}
+
 function EmployeeCardInner({ emp, accentColor }) {
   return (
     <Box
@@ -33,6 +42,9 @@ function EmployeeCardInner({ emp, accentColor }) {
           <Box bg={accentColor + "22"} border="1px solid" borderColor={accentColor + "66"} borderRadius="full" px={2} py={0.5}>
             <Text fontSize="8px" color={accentColor} fontWeight="semibold">{emp.department}</Text>
           </Box>
+        )}
+        {emp.tenureMonths != null && (
+          <HStack gap={1.5}><Text fontSize="8px">🏢</Text><Text fontSize="8px" color={t.muted}>{formatTenure(emp.tenureMonths)}</Text></HStack>
         )}
       </VStack>
     </Box>
@@ -313,6 +325,9 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
                         <Box bg={accentColor + "22"} border="1px solid" borderColor={accentColor + "66"} borderRadius="full" px={2} py={0.5}>
                           <Text fontSize="8px" color={accentColor} fontWeight="semibold">{employees[0].department}</Text>
                         </Box>
+                      )}
+                      {employees[0].tenureMonths != null && (
+                        <HStack gap={1.5}><Text fontSize="8px">🏢</Text><Text fontSize="8px" color={t.muted}>{formatTenure(employees[0].tenureMonths)}</Text></HStack>
                       )}
                     </VStack>
                   </Box>
