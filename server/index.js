@@ -707,7 +707,8 @@ app.get("/api/leaderboard/hall-of-fame", async (req, res) => {
            COALESCE(SUM(g.score), 0) AS total_score,
            COUNT(*) FILTER (WHERE g.status = 'won') AS wins,
            COUNT(*) AS played,
-           COALESCE(SUM(g.guess_count), 0) AS total_guesses
+           COALESCE(SUM(g.guess_count), 0) AS total_guesses,
+           MIN(g.completed_at) AS earliest_completion
          FROM games g
          JOIN users u ON u.id = g.user_id
          WHERE g.mode = 'daily'
@@ -736,7 +737,7 @@ app.get("/api/leaderboard/hall-of-fame", async (req, res) => {
        ),
        ranked AS (
          SELECT ws.*,
-           ROW_NUMBER() OVER (PARTITION BY ws.week_start ORDER BY ws.total_score DESC, ws.total_guesses ASC) AS rn
+           ROW_NUMBER() OVER (PARTITION BY ws.week_start ORDER BY ws.total_score DESC, ws.total_guesses ASC, ws.earliest_completion ASC) AS rn
          FROM week_scores ws
          JOIN valid_weeks vw ON ws.week_start = vw.week_start
        )
@@ -781,7 +782,8 @@ app.get("/api/leaderboard/medals", async (req, res) => {
            u.email,
            (g.date - ((EXTRACT(DOW FROM g.date)::int + 6) % 7) * INTERVAL '1 day')::date AS week_start,
            COALESCE(SUM(g.score), 0) AS total_score,
-           COALESCE(SUM(g.guess_count), 0) AS total_guesses
+           COALESCE(SUM(g.guess_count), 0) AS total_guesses,
+           MIN(g.completed_at) AS earliest_completion
          FROM games g
          JOIN users u ON u.id = g.user_id
          WHERE g.mode = 'daily'
@@ -808,7 +810,7 @@ app.get("/api/leaderboard/medals", async (req, res) => {
        ),
        ranked AS (
          SELECT ws.user_id, ws.name, ws.email,
-           ROW_NUMBER() OVER (PARTITION BY ws.week_start ORDER BY ws.total_score DESC, ws.total_guesses ASC) AS rn
+           ROW_NUMBER() OVER (PARTITION BY ws.week_start ORDER BY ws.total_score DESC, ws.total_guesses ASC, ws.earliest_completion ASC) AS rn
          FROM week_scores ws
          JOIN valid_weeks vw ON ws.week_start = vw.week_start
        )
@@ -874,6 +876,7 @@ app.get("/api/leaderboard/weekly", async (req, res) => {
               COUNT(*) FILTER (WHERE g.status = 'won') AS wins,
               COUNT(*) AS played,
               COALESCE(SUM(g.guess_count), 0) AS total_guesses,
+              MIN(g.completed_at) AS earliest_completion,
               e.name AS employee_full_name,
               COALESCE(e.slack_title, e.title) AS employee_title,
               e.department AS employee_department,
@@ -886,7 +889,7 @@ app.get("/api/leaderboard/weekly", async (req, res) => {
          AND g.status IN ('won', 'lost')
          AND g.date != ALL($3::date[])
        GROUP BY u.id, u.name, u.avatar_url, e.name, e.slack_title, e.title, e.department, e.tenure_months
-       ORDER BY total_score DESC, total_guesses ASC
+       ORDER BY total_score DESC, total_guesses ASC, earliest_completion ASC
        LIMIT 50`,
       [mondayStr, fridayStr, NFL_HOLIDAYS]
     );
@@ -910,7 +913,8 @@ app.get("/api/stats/weekly-history", requireAuth, async (req, res) => {
            COALESCE(SUM(g.score), 0) AS total_score,
            COUNT(*) FILTER (WHERE g.status = 'won') AS wins,
            COUNT(*) AS played,
-           COALESCE(SUM(g.guess_count), 0) AS total_guesses
+           COALESCE(SUM(g.guess_count), 0) AS total_guesses,
+           MIN(g.completed_at) AS earliest_completion
          FROM games g
          JOIN users u ON u.id = g.user_id
          WHERE g.mode = 'daily'
@@ -937,7 +941,7 @@ app.get("/api/stats/weekly-history", requireAuth, async (req, res) => {
        ),
        ranked AS (
          SELECT ws.*,
-           RANK() OVER (PARTITION BY ws.week_start ORDER BY ws.total_score DESC, ws.total_guesses ASC) AS rank,
+           RANK() OVER (PARTITION BY ws.week_start ORDER BY ws.total_score DESC, ws.total_guesses ASC, ws.earliest_completion ASC) AS rank,
            COUNT(*) OVER (PARTITION BY ws.week_start) AS total_players
          FROM week_scores ws
          JOIN valid_weeks vw ON ws.week_start = vw.week_start
