@@ -44,7 +44,7 @@ function EmployeeCardInner({ emp, accentColor }) {
           </Box>
         )}
         {emp.tenureMonths != null && (
-          <Text fontSize="8px" color={t.muted}>🏢  {formatTenure(emp.tenureMonths)}</Text>
+          <HStack gap={1.5}><Text fontSize="8px">🏢</Text><Text fontSize="8px" color={t.muted}>{formatTenure(emp.tenureMonths)}</Text></HStack>
         )}
       </VStack>
     </Box>
@@ -327,7 +327,7 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
                         </Box>
                       )}
                       {employees[0].tenureMonths != null && (
-                        <Text fontSize="8px" color={t.muted}>🏢  {formatTenure(employees[0].tenureMonths)}</Text>
+                        <HStack gap={1.5}><Text fontSize="8px">🏢</Text><Text fontSize="8px" color={t.muted}>{formatTenure(employees[0].tenureMonths)}</Text></HStack>
                       )}
                     </VStack>
                   </Box>

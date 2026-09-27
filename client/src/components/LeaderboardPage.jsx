@@ -137,7 +137,7 @@ function ProfileModal({ row, onClose }) {
                   </Box>
                 )}
                 {row.employee_tenure_months != null && (
-                  <Text fontSize="xs" color={t.muted} fontFamily={t.font}>🏢  {formatTenure(row.employee_tenure_months)}</Text>
+                  <HStack gap={1.5}><Text fontSize="xs">🏢</Text><Text fontSize="xs" color={t.muted} fontFamily={t.font}>{formatTenure(row.employee_tenure_months)}</Text></HStack>
                 )}
               </VStack>
               {(() => {
