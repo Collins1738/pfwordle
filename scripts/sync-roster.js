@@ -28,6 +28,7 @@ const RIPPLING_NAME_OVERRIDES = {
   "Angie Mora": "Angie Resendiz Mora",
   "Ejaz Farook": "Ahmed Ejaz Hussain Farook",
   "Alex Fabian": "Fabian Fabian",
+  "Megan Park": "Megan Park Jayanti",
 };
 
 async function findMatch(client, name, email) {
