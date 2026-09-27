@@ -9,6 +9,15 @@ import { useAuth } from "../useAuth";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 
+function formatTenure(months) {
+  if (!months && months !== 0) return null;
+  const years = Math.floor(months / 12);
+  const rem = months % 12;
+  if (years === 0) return `${rem} mo`;
+  if (rem === 0) return `${years} yr${years !== 1 ? "s" : ""}`;
+  return `${years} yr${years !== 1 ? "s" : ""} ${rem} mo`;
+}
+
 const STATUS_COLORS = {
   correct: t.correct,
   present: t.present,
@@ -126,6 +135,9 @@ function ProfileModal({ row, onClose }) {
                   <Box bg={t.accent + "22"} px={3} py={0.5} borderRadius="full">
                     <Text fontSize="xs" color={t.accent} fontFamily={t.font} fontWeight="600">{row.employee_department}</Text>
                   </Box>
+                )}
+                {row.employee_tenure_months != null && (
+                  <Text fontSize="xs" color={t.muted} fontFamily={t.font}>⏳ {formatTenure(row.employee_tenure_months)}</Text>
                 )}
               </VStack>
               {(() => {

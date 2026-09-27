@@ -554,7 +554,7 @@ app.get("/api/leaderboard/daily", async (req, res) => {
        LIMIT 50`,
       [today]
     );
-    // Enrich each row with the player's own title/department (look up by their first name)
+    // Enrich each row with the player's own title/department/tenure (look up by their first name)
     const enriched = rows.map(row => {
       const firstName = row.name?.split(" ")[0]?.toUpperCase();
       const empInfo = firstName ? getEmployeeInfo(firstName) : null;
@@ -564,6 +564,7 @@ app.get("/api/leaderboard/daily", async (req, res) => {
         employee_title: emp?.slackTitle || emp?.title || null,
         employee_department: emp?.department || null,
         employee_full_name: emp?.fullName || row.name,
+        employee_tenure_months: emp?.tenureMonths ?? null,
       };
     });
     res.json(enriched);
@@ -714,6 +715,7 @@ app.get("/api/leaderboard/weekly", async (req, res) => {
         employee_title: emp?.slackTitle || emp?.title || null,
         employee_department: emp?.department || null,
         employee_full_name: emp?.fullName || row.name,
+        employee_tenure_months: emp?.tenureMonths ?? null,
       };
     });
     res.json(enrichedWeekly);
