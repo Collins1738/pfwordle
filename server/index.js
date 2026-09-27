@@ -544,30 +544,23 @@ app.get("/api/leaderboard/daily", async (req, res) => {
   try {
     const { rows } = await pool.query(
       `SELECT u.name, u.avatar_url, g.id AS game_id, g.guess_count, g.duration_seconds, g.status, g.score, g.word,
-              COALESCE(json_agg(json_build_object('guess', gu.guess, 'result', gu.result) ORDER BY gu.id) FILTER (WHERE gu.id IS NOT NULL), '[]') AS guesses
+              COALESCE(json_agg(json_build_object('guess', gu.guess, 'result', gu.result) ORDER BY gu.id) FILTER (WHERE gu.id IS NOT NULL), '[]') AS guesses,
+              e.name AS employee_full_name,
+              COALESCE(e.slack_title, e.title) AS employee_title,
+              e.department AS employee_department,
+              e.tenure_months AS employee_tenure_months
        FROM games g
        JOIN users u ON u.id = g.user_id
+       LEFT JOIN employees e ON e.email = u.email
        LEFT JOIN guesses gu ON gu.game_id = g.id
        WHERE g.date = $1 AND g.mode = 'daily' AND g.status IN ('won', 'lost')
-       GROUP BY u.name, u.avatar_url, g.id, g.guess_count, g.duration_seconds, g.status, g.word
+       GROUP BY u.name, u.avatar_url, g.id, g.guess_count, g.duration_seconds, g.status, g.word,
+                e.name, e.slack_title, e.title, e.department, e.tenure_months
        ORDER BY g.score DESC, g.guess_count ASC, g.duration_seconds ASC
        LIMIT 50`,
       [today]
     );
-    // Enrich each row with the player's own title/department/tenure (look up by their first name)
-    const enriched = rows.map(row => {
-      const firstName = row.name?.split(" ")[0]?.toUpperCase();
-      const empInfo = firstName ? getEmployeeInfo(firstName) : null;
-      const emp = Array.isArray(empInfo) ? empInfo.find(e => e.fullName === row.name) || empInfo[0] : empInfo;
-      return {
-        ...row,
-        employee_title: emp?.slackTitle || emp?.title || null,
-        employee_department: emp?.department || null,
-        employee_full_name: emp?.fullName || row.name,
-        employee_tenure_months: emp?.tenureMonths ?? null,
-      };
-    });
-    res.json(enriched);
+    res.json(rows);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -694,31 +687,24 @@ app.get("/api/leaderboard/weekly", async (req, res) => {
               COALESCE(SUM(g.score), 0) AS total_score,
               COUNT(*) FILTER (WHERE g.status = 'won') AS wins,
               COUNT(*) AS played,
-              COALESCE(SUM(g.guess_count), 0) AS total_guesses
-       FROM games g JOIN users u ON u.id = g.user_id
+              COALESCE(SUM(g.guess_count), 0) AS total_guesses,
+              e.name AS employee_full_name,
+              COALESCE(e.slack_title, e.title) AS employee_title,
+              e.department AS employee_department,
+              e.tenure_months AS employee_tenure_months
+       FROM games g
+       JOIN users u ON u.id = g.user_id
+       LEFT JOIN employees e ON e.email = u.email
        WHERE g.mode = 'daily'
          AND g.date >= $1 AND g.date <= $2
          AND g.status IN ('won', 'lost')
          AND g.date != ALL($3::date[])
-       GROUP BY u.id, u.name, u.avatar_url
+       GROUP BY u.id, u.name, u.avatar_url, e.name, e.slack_title, e.title, e.department, e.tenure_months
        ORDER BY total_score DESC, total_guesses ASC
        LIMIT 50`,
       [mondayStr, fridayStr, NFL_HOLIDAYS]
     );
-    // Enrich with employee info (look up by first name)
-    const enrichedWeekly = rows.map(row => {
-      const firstName = row.name?.split(" ")[0]?.toUpperCase();
-      const empInfo = firstName ? getEmployeeInfo(firstName) : null;
-      const emp = Array.isArray(empInfo) ? empInfo.find(e => e.fullName === row.name) || empInfo[0] : empInfo;
-      return {
-        ...row,
-        employee_title: emp?.slackTitle || emp?.title || null,
-        employee_department: emp?.department || null,
-        employee_full_name: emp?.fullName || row.name,
-        employee_tenure_months: emp?.tenureMonths ?? null,
-      };
-    });
-    res.json(enrichedWeekly);
+    res.json(rows);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
