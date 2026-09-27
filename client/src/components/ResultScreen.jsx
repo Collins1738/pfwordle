@@ -9,7 +9,7 @@ function formatTenure(months) {
   if (!months && months !== 0) return null;
   const years = Math.floor(months / 12);
   const rem = months % 12;
-  if (years === 0) return `${rem} mo`;
+  if (years === 0) return `${months} month${months !== 1 ? "s" : ""}`;
   if (rem === 0) return `${years} yr${years !== 1 ? "s" : ""}`;
   return `${years} yr${years !== 1 ? "s" : ""} ${rem} mo`;
 }
