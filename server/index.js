@@ -577,7 +577,7 @@ app.post("/api/admin/sync-roster", requireSyncAuth, async (req, res) => {
     "Sam Lam": "Samuel Lam", "Bill Finn": "William Finn", "Jake Mendys": "Jacob Mendys",
     "Matt Diesner": "Matthew Diesner", "Katie Weinmann": "Katherine Weinmann",
     "Angie Mora": "Angie Resendiz Mora", "Ejaz Farook": "Ahmed Ejaz Hussain Farook",
-    "Alex Fabian": "Fabian Fabian", "Megan Park": "Megan Park Jayanti",
+    "Alex Fabian": "Fabian Fabian", "Megan Park": "Megan Park Jayanti", "Alyssa Tuman": "Alyssa Kamimoto",
   };
   const escapeLike = (s) => s.replace(/[\\%_]/g, c => "\\" + c);
   const rows = readCSV(rosterPath).filter(r => r.name);
