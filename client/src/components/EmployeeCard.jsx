@@ -21,6 +21,15 @@ function Avatar({ letter, color, avatarUrl }) {
   );
 }
 
+function formatTenure(months) {
+  if (!months && months !== 0) return null;
+  const years = Math.floor(months / 12);
+  const rem = months % 12;
+  if (years === 0) return `${rem} month${rem !== 1 ? "s" : ""}`;
+  if (rem === 0) return `${years} year${years !== 1 ? "s" : ""}`;
+  return `${years} year${years !== 1 ? "s" : ""} ${rem} month${rem !== 1 ? "s" : ""}`;
+}
+
 export default function EmployeeCard({ answer, employee, status, onPlayAgain }) {
   if (!answer) return null;
 
@@ -73,6 +82,11 @@ export default function EmployeeCard({ answer, employee, status, onPlayAgain }) 
                 {emp.department && (
                   <Text fontSize="xs" color={accentColor} mt={0.5} fontWeight="semibold">
                     {emp.department}
+                  </Text>
+                )}
+                {emp.tenureMonths != null && (
+                  <Text fontSize="xs" color="#888" mt={0.5}>
+                    ⏳ {formatTenure(emp.tenureMonths)}
                   </Text>
                 )}
                 {!emp.slackTitle && !emp.title && !emp.department && (
