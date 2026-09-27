@@ -68,6 +68,7 @@ function getAnswerWord(firstName) {
 
 // Daily word: deterministic seed from ET date so everyone gets the same name each day
 function getDailyName() {
+  if (!PERMITFLOW_NAMES.length) return null;
   const et = getETDate(); // YYYY-MM-DD in ET
   const [y, m, d] = et.split("-").map(Number);
   const seed = y * 10000 + m * 100 + d;
@@ -161,6 +162,7 @@ app.get("/api/game/resume", async (req, res) => {
 // GET /api/daily — returns today's name (for display/hint, not the answer directly)
 app.get("/api/daily", (req, res) => {
   const name = getDailyName();
+  if (!name) return res.status(503).json({ error: "No employees loaded yet" });
   res.json({ wordLength: name.length, date: getETDate() });
 });
 
@@ -171,6 +173,8 @@ app.post("/api/game/start", async (req, res) => {
   const mode = req.body?.mode === "practice" ? "practice" : "daily";
   console.log(`[game/start] mode=${mode} hasAuth=${!!req.headers.authorization}`);
   let word;
+
+  if (!PERMITFLOW_NAMES.length) return res.status(503).json({ error: "No employees loaded yet" });
 
   if (mode === "practice") {
     const randomFirst = PERMITFLOW_NAMES[Math.floor(Math.random() * PERMITFLOW_NAMES.length)];
