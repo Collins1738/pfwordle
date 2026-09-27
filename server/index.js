@@ -497,6 +497,80 @@ function evaluateGuess(guess, target) {
 
 // GET /api/admin/games — all games (daily + practice), admin only
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "tobechikeluba@gmail.com,collins.chikeluba@permitflow.com").split(",");
+const SYNC_SECRET = process.env.SYNC_SECRET || null;
+
+// Middleware: allow either admin JWT or SYNC_SECRET bearer token
+function requireSyncAuth(req, res, next) {
+  const header = req.headers.authorization || "";
+  if (SYNC_SECRET && header === `Bearer ${SYNC_SECRET}`) return next();
+  // Fall back to JWT admin check
+  try {
+    const jwt = require("jsonwebtoken");
+    const decoded = jwt.verify(header.slice(7), process.env.JWT_SECRET || "dev-secret-change-me");
+    if (ADMIN_EMAILS.includes(decoded.email)) { req.user = decoded; return next(); }
+  } catch {}
+  return res.status(401).json({ error: "Unauthorized" });
+}
+
+// POST /api/admin/sync-rippling — upload Rippling CSV and sync employees table
+const multer = require("multer");
+const { readCSV } = require("../scripts/lib/csv");
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024 } });
+
+app.post("/api/admin/sync-rippling", requireSyncAuth, upload.single("roster"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "No file uploaded. Send CSV as multipart field 'roster'" });
+  const csvText = req.file.buffer.toString("utf8");
+  // Write to temp file so readCSV can parse it
+  const os = require("os");
+  const tmpPath = require("path").join(os.tmpdir(), `rippling-${Date.now()}.csv`);
+  require("fs").writeFileSync(tmpPath, csvText);
+  let rows;
+  try { rows = readCSV(tmpPath).filter(r => r["Employee"]); }
+  catch (e) { return res.status(400).json({ error: `CSV parse error: ${e.message}` }); }
+  finally { try { require("fs").unlinkSync(tmpPath); } catch {} }
+
+  if (rows.length === 0) return res.status(400).json({ error: "No employees parsed — aborting" });
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const names = [];
+    for (const row of rows) {
+      const ripplingName = row["Employee"];
+      const tenure = parseInt(row["Tenure (Months)"], 10);
+      names.push(ripplingName);
+      await client.query(
+        `INSERT INTO employees (name, rippling_name, title, tenure_months, active)
+         VALUES ($1, $1, $2, $3, true)
+         ON CONFLICT (rippling_name) DO UPDATE SET
+           title = EXCLUDED.title, tenure_months = EXCLUDED.tenure_months,
+           active = true, updated_at = NOW()`,
+        [ripplingName, row["Title"] || null, Number.isNaN(tenure) ? null : tenure]
+      );
+    }
+    const deactivated = await client.query(
+      `UPDATE employees SET active = false, updated_at = NOW()
+       WHERE active = true AND NOT (rippling_name = ANY($1::text[]))
+       RETURNING rippling_name`,
+      [names]
+    );
+    await client.query("COMMIT");
+
+    // Reload the in-memory employee map
+    await loadEmployeeMap(pool);
+    refreshPermitflowNames();
+
+    const summary = { upserted: rows.length, deactivated: deactivated.rowCount, deactivatedNames: deactivated.rows.map(r => r.rippling_name) };
+    console.log(`[sync-rippling] ${summary.upserted} upserted, ${summary.deactivated} deactivated`);
+    res.json({ ok: true, ...summary });
+  } catch (e) {
+    await client.query("ROLLBACK");
+    console.error("[sync-rippling] error:", e.message);
+    res.status(500).json({ error: e.message });
+  } finally {
+    client.release();
+  }
+});
 app.get("/api/admin/games", requireAuth, async (req, res) => {
   if (!ADMIN_EMAILS.includes(req.user.email)) {
     return res.status(403).json({ error: "Forbidden" });
