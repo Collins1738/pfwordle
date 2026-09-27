@@ -6,7 +6,7 @@ const path = require("path");
 const passport = require("passport");
 const sharp = require("sharp");
 const { getRandomWordOfLength, isValidWord, VALID_BY_LENGTH } = require("./words");
-const { EMPLOYEE_MAP } = require("./names");
+const { EMPLOYEE_MAP, loadEmployeeMap } = require("./names");
 const { migrate, pool } = require("./db");
 const { setupAuth, requireAuth } = require("./auth");
 
@@ -38,23 +38,25 @@ const NFL_HOLIDAYS = [
 // Feature flag: "first" = first names only, "full" = full names (first + last)
 const NAME_MODE = "first";
 
-// All Permitflow names — no dictionary filter needed, we inject them into valid words
-const PERMITFLOW_NAMES = Object.keys(EMPLOYEE_MAP).filter(firstName => {
-  const word = NAME_MODE === "full"
-    ? EMPLOYEE_MAP[firstName].fullName.replace(/\s+/g, "").replace(/[^a-zA-Z]/g, "").toUpperCase()
-    : firstName;
-  return word.length >= 3 && word.length <= 7;
-});
+// All Permitflow names — no dictionary filter needed, we inject them into valid words.
+// Populated in place by refreshPermitflowNames() once EMPLOYEE_MAP is loaded from the DB.
+const PERMITFLOW_NAMES = [];
 
+function refreshPermitflowNames() {
+  const names = Object.keys(EMPLOYEE_MAP).filter(firstName => {
+    const word = getAnswerWord(firstName);
+    return word.length >= 3 && word.length <= 7;
+  });
+  PERMITFLOW_NAMES.splice(0, PERMITFLOW_NAMES.length, ...names);
 
+  // Inject all names into valid word sets so players can type any name as a guess
+  for (const firstName of PERMITFLOW_NAMES) {
+    const word = getAnswerWord(firstName);
+    if (VALID_BY_LENGTH[word.length]) VALID_BY_LENGTH[word.length].add(word);
+  }
 
-// Inject all names into valid word sets so players can type any name as a guess
-for (const firstName of PERMITFLOW_NAMES) {
-  const word = getAnswerWord(firstName);
-  if (VALID_BY_LENGTH[word.length]) VALID_BY_LENGTH[word.length].add(word);
+  console.log(`Loaded ${PERMITFLOW_NAMES.length} Permitflow names (all injected as valid guesses)`);
 }
-
-console.log(`Loaded ${PERMITFLOW_NAMES.length} Permitflow names (all injected as valid guesses)`);
 
 function getAnswerWord(firstName) {
   if (NAME_MODE === "full") {
@@ -72,20 +74,6 @@ function getDailyName() {
   return PERMITFLOW_NAMES[seed % PERMITFLOW_NAMES.length];
 }
 
-// Parse a CSV line respecting quoted fields
-function parseCSVLine(line) {
-  const result = [];
-  let cur = "", inQuote = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') { inQuote = !inQuote; continue; }
-    if (ch === "," && !inQuote) { result.push(cur); cur = ""; continue; }
-    cur += ch;
-  }
-  result.push(cur);
-  return result;
-}
-
 function getEmployeeInfo(firstName) {
   return EMPLOYEE_MAP[firstName.toUpperCase()] || null;
 }
@@ -96,8 +84,6 @@ app.use(express.json());
 app.use(passport.initialize());
 setupAuth(app);
 
-// Run DB migrations on startup
-migrate().catch(console.error);
 
 // In-memory game sessions: sessionId -> { word, guesses, status, wordLength }
 const sessions = new Map();
@@ -451,28 +437,23 @@ app.get("/api/avatar/session/:sessionId", async (req, res) => {
   }
 });
 
-// GET /api/employees — full roster from CSV
-app.get("/api/employees", (req, res) => {
+// GET /api/employees — full roster from the employees table
+app.get("/api/employees", async (req, res) => {
   try {
-    const raw = fs.readFileSync(path.join(__dirname, "roster.csv"), "utf8");
-    const lines = raw.trim().replace(/\r/g, "").split("\n");
-    const headers = parseCSVLine(lines[0]);
-    const idx = (h) => headers.indexOf(h);
+    const { rows } = await pool.query("SELECT * FROM employees WHERE active = true ORDER BY name");
     const employees = [];
     const seen = new Set();
-    for (let i = 1; i < lines.length; i++) {
-      const parts = parseCSVLine(lines[i]);
-      const name = parts[idx("name")]?.trim();
-      const email = parts[idx("email")]?.trim();
-      if (!name || seen.has(email)) continue;
-      seen.add(email);
+    for (const row of rows) {
+      const name = row.name || row.rippling_name;
+      if (!name || (row.email && seen.has(row.email))) continue;
+      if (row.email) seen.add(row.email);
       employees.push({
         name,
-        email,
-        title: parts[idx("title")]?.trim() || "",
-        department: parts[idx("department")]?.trim() || "",
-        slackTitle: parts[idx("slack_title")]?.trim() || "",
-        avatarUrl: parts[idx("avatar_url")]?.trim() || "",
+        email: row.email || "",
+        title: row.title || "",
+        department: row.department || "",
+        slackTitle: row.slack_title || "",
+        avatarUrl: row.avatar_url || "",
       });
     }
     employees.sort((a, b) => a.name.localeCompare(b.name));
@@ -898,4 +879,15 @@ if (fs.existsSync(clientBuild)) {
 }
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`Wordle server running on port ${PORT}`));
+
+// Run DB migrations and load the employee roster before accepting requests
+(async () => {
+  try {
+    await migrate();
+  } catch (e) {
+    console.error(e);
+  }
+  await loadEmployeeMap(pool);
+  refreshPermitflowNames();
+  app.listen(PORT, () => console.log(`Wordle server running on port ${PORT}`));
+})();

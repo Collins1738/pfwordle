@@ -1,48 +1,38 @@
 /**
- * names.js — builds EMPLOYEE_MAP dynamically from roster.csv
- * Single source of truth: roster.csv controls both the word pool and employee enrichment data.
+ * names.js — builds EMPLOYEE_MAP from the `employees` table.
+ * Populated by `await loadEmployeeMap(pool)` at startup; the object is mutated
+ * in place so existing references to EMPLOYEE_MAP stay valid.
  */
-
-const fs = require("fs");
-const path = require("path");
-
-function parseCSVLine(line) {
-  const result = [];
-  let cur = "", inQuote = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (ch === '"') { inQuote = !inQuote; continue; }
-    if (ch === "," && !inQuote) { result.push(cur); cur = ""; continue; }
-    cur += ch;
-  }
-  result.push(cur);
-  return result;
-}
 
 const EMPLOYEE_MAP = {};
 
-try {
-  const raw = fs.readFileSync(path.join(__dirname, "roster.csv"), "utf8").replace(/\r/g, "");
-  const lines = raw.trim().split("\n");
-  const headers = parseCSVLine(lines[0]);
-  const hi = (h) => headers.indexOf(h);
+async function loadEmployeeMap(pool) {
+  let rows = [];
+  try {
+    ({ rows } = await pool.query("SELECT * FROM employees WHERE active = true ORDER BY name"));
+  } catch (e) {
+    console.warn("names.js: could not load employees from DB:", e.message);
+  }
 
-  for (let i = 1; i < lines.length; i++) {
-    const parts = parseCSVLine(lines[i]);
-    const name = parts[hi("name")]?.trim();
+  for (const key of Object.keys(EMPLOYEE_MAP)) delete EMPLOYEE_MAP[key];
+
+  for (const row of rows) {
+    const name = (row.name || row.rippling_name || "").trim();
     if (!name) continue;
     const firstName = name.split(" ")[0].toUpperCase();
     if (!EMPLOYEE_MAP[firstName]) EMPLOYEE_MAP[firstName] = [];
     EMPLOYEE_MAP[firstName].push({
       fullName: name,
-      title: parts[hi("title")]?.trim() || "",
-      department: parts[hi("department")]?.trim() || "",
-      slackTitle: parts[hi("slack_title")]?.trim() || "",
-      avatarUrl: parts[hi("avatar_url")]?.trim() || "",
+      title: row.title || "",
+      department: row.department || "",
+      slackTitle: row.slack_title || "",
+      avatarUrl: row.avatar_url || "",
+      email: row.email || "",
+      tenureMonths: row.tenure_months ?? null,
     });
   }
-} catch (e) {
-  console.warn("names.js: could not load roster.csv:", e.message);
+
+  return EMPLOYEE_MAP;
 }
 
-module.exports = { EMPLOYEE_MAP };
+module.exports = { EMPLOYEE_MAP, loadEmployeeMap };
