@@ -107,8 +107,9 @@ function BoardModal({ row, onClose }) {
   );
 }
 
-function ProfileModal({ row, onClose }) {
+function ProfileModal({ row, onClose, medals }) {
   if (!row) return null;
+  const userMedals = medals?.[row.email] || medals?.[row.name] || null;
   return (
     <AnimatePresence>
       <motion.div
@@ -138,6 +139,11 @@ function ProfileModal({ row, onClose }) {
                 )}
                 {row.employee_tenure_months != null && (
                   <HStack gap={1.5}><Text fontSize="xs">🏢</Text><Text fontSize="xs" color={t.muted} fontFamily={t.font}>{formatTenure(row.employee_tenure_months)}</Text></HStack>
+                )}
+                {userMedals && (userMedals.gold > 0 || userMedals.silver > 0 || userMedals.bronze > 0) && (
+                  <Text fontSize="lg" pt={1} lineHeight="1.4">
+                    {"🥇".repeat(userMedals.gold)}{"🥈".repeat(userMedals.silver)}{"🥉".repeat(userMedals.bronze)}
+                  </Text>
                 )}
               </VStack>
               {(() => {
@@ -293,6 +299,7 @@ export default function LeaderboardPage() {
 
   const [selectedRow, setSelectedRow] = useState(null);
   const [selectedProfile, setSelectedProfile] = useState(null);
+  const [medalsMap, setMedalsMap] = useState({});
   const [shakingLock, setShakingLock] = useState(null);
   const [showLockMsg, setShowLockMsg] = useState(false);
 
@@ -325,6 +332,15 @@ export default function LeaderboardPage() {
     axios.get(`${BASE_URL}/api/leaderboard/weekly`)
       .then(r => setWeeklyData(r.data)).catch(() => setWeeklyData([]))
       .finally(() => setLoadingWeekly(false));
+    axios.get(`${BASE_URL}/api/leaderboard/medals`)
+      .then(r => {
+        const map = {};
+        for (const entry of r.data) {
+          if (entry.email) map[entry.email] = entry;
+          map[entry.name] = entry; // fallback by name
+        }
+        setMedalsMap(map);
+      }).catch(() => {});
   }, []);
 
   function switchToTab(idx) {
@@ -450,7 +466,7 @@ export default function LeaderboardPage() {
       `}</style>
 
       {selectedRow && <BoardModal row={selectedRow} onClose={() => setSelectedRow(null)} />}
-      {selectedProfile && <ProfileModal row={selectedProfile} onClose={() => setSelectedProfile(null)} />}
+      {selectedProfile && <ProfileModal row={selectedProfile} onClose={() => setSelectedProfile(null)} medals={medalsMap} />}
 
       <Box bg={t.bg} display="flex" flexDir="column" alignItems="center" fontFamily={t.font} style={{ height: "100dvh", overflow: "hidden" }}>
 

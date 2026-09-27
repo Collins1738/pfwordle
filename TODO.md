@@ -1,5 +1,16 @@
 # Permitdle — TODO
 
+## Known Issues / Tech Debt
+
+### 🖼️ Avatar URL expiration (Slack CDN)
+- Slack CDN avatar URLs (`slack-edge.com`) expire and return 403 after some time
+- Currently storing raw Slack URLs in `employees.avatar_url` — these break silently
+- **Fix:** Cache avatars to Cloudflare R2 (or S3) on first sync, store stable R2 URL instead
+  - Write a migration script: download each avatar, upload to R2, update `employees.avatar_url`
+  - On future syncs, only re-download if the Slack URL has changed
+  - Gravatar URLs (e.g. Kenta) are stable and don't need caching
+- Short-term workaround: re-export roster CSV with fresh URLs and re-run sync-roster
+
 ## Next session
 - [ ] Push to GitHub repo + deploy (Railway or Vercel)
 
