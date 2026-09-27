@@ -551,7 +551,7 @@ app.get("/api/leaderboard/daily", async (req, res) => {
               e.tenure_months AS employee_tenure_months
        FROM games g
        JOIN users u ON u.id = g.user_id
-       LEFT JOIN employees e ON e.email = u.email
+       LEFT JOIN employees e ON e.email = u.email OR (e.email IS NULL AND e.name = u.name)
        LEFT JOIN guesses gu ON gu.game_id = g.id
        WHERE g.date = $1 AND g.mode = 'daily' AND g.status IN ('won', 'lost')
        GROUP BY u.name, u.avatar_url, g.id, g.guess_count, g.duration_seconds, g.status, g.word,
@@ -694,7 +694,7 @@ app.get("/api/leaderboard/weekly", async (req, res) => {
               e.tenure_months AS employee_tenure_months
        FROM games g
        JOIN users u ON u.id = g.user_id
-       LEFT JOIN employees e ON e.email = u.email
+       LEFT JOIN employees e ON e.email = u.email OR (e.email IS NULL AND e.name = u.name)
        WHERE g.mode = 'daily'
          AND g.date >= $1 AND g.date <= $2
          AND g.status IN ('won', 'lost')
