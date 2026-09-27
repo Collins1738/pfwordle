@@ -769,6 +769,66 @@ app.get("/api/leaderboard/hall-of-fame", async (req, res) => {
   }
 });
 
+// GET /api/leaderboard/medals — gold/silver/bronze counts per user across all completed weeks
+app.get("/api/leaderboard/medals", async (req, res) => {
+  try {
+    const todayET = getETDate();
+    const { rows } = await pool.query(
+      `WITH week_scores AS (
+         SELECT
+           u.id AS user_id,
+           u.name,
+           u.email,
+           (g.date - ((EXTRACT(DOW FROM g.date)::int + 6) % 7) * INTERVAL '1 day')::date AS week_start,
+           COALESCE(SUM(g.score), 0) AS total_score,
+           COALESCE(SUM(g.guess_count), 0) AS total_guesses
+         FROM games g
+         JOIN users u ON u.id = g.user_id
+         WHERE g.mode = 'daily'
+           AND g.status IN ('won', 'lost')
+           AND EXTRACT(DOW FROM g.date) BETWEEN 1 AND 5
+           AND g.date != ALL($2::date[])
+         GROUP BY u.id, u.name, u.email, week_start
+       ),
+       week_meta AS (
+         SELECT
+           (g.date - ((EXTRACT(DOW FROM g.date)::int + 6) % 7) * INTERVAL '1 day')::date AS week_start,
+           COUNT(DISTINCT g.date) AS days_in_week
+         FROM games g
+         WHERE g.mode = 'daily'
+           AND g.status IN ('won', 'lost')
+           AND EXTRACT(DOW FROM g.date) BETWEEN 1 AND 5
+           AND g.date != ALL($2::date[])
+         GROUP BY 1
+       ),
+       valid_weeks AS (
+         SELECT week_start FROM week_meta
+         WHERE days_in_week >= 2
+           AND (week_start + INTERVAL '4 days')::date < $1::date
+       ),
+       ranked AS (
+         SELECT ws.user_id, ws.name, ws.email,
+           ROW_NUMBER() OVER (PARTITION BY ws.week_start ORDER BY ws.total_score DESC, ws.total_guesses ASC) AS rn
+         FROM week_scores ws
+         JOIN valid_weeks vw ON ws.week_start = vw.week_start
+       )
+       SELECT
+         name, email,
+         COUNT(*) FILTER (WHERE rn = 1) AS gold,
+         COUNT(*) FILTER (WHERE rn = 2) AS silver,
+         COUNT(*) FILTER (WHERE rn = 3) AS bronze
+       FROM ranked
+       GROUP BY user_id, name, email
+       HAVING COUNT(*) FILTER (WHERE rn <= 3) > 0
+       ORDER BY gold DESC, silver DESC, bronze DESC`,
+      [todayET, NFL_HOLIDAYS]
+    );
+    res.json(rows);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // GET /api/leaderboard/alltime — all-time leaderboard
 app.get("/api/leaderboard/alltime", async (req, res) => {
   try {
