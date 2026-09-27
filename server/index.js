@@ -159,6 +159,9 @@ app.get("/api/game/resume", async (req, res) => {
   });
 });
 
+// GET /api/health — Railway healthcheck
+app.get("/api/health", (req, res) => res.json({ ok: true }));
+
 // GET /api/daily — returns today's name (for display/hint, not the answer directly)
 app.get("/api/daily", (req, res) => {
   const name = getDailyName();
