@@ -47,6 +47,24 @@ async function migrate() {
       result JSONB NOT NULL,
       guessed_at TIMESTAMPTZ DEFAULT NOW()
     );
+
+    -- Employee roster: Rippling owns title/tenure/active, roster.csv owns the rest
+    CREATE TABLE IF NOT EXISTS employees (
+      id SERIAL PRIMARY KEY,
+      name TEXT,                          -- preferred display name (used by the game)
+      rippling_name TEXT UNIQUE NOT NULL, -- match key for weekly Rippling syncs
+      email TEXT UNIQUE,
+      title TEXT,
+      tenure_months INTEGER,
+      department TEXT,
+      manager TEXT,
+      slack_display_name TEXT,
+      slack_title TEXT,
+      avatar_url TEXT,
+      active BOOLEAN NOT NULL DEFAULT true,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
   `);
   console.log("DB migrated ✓");
 }
