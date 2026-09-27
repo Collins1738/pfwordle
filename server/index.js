@@ -567,6 +567,56 @@ app.post("/api/admin/sync-rippling", requireSyncAuth, upload.single("roster"), a
     client.release();
   }
 });
+
+// POST /api/admin/sync-roster — run roster.csv enrichment sync (no upload, uses bundled roster.csv)
+app.post("/api/admin/sync-roster", requireSyncAuth, async (req, res) => {
+  const rosterPath = path.join(__dirname, "roster.csv");
+  if (!fs.existsSync(rosterPath)) return res.status(500).json({ error: "roster.csv not found on server" });
+
+  const RIPPLING_NAME_OVERRIDES = {
+    "Sam Lam": "Samuel Lam", "Bill Finn": "William Finn", "Jake Mendys": "Jacob Mendys",
+    "Matt Diesner": "Matthew Diesner", "Katie Weinmann": "Katherine Weinmann",
+    "Angie Mora": "Angie Resendiz Mora", "Ejaz Farook": "Ahmed Ejaz Hussain Farook",
+    "Alex Fabian": "Fabian Fabian", "Megan Park": "Megan Park Jayanti",
+  };
+  const escapeLike = (s) => s.replace(/[\\%_]/g, c => "\\" + c);
+  const rows = readCSV(rosterPath).filter(r => r.name);
+  const counts = { email: 0, name: 0, inserted: 0, skipped: 0 };
+  const seenEmails = new Set();
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    for (const row of rows) {
+      const email = row.email || null;
+      if (email && seenEmails.has(email)) { counts.skipped++; continue; }
+      if (email) seenEmails.add(email);
+      const fields = [row.name, email, row.department || null, row.manager || null, row.slack_display_name || null, row.slack_title || null, row.avatar_url || null];
+      let match = null;
+      if (email) { const r = await client.query("SELECT id FROM employees WHERE email = $1", [email]); if (r.rows[0]) match = { id: r.rows[0].id, by: "email" }; }
+      if (!match) { const r = await client.query("SELECT id FROM employees WHERE rippling_name = $1", [row.name]); if (r.rows[0]) match = { id: r.rows[0].id, by: "name" }; }
+      if (!match) { const r = await client.query("SELECT id FROM employees WHERE name ILIKE $1 ORDER BY active DESC, id LIMIT 1", [escapeLike(row.name)]); if (r.rows[0]) match = { id: r.rows[0].id, by: "name" }; }
+      if (match) {
+        const rn = RIPPLING_NAME_OVERRIDES[row.name] || null;
+        await client.query(`UPDATE employees SET name=$1,email=$2,department=$3,manager=$4,slack_display_name=$5,slack_title=$6,avatar_url=$7,${rn ? "rippling_name=$9," : ""}updated_at=NOW() WHERE id=$8`, rn ? [...fields, match.id, rn] : [...fields, match.id]);
+        counts[match.by]++;
+      } else {
+        const rn = RIPPLING_NAME_OVERRIDES[row.name] || row.name;
+        await client.query(`INSERT INTO employees(name,email,department,manager,slack_display_name,slack_title,avatar_url,rippling_name)VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(rippling_name) DO UPDATE SET name=EXCLUDED.name,email=EXCLUDED.email,department=EXCLUDED.department,manager=EXCLUDED.manager,slack_display_name=EXCLUDED.slack_display_name,slack_title=EXCLUDED.slack_title,avatar_url=EXCLUDED.avatar_url,updated_at=NOW()`, [...fields, rn]);
+        counts.inserted++;
+      }
+    }
+    await client.query("COMMIT");
+    await loadEmployeeMap(pool);
+    refreshPermitflowNames();
+    console.log(`[sync-roster] ${counts.email} by email, ${counts.name} by name, ${counts.inserted} new`);
+    res.json({ ok: true, ...counts });
+  } catch (e) {
+    await client.query("ROLLBACK");
+    console.error("[sync-roster] error:", e.message);
+    res.status(500).json({ error: e.message });
+  } finally { client.release(); }
+});
+
 app.get("/api/admin/games", requireAuth, async (req, res) => {
   if (!ADMIN_EMAILS.includes(req.user.email)) {
     return res.status(403).json({ error: "Forbidden" });
