@@ -9,7 +9,9 @@ const EMPLOYEE_MAP = {};
 async function loadEmployeeMap(pool) {
   let rows = [];
   try {
-    ({ rows } = await pool.query("SELECT * FROM employees WHERE active = true ORDER BY name"));
+    ({ rows } = await pool.query(
+      "SELECT * FROM employees WHERE active = true AND avatar_url IS NOT NULL AND avatar_url != '' ORDER BY name"
+    ));
   } catch (e) {
     console.warn("names.js: could not load employees from DB:", e.message);
   }
