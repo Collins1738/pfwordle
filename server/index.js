@@ -582,6 +582,7 @@ app.post("/api/admin/sync-roster", requireSyncAuth, async (req, res) => {
   const escapeLike = (s) => s.replace(/[\\%_]/g, c => "\\" + c);
   const rows = readCSV(rosterPath).filter(r => r.name);
   const counts = { email: 0, name: 0, inserted: 0, skipped: 0 };
+  const insertedNames = [];
   const seenEmails = new Set();
   const client = await pool.connect();
   try {
@@ -603,13 +604,14 @@ app.post("/api/admin/sync-roster", requireSyncAuth, async (req, res) => {
         const rn = RIPPLING_NAME_OVERRIDES[row.name] || row.name;
         await client.query(`INSERT INTO employees(name,email,department,manager,slack_display_name,slack_title,avatar_url,rippling_name)VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(rippling_name) DO UPDATE SET name=EXCLUDED.name,email=EXCLUDED.email,department=EXCLUDED.department,manager=EXCLUDED.manager,slack_display_name=EXCLUDED.slack_display_name,slack_title=EXCLUDED.slack_title,avatar_url=EXCLUDED.avatar_url,updated_at=NOW()`, [...fields, rn]);
         counts.inserted++;
+        insertedNames.push(row.name);
       }
     }
     await client.query("COMMIT");
     await loadEmployeeMap(pool);
     refreshPermitflowNames();
     console.log(`[sync-roster] ${counts.email} by email, ${counts.name} by name, ${counts.inserted} new`);
-    res.json({ ok: true, ...counts });
+    res.json({ ok: true, ...counts, insertedNames });
   } catch (e) {
     await client.query("ROLLBACK");
     console.error("[sync-roster] error:", e.message);
