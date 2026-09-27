@@ -141,11 +141,9 @@ function ProfileModal({ row, onClose, medals }) {
                   <HStack gap={1.5}><Text fontSize="xs">🏢</Text><Text fontSize="xs" color={t.muted} fontFamily={t.font}>{formatTenure(row.employee_tenure_months)}</Text></HStack>
                 )}
                 {userMedals && (userMedals.gold > 0 || userMedals.silver > 0 || userMedals.bronze > 0) && (
-                  <HStack gap={3} pt={1}>
-                    {userMedals.gold > 0 && <HStack gap={1}><Text fontSize="lg">🥇</Text><Text fontSize="sm" fontWeight="700" color={t.text} fontFamily={t.font}>{userMedals.gold}</Text></HStack>}
-                    {userMedals.silver > 0 && <HStack gap={1}><Text fontSize="lg">🥈</Text><Text fontSize="sm" fontWeight="700" color={t.text} fontFamily={t.font}>{userMedals.silver}</Text></HStack>}
-                    {userMedals.bronze > 0 && <HStack gap={1}><Text fontSize="lg">🥉</Text><Text fontSize="sm" fontWeight="700" color={t.text} fontFamily={t.font}>{userMedals.bronze}</Text></HStack>}
-                  </HStack>
+                  <Text fontSize="lg" pt={1} lineHeight="1.4">
+                    {"🥇".repeat(userMedals.gold)}{"🥈".repeat(userMedals.silver)}{"🥉".repeat(userMedals.bronze)}
+                  </Text>
                 )}
               </VStack>
               {(() => {
