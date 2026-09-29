@@ -66,13 +66,34 @@ function getAnswerWord(firstName) {
   return firstName;
 }
 
-// Daily word: deterministic seed from ET date so everyone gets the same name each day
+// Seeded Fisher-Yates shuffle — deterministic for a given seed (integer).
+// Returns a new shuffled copy of the array without mutating the original.
+function seededShuffle(arr, seed) {
+  const result = [...arr];
+  let s = seed;
+  for (let i = result.length - 1; i > 0; i--) {
+    // LCG-based pseudo-random: constants from Numerical Recipes
+    s = (s * 1664525 + 1013904223) & 0xffffffff;
+    const j = Math.abs(s) % (i + 1);
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
+// Daily word: shuffle the name pool using the current year+month as seed,
+// then walk through it by day-of-month. This avoids sequential alphabetical
+// runs while remaining deterministic — everyone gets the same name each day.
 function getDailyName() {
   if (!PERMITFLOW_NAMES.length) return null;
   const et = getETDate(); // YYYY-MM-DD in ET
   const [y, m, d] = et.split("-").map(Number);
-  const seed = y * 10000 + m * 100 + d;
-  return PERMITFLOW_NAMES[seed % PERMITFLOW_NAMES.length];
+
+  // Shuffle seed: year × 100 + month (resets every month)
+  const shuffleSeed = y * 100 + m;
+  const shuffled = seededShuffle(PERMITFLOW_NAMES, shuffleSeed);
+
+  // Pick by day-of-month (1-indexed → 0-indexed)
+  return shuffled[(d - 1) % shuffled.length];
 }
 
 function getEmployeeInfo(firstName) {
