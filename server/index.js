@@ -6,7 +6,7 @@ const path = require("path");
 const passport = require("passport");
 const sharp = require("sharp");
 const { getRandomWordOfLength, isValidWord, VALID_BY_LENGTH } = require("./words");
-const { EMPLOYEE_MAP, loadEmployeeMap } = require("./names");
+const { EMPLOYEE_MAP, ACTIVE_EMPLOYEE_FIRST_NAMES, loadEmployeeMap } = require("./names");
 const { migrate, pool } = require("./db");
 const { setupAuth, requireAuth } = require("./auth");
 
@@ -49,13 +49,16 @@ function refreshPermitflowNames() {
   });
   PERMITFLOW_NAMES.splice(0, PERMITFLOW_NAMES.length, ...names);
 
-  // Inject all names into valid word sets so players can type any name as a guess
-  for (const firstName of PERMITFLOW_NAMES) {
-    const word = getAnswerWord(firstName);
-    if (VALID_BY_LENGTH[word.length]) VALID_BY_LENGTH[word.length].add(word);
+  // Every active employee is a valid guess, even without an avatar. Only names
+  // in PERMITFLOW_NAMES can be selected as answers.
+  let validEmployeeGuesses = 0;
+  for (const firstName of ACTIVE_EMPLOYEE_FIRST_NAMES) {
+    if (!VALID_BY_LENGTH[firstName.length]) continue;
+    VALID_BY_LENGTH[firstName.length].add(firstName);
+    validEmployeeGuesses++;
   }
 
-  console.log(`Loaded ${PERMITFLOW_NAMES.length} Permitflow names (all injected as valid guesses)`);
+  console.log(`Loaded ${PERMITFLOW_NAMES.length} answer names and ${validEmployeeGuesses} employee guesses`);
 }
 
 function getAnswerWord(firstName) {
