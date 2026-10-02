@@ -161,7 +161,7 @@ app.get("/api/game/resume", async (req, res) => {
     maxGuesses,
     userId,
     gameId: game.id,
-    mode: "daily",
+    mode: game.mode,
     startedAt: new Date(game.started_at).getTime(),
   });
 
