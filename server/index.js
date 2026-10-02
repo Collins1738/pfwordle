@@ -9,6 +9,7 @@ const { getRandomWordOfLength, isValidWord, VALID_BY_LENGTH } = require("./words
 const { EMPLOYEE_MAP, loadEmployeeMap } = require("./names");
 const { migrate, pool } = require("./db");
 const { setupAuth, requireAuth } = require("./auth");
+const { getDailyAvailability, dailyClosedResponse } = require("./daily-cutoff");
 
 // In-memory blur cache: key = "url|level" → Buffer
 const blurCache = new Map();
@@ -139,9 +140,13 @@ app.get("/api/game/resume", async (req, res) => {
     [userId, today]
   );
 
-  if (!rows.length) return res.json({ hasGame: false });
+  if (!rows.length) {
+    if (!getDailyAvailability().isOpen) return dailyClosedResponse(res);
+    return res.json({ hasGame: false });
+  }
 
   const game = rows[0];
+  if (game.status === "playing" && !getDailyAvailability().isOpen) return dailyClosedResponse(res);
   const guessHistory = game.guesses || [];
   const word = game.word;
   const maxGuesses = 6;
@@ -156,6 +161,7 @@ app.get("/api/game/resume", async (req, res) => {
     maxGuesses,
     userId,
     gameId: game.id,
+    mode: "daily",
     startedAt: new Date(game.started_at).getTime(),
   });
 
@@ -183,11 +189,15 @@ app.get("/api/game/resume", async (req, res) => {
 // GET /api/health — Railway healthcheck
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 
+// GET /api/daily-availability — canonical server-side daily cutoff status
+app.get("/api/daily-availability", (req, res) => res.json(getDailyAvailability()));
+
 // POST /api/game/start — start a new game
 app.post("/api/game/start", async (req, res) => {
   const sessionId = generateSessionId();
   const today = getETDate();
   const mode = req.body?.mode === "practice" ? "practice" : "daily";
+  if (mode === "daily" && !getDailyAvailability().isOpen) return dailyClosedResponse(res);
   console.log(`[game/start] mode=${mode} hasAuth=${!!req.headers.authorization}`);
   let word;
 
@@ -279,6 +289,7 @@ app.post("/api/game/:sessionId/guess", async (req, res) => {
   const session = sessions.get(sessionId);
 
   if (!session) return res.status(404).json({ error: "Game session not found" });
+  if (session.mode === "daily" && !getDailyAvailability().isOpen) return dailyClosedResponse(res);
   if (session.status !== "playing") return res.status(400).json({ error: "Game is already over" });
   if (upperGuess.length !== session.wordLength) {
     return res.status(400).json({ error: `Guess must be ${session.wordLength} letters` });

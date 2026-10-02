@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { CalendarDots, CheckCircle, XCircle } from "@phosphor-icons/react";
 import { t } from "../theme";
 import { useAuth } from "../useAuth";
-import { resumeGame } from "../api";
+import { getDailyAvailability, resumeGame } from "../api";
 import { DEV_ACCOUNTS } from "../constants";
 import UserMenuDropdown from "./UserMenuDropdown";
 import axios from "axios";
@@ -29,6 +29,8 @@ export default function HomePage() {
   }, [authMenuOpen]);
   const [shaking, setShaking] = useState(false);
   const [toast, setToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("Sign in to play Daily 🔒");
+  const [dailyAvailability, setDailyAvailability] = useState(null);
   const toastTimer = useRef(null);
   const [leaderboard, setLeaderboard] = useState([]);
   const [weeklyLeaderboard, setWeeklyLeaderboard] = useState([]);
@@ -41,6 +43,21 @@ export default function HomePage() {
       .then(data => { if (data.hasGame) setDailyStatus(data.status); })
       .catch(() => {});
   }, [user]);
+
+  useEffect(() => {
+    const refresh = () => getDailyAvailability().then(setDailyAvailability).catch(() => {});
+    refresh();
+    const refreshTimer = setInterval(refresh, 30000);
+    const countdownTimer = setInterval(() => {
+      setDailyAvailability(current => current && current.secondsRemaining > 0
+        ? { ...current, secondsRemaining: current.secondsRemaining - 1, isOpen: current.secondsRemaining > 1 }
+        : current);
+    }, 1000);
+    return () => {
+      clearInterval(refreshTimer);
+      clearInterval(countdownTimer);
+    };
+  }, []);
 
   const DUMMY_LEADERBOARD = import.meta.env.DEV ? [
     { name: "Sarah Johnson", avatar_url: null, guess_count: 2, status: "won" },
@@ -61,13 +78,22 @@ export default function HomePage() {
     ]).finally(() => setLoadingBoards(false));
   }, []);
 
+  function showDailyToast(message) {
+    setShaking(true);
+    setToastMessage(message);
+    setToast(true);
+    setTimeout(() => setShaking(false), 500);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(false), 3000);
+  }
+
   function handleDailyClick() {
+    if (dailyAvailability && !dailyAvailability.isOpen && dailyStatus !== "won" && dailyStatus !== "lost") {
+      showDailyToast("Friday's daily closed at 4 PM ET. Practice is still open!");
+      return;
+    }
     if (!user) {
-      setShaking(true);
-      setToast(true);
-      setTimeout(() => setShaking(false), 500);
-      clearTimeout(toastTimer.current);
-      toastTimer.current = setTimeout(() => setToast(false), 3000);
+      showDailyToast("Sign in to play Daily 🔒");
       return;
     }
     navigate("/daily");
@@ -133,14 +159,12 @@ export default function HomePage() {
     );
   }
 
-  const hoursUntilMidnight = (() => {
-    const now = new Date();
-    const midnight = new Date(now);
-    midnight.setHours(24, 0, 0, 0);
-    const diff = midnight - now;
-    const hrs = Math.floor(diff / 3600000);
-    const mins = Math.floor((diff % 3600000) / 60000);
-    return hrs > 0 ? `${hrs}h left` : `${mins}m left`;
+  const dailyTimeLeft = (() => {
+    if (!dailyAvailability) return null;
+    if (!dailyAvailability.isOpen) return "Closed";
+    const hrs = Math.floor(dailyAvailability.secondsRemaining / 3600);
+    const mins = Math.floor((dailyAvailability.secondsRemaining % 3600) / 60);
+    return hrs > 0 ? `${hrs}h left` : `${Math.max(1, mins)}m left`;
   })();
 
   const nextInText = (() => {
@@ -157,10 +181,12 @@ export default function HomePage() {
     ? { icon: <><CheckCircle size={12} weight="duotone" /><span style={{ marginLeft: 3, fontSize: "10px", color: t.muted }}>{nextInText}</span></>, color: "#22c55e" }
     : dailyStatus === "lost"
     ? { icon: <><XCircle size={12} weight="duotone" /><span style={{ marginLeft: 3, fontSize: "10px", color: t.muted }}>{nextInText}</span></>, color: t.present }
+    : dailyAvailability && !dailyAvailability.isOpen
+    ? { text: "🔒 Closed at 4 PM", color: t.present }
     : dailyStatus === "playing"
     ? { text: "▶️ In progress", color: "#f5c518" }
-    : user
-    ? { text: `⏳ ${hoursUntilMidnight}`, color: t.muted }
+    : user && dailyTimeLeft
+    ? { text: `⏳ ${dailyTimeLeft}`, color: t.muted }
     : null;
 
   const [devModeOn, setDevModeOn] = useState(false);
@@ -239,7 +265,7 @@ export default function HomePage() {
             boxShadow="0 4px 20px rgba(0,0,0,0.2)"
             whiteSpace="nowrap"
           >
-            Sign in to play Daily 🔒
+            {toastMessage}
           </Box>
         </motion.div>
       )}
@@ -281,23 +307,24 @@ export default function HomePage() {
             >
               {(() => {
                 const done = dailyStatus === "won" || dailyStatus === "lost";
+                const closed = dailyAvailability && !dailyAvailability.isOpen && !done;
                 return (
               <Box
                 as="button"
                 w="100%"
                 py={3}
                 borderRadius={t.radiusMd}
-                bg={done ? t.border : t.accent}
-                color={done ? t.muted : t.white}
+                bg={done || closed ? t.border : t.accent}
+                color={done || closed ? t.muted : t.white}
                 fontSize="lg"
                 fontWeight="700"
                 fontFamily={t.font}
                 cursor="pointer"
-                boxShadow={done ? `0 4px 0 ${t.border}` : `0 4px 0 ${t.accentDark}`}
+                boxShadow={done || closed ? `0 4px 0 ${t.border}` : `0 4px 0 ${t.accentDark}`}
                 transition="all 0.3s ease"
-                opacity={done ? 0.7 : 1}
-                _hover={{ transform: "translateY(-2px)", boxShadow: done ? `0 6px 0 ${t.border}` : `0 6px 0 ${t.accentDark}` }}
-                _active={{ transform: "translateY(3px)", boxShadow: done ? `0 1px 0 ${t.border}` : `0 1px 0 ${t.accentDark}` }}
+                opacity={done || closed ? 0.7 : 1}
+                _hover={{ transform: "translateY(-2px)", boxShadow: done || closed ? `0 6px 0 ${t.border}` : `0 6px 0 ${t.accentDark}` }}
+                _active={{ transform: "translateY(3px)", boxShadow: done || closed ? `0 1px 0 ${t.border}` : `0 1px 0 ${t.accentDark}` }}
                 onClick={handleDailyClick}
               >
                 <CalendarDots size={20} weight="duotone" style={{ display: "inline", marginRight: 8, verticalAlign: "middle" }} />{isWeekend ? "Weekend Bonus! 🎉" : "Daily"}
