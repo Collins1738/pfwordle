@@ -228,7 +228,8 @@ export default function App({ mode = "daily" }) {
         getDebugAnswer(data.sessionId).then(d => setDebugAnswer(d.answer)).catch(() => {});
       }
     } catch (e) {
-      setMessage("Failed to start game. Is the server running?");
+      setMessage(e?.response?.data?.error || "Failed to start game. Is the server running?");
+      setMsgVisible(true);
     }
   }
 

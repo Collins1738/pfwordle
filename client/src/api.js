@@ -44,3 +44,8 @@ export async function getDailyLeaderboard() {
   const res = await axios.get(`${BASE_URL}/api/leaderboard/daily`);
   return res.data;
 }
+
+export async function getDailyAvailability() {
+  const res = await axios.get(`${BASE_URL}/api/daily-availability`);
+  return res.data;
+}
