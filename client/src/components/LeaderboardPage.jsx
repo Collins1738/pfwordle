@@ -268,7 +268,14 @@ function LeaderboardList({ data, loading, isWeekly, user, hasPlayedToday, shakin
                       )}
                     </Box>
                     {row.score != null && hasPlayedToday && (
-                      <Text fontSize="9px" color={t.accent} fontFamily={t.font} fontWeight="700">{row.score}pts</Text>
+                      <Text
+                        fontSize="9px"
+                        color={Number(row.score) === 1000 ? t.perfectScore : t.accent}
+                        fontFamily={t.font}
+                        fontWeight="700"
+                      >
+                        {row.score}pts
+                      </Text>
                     )}
                   </VStack>
                 )}
@@ -303,7 +310,8 @@ export default function LeaderboardPage() {
   const [shakingLock, setShakingLock] = useState(null);
   const [showLockMsg, setShowLockMsg] = useState(false);
 
-  const hasPlayedToday = user && dailyData.some(row => row.name === user.name);
+  // Keep the local dev leaderboard reviewable without requiring a Google login.
+  const hasPlayedToday = import.meta.env.DEV || (user && dailyData.some(row => row.name === user.name));
 
   // The motion value that drives the strip's translateX.
   // strip is 200% wide; panel 0 starts at 0, panel 1 at -containerWidth.

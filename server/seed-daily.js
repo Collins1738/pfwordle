@@ -14,7 +14,7 @@ const TODAY = getETDate();
 
 // Fake players with plausible Permitflow-ish details
 const FAKE_PLAYERS = [
-  { name: "Aisha Patel",     email: "aisha.patel@fake.permitflow.com",     avatar: "https://i.pravatar.cc/80?img=47", guesses: 2, duration: 42,   score: 1100 },
+  { name: "Aisha Patel",     email: "aisha.patel@fake.permitflow.com",     avatar: "https://i.pravatar.cc/80?img=47", guesses: 2, duration: 42,   score: 1000 },
   { name: "Marcus Chen",    email: "marcus.chen@fake.permitflow.com",     avatar: "https://i.pravatar.cc/80?img=12", guesses: 3, duration: 118,  score: 900  },
   { name: "Zoe Williams",   email: "zoe.williams@fake.permitflow.com",    avatar: "https://i.pravatar.cc/80?img=32", guesses: 4, duration: 340,  score: 750  },
   { name: "Raj Mehta",      email: "raj.mehta@fake.permitflow.com",       avatar: "https://i.pravatar.cc/80?img=60", guesses: 4, duration: 650,  score: 680  },
@@ -23,7 +23,7 @@ const FAKE_PLAYERS = [
   { name: "Mei Lin",        email: "mei.lin@fake.permitflow.com",         avatar: "https://i.pravatar.cc/80?img=56", guesses: 6, duration: 1800, score: 500  },
   { name: "Jordan Taylor",  email: "jordan.taylor@fake.permitflow.com",   avatar: "https://i.pravatar.cc/80?img=22", guesses: 6, duration: 2400, score: 470  },
   { name: "Nina Rossi",     email: "nina.rossi@fake.permitflow.com",      avatar: "https://i.pravatar.cc/80?img=49", guesses: 3, duration: 200,  score: 820  },
-  { name: "Kwame Asante",   email: "kwame.asante@fake.permitflow.com",    avatar: "https://i.pravatar.cc/80?img=68", guesses: 2, duration: 55,   score: 1050 },
+  { name: "Kwame Asante",   email: "kwame.asante@fake.permitflow.com",    avatar: "https://i.pravatar.cc/80?img=68", guesses: 2, duration: 55,   score: 1000 },
   { name: "Sofia Cruz",     email: "sofia.cruz@fake.permitflow.com",      avatar: "https://i.pravatar.cc/80?img=41", guesses: 6, duration: 3600, score: 440  },
   { name: "Ben Larsen",     email: "ben.larsen@fake.permitflow.com",      avatar: "https://i.pravatar.cc/80?img=8",  guesses: 4, duration: 480,  score: 710  },
   { name: "Divya Nair",     email: "divya.nair@fake.permitflow.com",      avatar: "https://i.pravatar.cc/80?img=36", guesses: 5, duration: 900,  score: 580  },

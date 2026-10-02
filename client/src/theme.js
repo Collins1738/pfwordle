@@ -11,9 +11,10 @@ export const t = {
   overlay:  "rgba(0, 100, 200, 0.08)", // subtle tint
 
   // Brand / Accent
-  accent:     "#00A2FF",  // primary CTA, correct tiles, active states
-  accentDark: "#0077CC",  // button shadow
-  accentAlt:  "#f5a623",  // present tiles, loss state (orange)
+  accent:      "#00A2FF",  // primary CTA, correct tiles, active states
+  accentDark:  "#0077CC",  // button shadow
+  accentAlt:   "#f5a623",  // present tiles, loss state (orange)
+  perfectScore: "#f5c518", // perfect 1000-point score
 
   // Text
   text:   "#1A1A2E",  // primary text
