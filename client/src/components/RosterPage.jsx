@@ -11,7 +11,7 @@ export default function RosterPage() {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const isAdmin = user && DEV_ACCOUNTS.includes(user.email);
+  const isAdmin = user && DEV_ACCOUNTS.some(email => email.toLowerCase() === user.email?.toLowerCase());
   const token = getToken();
 
   useEffect(() => {
