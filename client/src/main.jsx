@@ -9,6 +9,7 @@ import StatsPageWrapper from "./components/StatsPageWrapper";
 import LeaderboardPage from "./components/LeaderboardPage";
 import AdminPage from "./components/AdminPage";
 import HallOfFamePage from "./components/HallOfFamePage";
+import NotFoundPage from "./components/NotFoundPage";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
@@ -23,6 +24,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           <Route path="/roster" element={<RosterPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/hall-of-fame" element={<HallOfFamePage />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
     </ChakraProvider>

@@ -10,6 +10,7 @@ const { EMPLOYEE_MAP, ACTIVE_EMPLOYEE_FIRST_NAMES, loadEmployeeMap } = require("
 const { migrate, pool } = require("./db");
 const { setupAuth, requireAuth } = require("./auth");
 const { getDailyAvailability, dailyClosedResponse } = require("./daily-cutoff");
+const { isAdminEmail, requireAdminOrNotFound } = require("./admin-only");
 
 // In-memory blur cache: key = "url|level" → Buffer
 const blurCache = new Map();
@@ -472,8 +473,8 @@ app.get("/api/avatar/session/:sessionId", async (req, res) => {
   }
 });
 
-// GET /api/employees — full roster from the employees table
-app.get("/api/employees", async (req, res) => {
+// GET /api/employees — full roster, hidden from non-admin/dev users
+app.get("/api/employees", requireAdminOrNotFound, async (req, res) => {
   try {
     const { rows } = await pool.query("SELECT * FROM employees WHERE active = true ORDER BY name");
     const employees = [];
@@ -527,7 +528,6 @@ function evaluateGuess(guess, target) {
 }
 
 // GET /api/admin/games — all games (daily + practice), admin only
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "tobechikeluba@gmail.com,collins.chikeluba@permitflow.com").split(",");
 const SYNC_SECRET = process.env.SYNC_SECRET || null;
 
 // Middleware: allow either admin JWT or SYNC_SECRET bearer token
@@ -538,7 +538,7 @@ function requireSyncAuth(req, res, next) {
   try {
     const jwt = require("jsonwebtoken");
     const decoded = jwt.verify(header.slice(7), process.env.JWT_SECRET || "dev-secret-change-me");
-    if (ADMIN_EMAILS.includes(decoded.email)) { req.user = decoded; return next(); }
+    if (isAdminEmail(decoded.email)) { req.user = decoded; return next(); }
   } catch {}
   return res.status(401).json({ error: "Unauthorized" });
 }
@@ -655,7 +655,7 @@ app.post("/api/admin/sync-roster", requireSyncAuth, async (req, res) => {
 });
 
 app.get("/api/admin/games", requireAuth, async (req, res) => {
-  if (!ADMIN_EMAILS.includes(req.user.email)) {
+  if (!isAdminEmail(req.user.email)) {
     return res.status(403).json({ error: "Forbidden" });
   }
   const { mode, date, limit = 200, offset = 0 } = req.query;
