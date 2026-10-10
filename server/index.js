@@ -10,6 +10,7 @@ const { EMPLOYEE_MAP, ACTIVE_EMPLOYEE_FIRST_NAMES, loadEmployeeMap } = require("
 const { migrate, pool } = require("./db");
 const { setupAuth, requireAuth } = require("./auth");
 const { getDailyAvailability, dailyClosedResponse } = require("./daily-cutoff");
+const { requireDev } = require("./dev-only");
 
 // In-memory blur cache: key = "url|level" → Buffer
 const blurCache = new Map();
@@ -472,8 +473,8 @@ app.get("/api/avatar/session/:sessionId", async (req, res) => {
   }
 });
 
-// GET /api/employees — full roster from the employees table
-app.get("/api/employees", async (req, res) => {
+// GET /api/employees — full roster from the employees table (dev only)
+app.get("/api/employees", requireDev, async (req, res) => {
   try {
     const { rows } = await pool.query("SELECT * FROM employees WHERE active = true ORDER BY name");
     const employees = [];
