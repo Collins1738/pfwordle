@@ -1,24 +1,32 @@
 import { useState, useEffect } from "react";
 import { Box, Heading, Input, SimpleGrid, Text, Badge, Spinner } from "@chakra-ui/react";
+import { DEV_ACCOUNTS } from "../constants";
+import { useAuth } from "../useAuth";
+import NotFoundPage from "./NotFoundPage";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 
 export default function RosterPage() {
+  const { user, getToken } = useAuth();
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const isAdmin = user && DEV_ACCOUNTS.includes(user.email);
+  const token = getToken();
 
   useEffect(() => {
-    fetch(`${BASE_URL}/api/employees`)
-      .then((r) => r.json())
-      .then(data => {
-        console.log(data)
-        return data
-      })
+    if (user === undefined) return;
+    if (!isAdmin) { setLoading(false); return; }
+    fetch(`${BASE_URL}/api/employees`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.ok ? r.json() : Promise.reject(new Error("Not found")))
       .then((data) => { setEmployees(data); setLoading(false); })
       .catch(() => setLoading(false));
-    
-  }, []);
+  }, [user, isAdmin, token]);
+
+  if (user === undefined) return <Box minH="100vh" bg="gray.50" />;
+  if (!isAdmin) return <NotFoundPage />;
 
   const filtered = employees.filter((e) => {
     const q = search.toLowerCase();
