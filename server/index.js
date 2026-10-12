@@ -35,6 +35,7 @@ function calcScore(guessCount, maxGuesses, durationSeconds) {
 // NFL season holidays — games on these dates are excluded from weekly/all-time calculations
 const NFL_HOLIDAYS = [
   "2026-09-07", // Labor Day
+  "2026-10-12", // Columbus Day / Indigenous Peoples' Day
 ];
 
 // Feature flag: "first" = first names only, "full" = full names (first + last)
