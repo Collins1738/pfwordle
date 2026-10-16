@@ -9,7 +9,7 @@ const { getRandomWordOfLength, isValidWord, VALID_BY_LENGTH } = require("./words
 const { EMPLOYEE_MAP, ACTIVE_EMPLOYEE_FIRST_NAMES, loadEmployeeMap } = require("./names");
 const { migrate, pool } = require("./db");
 const { setupAuth, requireAuth } = require("./auth");
-const { getDailyAvailability, dailyClosedResponse } = require("./daily-cutoff");
+const { getDailyAvailability, isFridayDailyClosed, dailyClosedResponse } = require("./daily-cutoff");
 const { isAdminEmail, requireAdminOrNotFound } = require("./admin-only");
 
 // In-memory blur cache: key = "url|level" → Buffer
@@ -733,7 +733,9 @@ app.get("/api/leaderboard/hall-of-fame", async (req, res) => {
   try {
     // For each Mon–Fri week that has completed games, find the top scorer
     // week_start = the Monday of that week (ISO date string)
-    const todayET = getETDate();
+    const now = new Date();
+    const todayET = getETDate(now);
+    const fridayDailyClosed = isFridayDailyClosed(now);
     const { rows } = await pool.query(
       `WITH week_scores AS (
          SELECT
@@ -766,10 +768,11 @@ app.get("/api/leaderboard/hall-of-fame", async (req, res) => {
          GROUP BY 1
        ),
        valid_weeks AS (
-         -- only weeks where Friday has passed AND at least 2 game days existed
+         -- only weeks whose Friday daily has closed AND at least 2 game days existed
          SELECT wm.week_start FROM week_meta wm
          WHERE wm.days_in_week >= 2
-           AND (wm.week_start + INTERVAL '4 days')::date < $1::date
+           AND ((wm.week_start + INTERVAL '4 days')::date < $1::date
+             OR ((wm.week_start + INTERVAL '4 days')::date = $1::date AND $3::boolean))
        ),
        ranked AS (
          SELECT ws.*,
@@ -781,7 +784,7 @@ app.get("/api/leaderboard/hall-of-fame", async (req, res) => {
        FROM ranked
        WHERE rn <= 3
        ORDER BY week_start ASC, rn ASC`,
-      [todayET, NFL_HOLIDAYS]
+      [todayET, NFL_HOLIDAYS, fridayDailyClosed]
     );
     // Group by week, each week has gold/silver/bronze entries
     const weekMap = new Map();
@@ -809,7 +812,9 @@ app.get("/api/leaderboard/hall-of-fame", async (req, res) => {
 // GET /api/leaderboard/medals — gold/silver/bronze counts per user across all completed weeks
 app.get("/api/leaderboard/medals", async (req, res) => {
   try {
-    const todayET = getETDate();
+    const now = new Date();
+    const todayET = getETDate(now);
+    const fridayDailyClosed = isFridayDailyClosed(now);
     const { rows } = await pool.query(
       `WITH week_scores AS (
          SELECT
@@ -842,7 +847,8 @@ app.get("/api/leaderboard/medals", async (req, res) => {
        valid_weeks AS (
          SELECT week_start FROM week_meta
          WHERE days_in_week >= 2
-           AND (week_start + INTERVAL '4 days')::date < $1::date
+           AND ((week_start + INTERVAL '4 days')::date < $1::date
+             OR ((week_start + INTERVAL '4 days')::date = $1::date AND $3::boolean))
        ),
        ranked AS (
          SELECT ws.user_id, ws.name, ws.email,
@@ -859,7 +865,7 @@ app.get("/api/leaderboard/medals", async (req, res) => {
        GROUP BY user_id, name, email
        HAVING COUNT(*) FILTER (WHERE rn <= 3) > 0
        ORDER BY gold DESC, silver DESC, bronze DESC`,
-      [todayET, NFL_HOLIDAYS]
+      [todayET, NFL_HOLIDAYS, fridayDailyClosed]
     );
     res.json(rows);
   } catch (e) {
@@ -938,7 +944,9 @@ app.get("/api/leaderboard/weekly", async (req, res) => {
 // GET /api/stats/weekly-history — user's position in each past completed week
 app.get("/api/stats/weekly-history", requireAuth, async (req, res) => {
   try {
-    const todayET = getETDate();
+    const now = new Date();
+    const todayET = getETDate(now);
+    const fridayDailyClosed = isFridayDailyClosed(now);
     const { rows } = await pool.query(
       `WITH week_scores AS (
          SELECT
@@ -973,7 +981,8 @@ app.get("/api/stats/weekly-history", requireAuth, async (req, res) => {
        valid_weeks AS (
          SELECT week_start FROM week_meta
          WHERE days_in_week >= 2
-           AND (week_start + INTERVAL '4 days')::date < $2::date
+           AND ((week_start + INTERVAL '4 days')::date < $2::date
+             OR ((week_start + INTERVAL '4 days')::date = $2::date AND $4::boolean))
        ),
        ranked AS (
          SELECT ws.*,
@@ -986,7 +995,7 @@ app.get("/api/stats/weekly-history", requireAuth, async (req, res) => {
        FROM ranked
        WHERE user_id = $1
        ORDER BY week_start ASC`,
-      [req.user.id, todayET, NFL_HOLIDAYS]
+      [req.user.id, todayET, NFL_HOLIDAYS, fridayDailyClosed]
     );
     res.json(rows.map(r => ({
       ...r,

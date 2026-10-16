@@ -34,6 +34,11 @@ function getDailyAvailability(date = new Date()) {
   };
 }
 
+function isFridayDailyClosed(date = new Date()) {
+  const availability = getDailyAvailability(date);
+  return availability.isFriday && !availability.isOpen;
+}
+
 function dailyClosedResponse(res) {
   return res.status(403).json({
     code: "DAILY_CLOSED",
@@ -46,5 +51,6 @@ module.exports = {
   FRIDAY_CUTOFF_HOUR,
   getETClock,
   getDailyAvailability,
+  isFridayDailyClosed,
   dailyClosedResponse,
 };
