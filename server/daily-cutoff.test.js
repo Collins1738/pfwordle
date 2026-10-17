@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { getDailyAvailability } = require("./daily-cutoff");
+const { getDailyAvailability, isFridayDailyClosed } = require("./daily-cutoff");
 
 test("Friday daily remains open immediately before 4 PM ET", () => {
   const result = getDailyAvailability(new Date("2026-10-02T19:59:59Z"));
@@ -22,4 +22,12 @@ test("non-Friday daily remains open after 4 PM ET", () => {
   assert.equal(result.isFriday, false);
   assert.equal(result.isOpen, true);
   assert.equal(result.cutoffLabel, "11:59 PM ET");
+});
+
+test("Friday week finalizes at 4 PM ET, including across DST", () => {
+  assert.equal(isFridayDailyClosed(new Date("2026-10-02T19:59:59Z")), false);
+  assert.equal(isFridayDailyClosed(new Date("2026-10-02T20:00:00Z")), true);
+  assert.equal(isFridayDailyClosed(new Date("2026-11-06T20:59:59Z")), false);
+  assert.equal(isFridayDailyClosed(new Date("2026-11-06T21:00:00Z")), true);
+  assert.equal(isFridayDailyClosed(new Date("2026-10-03T20:00:00Z")), false);
 });
