@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, VStack, Text, Heading, Avatar, HStack } from "@chakra-ui/react";
 import Board from "./components/Board";
+import ElapsedTimer from "./components/ElapsedTimer";
+
+const ENABLE_ELAPSED_TIMER = true;
 import Keyboard from "./components/Keyboard";
 
 
@@ -179,6 +182,7 @@ export default function App({ mode = "daily" }) {
   const [msgVisible, setMsgVisible] = useState(false);
   const [employee, setEmployee] = useState(null);
   const [duration, setDuration] = useState(null);
+  const [startedAt, setStartedAt] = useState(null);
   const [finalScore, setFinalScore] = useState(null);
   const [letterStatuses, setLetterStatuses] = useState({});
   const [wordLength, setWordLength] = useState(5);
@@ -217,6 +221,7 @@ export default function App({ mode = "daily" }) {
       const token = getToken();
       const data = await startGame({ mode, ...options }, token);
       setSessionId(data.sessionId);
+      setStartedAt(data.startedAt ?? null);
       setWordLength(data.wordLength);
       setMaxGuesses(data.maxGuesses);
       setGuesses([]);
@@ -266,6 +271,7 @@ export default function App({ mode = "daily" }) {
             const data = await resumeGame(token);
             if (data.hasGame) {
               setSessionId(data.sessionId);
+              setStartedAt(data.startedAt ?? null);
               setWordLength(data.wordLength);
               setMaxGuesses(data.maxGuesses);
               setGuesses(data.guesses || []);
@@ -293,6 +299,7 @@ export default function App({ mode = "daily" }) {
             console.log("[practice resume] server response:", res);
             if (res && res.status && res.status !== "error") {
               setSessionId(savedSessionId);
+              setStartedAt(res.startedAt ?? null);
               setWordLength(res.wordLength);
               setMaxGuesses(res.maxGuesses);
               setGuesses(res.guesses || []);
@@ -612,7 +619,7 @@ export default function App({ mode = "daily" }) {
       </Box>
 
       <VStack gap={0} w="100%" maxW="520px" px={3}>
-        <Box h="36px" display="flex" alignItems="center" justifyContent="center" mt={1} position="relative">
+        <Box h="36px" w="100%" display="flex" alignItems="center" justifyContent="center" mt={1} position="relative">
           {sessionId && avatarUrl && (() => {
             const isBlacked = guesses.length === 0 && !blurDraining;
             const blurredUrl = `${BASE_URL}/api/avatar/session/${sessionId}?g=${guesses.length}`;
@@ -652,6 +659,7 @@ export default function App({ mode = "daily" }) {
               </Box>
             );
           })()}
+          {ENABLE_ELAPSED_TIMER && status === "playing" && <ElapsedTimer startedAt={startedAt} />}
         </Box>
 
         {status === "idle" ? (

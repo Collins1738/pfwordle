@@ -182,6 +182,7 @@ app.get("/api/game/resume", async (req, res) => {
     wordLength: word.length,
     maxGuesses,
     status: game.status,
+    startedAt: new Date(game.started_at).getTime(),
     guesses: guessHistory,
     avatarUrl: avatarUrlResume,
     employee: game.status !== "playing" ? empInfoResume : null,
@@ -279,11 +280,11 @@ app.post("/api/game/start", async (req, res) => {
         userId,
         gameId,
         mode,
-        startedAt: Date.now(),
+        startedAt: new Date(gameRes.rows[0].started_at).getTime(),
       });
       const empInfo = getEmployeeInfo(word);
       const avatarUrl = Array.isArray(empInfo) ? empInfo[0]?.avatarUrl : empInfo?.avatarUrl || "";
-      return res.json({ sessionId, wordLength: word.length, maxGuesses: 6, mode, avatarUrl });
+      return res.json({ sessionId, wordLength: word.length, maxGuesses: 6, mode, avatarUrl, startedAt: new Date(gameRes.rows[0].started_at).getTime() });
     } catch (err) { console.error("[game/start] auth/db error:", err.message); /* fall through to anonymous */ }
   }
 
@@ -295,16 +296,17 @@ app.post("/api/game/start", async (req, res) => {
       const anonRes = await pool.query(
         `INSERT INTO games (user_id, date, word, status, session_id, mode)
          VALUES (NULL, $1, $2, 'playing', $3, 'practice')
-         RETURNING id`,
+         RETURNING id, started_at`,
         [today, word, sessionId]
       );
       anonGameId = anonRes.rows[0].id;
     } catch (e) { console.error("[game/start] anon practice save error:", e.message); }
   }
-  sessions.set(sessionId, { word, wordLength: word.length, guesses: [], status: "playing", maxGuesses, gameId: anonGameId, startedAt: Date.now(), mode });
+  const startedAt = Date.now();
+  sessions.set(sessionId, { word, wordLength: word.length, guesses: [], status: "playing", maxGuesses, gameId: anonGameId, startedAt, mode });
   const empInfoAnon = getEmployeeInfo(word);
   const avatarUrlAnon = Array.isArray(empInfoAnon) ? empInfoAnon[0]?.avatarUrl : empInfoAnon?.avatarUrl || "";
-  res.json({ sessionId, wordLength: word.length, maxGuesses, avatarUrl: avatarUrlAnon });
+  res.json({ sessionId, wordLength: word.length, maxGuesses, avatarUrl: avatarUrlAnon, startedAt });
 });
 
 // POST /api/game/:sessionId/guess
@@ -393,6 +395,7 @@ app.get("/api/game/:sessionId", (req, res) => {
     maxGuesses: session.maxGuesses,
     wordLength: session.wordLength,
     status: session.status,
+    startedAt: session.startedAt,
     avatarUrl,
     ...(session.status !== "playing" ? { answer: session.word, employee: empInfo } : {}),
   });
