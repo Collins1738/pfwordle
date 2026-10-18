@@ -49,3 +49,7 @@ export async function getDailyAvailability() {
   const res = await axios.get(`${BASE_URL}/api/daily-availability`);
   return res.data;
 }
+
+export async function trackSoundToggle(enabled, token) {
+  await axios.post(`${BASE_URL}/api/preferences/sound-events`, { enabled }, { headers: authHeaders(token) });
+}

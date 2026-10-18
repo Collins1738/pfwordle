@@ -14,6 +14,9 @@ import { startGame, submitGuess, getDebugAnswer, resumeGame, getGameState, getDa
 import { useAuth } from "./useAuth";
 import { t } from "./theme";
 import { DEV_ACCOUNTS } from "./constants";
+import { playSound, playReveal } from "./sounds";
+import { trackSoundToggle } from "./api";
+import { SpeakerHigh, SpeakerSlash } from "@phosphor-icons/react";
 
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "";
@@ -160,6 +163,15 @@ export default function App({ mode = "daily" }) {
 
 
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem("pfwordle-sound") === "on");
+
+  function toggleSound() {
+    const next = !soundEnabled;
+    setSoundEnabled(next);
+    localStorage.setItem("pfwordle-sound", next ? "on" : "off");
+    trackSoundToggle(next, getToken()).catch(() => {}); // Sound preference works even if tracking is unavailable.
+    if (next) playSound("key");
+  }
   const [sessionId, setSessionId] = useState(null);
   const [guesses, setGuesses] = useState([]);
   const [currentGuess, setCurrentGuess] = useState("");
@@ -332,24 +344,29 @@ export default function App({ mode = "daily" }) {
     setMessage("");
 
     if (key === "⌫" || key === "Backspace") {
+      if (currentGuess) playSound("delete", soundEnabled);
       setCurrentGuess(g => g.slice(0, -1));
       return;
     }
 
     if (key === "ENTER" || key === "Enter") {
       if (currentGuess.length < wordLength) {
+        playSound("invalid", soundEnabled);
         setMessage(`Need ${wordLength} letters`);
         return;
       }
+      playSound("submit", soundEnabled);
       try {
         const data = await submitGuess(sessionId, currentGuess, getToken());
         const newGuesses = [...guesses, { guess: data.guess, result: data.result }];
         setGuesses(newGuesses);
         setCurrentGuess("");
         updateLetterStatuses(newGuesses);
+        playReveal(data.result, soundEnabled);
         if (data.status === "won" || data.status === "lost") {
           const finalWordLength = data.answer?.length || wordLength;
           const flipDelay = (finalWordLength - 1) * 0.1 + 0.5 + 0.3;
+          setTimeout(() => playSound(data.status === "won" ? "win" : "loss", soundEnabled), flipDelay * 1000);
           setStatus(data.status);
           setAnswer(data.answer);
           setEmployee(data.employee || null);
@@ -390,6 +407,7 @@ export default function App({ mode = "daily" }) {
           }
         }
       } catch (e) {
+        playSound("invalid", soundEnabled);
         const msg = e?.response?.data?.error || "Invalid guess";
         setMessage(msg);
         setMsgVisible(true);
@@ -405,9 +423,10 @@ export default function App({ mode = "daily" }) {
     }
 
     if (/^[a-zA-Z]$/.test(key) && currentGuess.length < wordLength) {
+      playSound("key", soundEnabled);
       setCurrentGuess(g => g + key.toUpperCase());
     }
-  }, [status, currentGuess, guesses, sessionId, wordLength, updateLetterStatuses]);
+  }, [status, currentGuess, guesses, sessionId, wordLength, updateLetterStatuses, getToken, mode, avatarUrl, soundEnabled]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -439,6 +458,7 @@ export default function App({ mode = "daily" }) {
           instant={resumedComplete.current}
           isDaily={mode === "daily"}
           medalInfo={medalInfo}
+          soundEnabled={soundEnabled}
           onPlayAgain={mode === "practice" ? () => newGame({}) : null}
           onPractice={null}
           onShowStats={null}
@@ -508,8 +528,19 @@ export default function App({ mode = "daily" }) {
       <Box w="100%" maxW="520px" borderBottom="1px solid" borderColor={t.border} bg={t.surface} py={3} px={4}>
         <HStack justifyContent="space-between" alignItems="center">
           <HStack gap={2}>
-
-
+            <Box
+              as="button"
+              type="button"
+              onClick={toggleSound}
+              aria-label={soundEnabled ? "Mute sound effects" : "Enable sound effects"}
+              aria-pressed={soundEnabled}
+              title={soundEnabled ? "Mute sound effects" : "Enable sound effects"}
+              fontSize="lg" lineHeight="1" p={1} borderRadius="md"
+              color={soundEnabled ? t.accent : t.muted}
+              _hover={{ bg: t.overlay }}
+            >
+              {soundEnabled ? <SpeakerHigh size={20} weight="regular" /> : <SpeakerSlash size={20} weight="regular" />}
+            </Box>
             {isDevAccount && (
               <Box
                 as="button"

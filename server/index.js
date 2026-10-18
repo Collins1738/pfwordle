@@ -195,6 +195,32 @@ app.get("/api/game/resume", async (req, res) => {
 // GET /api/health — Railway healthcheck
 app.get("/api/health", (req, res) => res.json({ ok: true }));
 
+app.post("/api/preferences/sound-events", async (req, res) => {
+  if (typeof req.body?.enabled !== "boolean") return res.status(400).json({ error: "enabled must be a boolean" });
+
+  let userId = null;
+  const authHeader = req.headers.authorization;
+  if (authHeader) {
+    if (!authHeader.startsWith("Bearer ")) return res.status(401).json({ error: "Unauthorized" });
+    try {
+      const jwt = require("jsonwebtoken");
+      userId = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET || "dev-secret-change-me").id;
+    } catch {
+      return res.status(401).json({ error: "Invalid or expired token" });
+    }
+  }
+
+  try {
+    await pool.query("INSERT INTO sound_toggle_events (user_id, enabled) VALUES ($1, $2)", [userId, req.body.enabled]);
+    res.sendStatus(204);
+  } catch (err) {
+    console.error("[sound-toggle]", err);
+    res.status(500).json({ error: "Could not record sound preference change" });
+  }
+});
+
+
+
 // GET /api/daily-availability — canonical server-side daily cutoff status
 app.get("/api/daily-availability", (req, res) => res.json(getDailyAvailability()));
 
