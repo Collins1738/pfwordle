@@ -22,6 +22,40 @@ function tone(ctx, frequency, start, duration, volume = 0.035, type = "sine") {
   oscillator.stop(start + duration + 0.01);
 }
 
+function softTap(ctx, frequency, start, volume = 0.012) {
+  const oscillator = ctx.createOscillator();
+  const gain = ctx.createGain();
+  oscillator.type = "triangle";
+  oscillator.frequency.setValueAtTime(frequency, start);
+  oscillator.frequency.exponentialRampToValueAtTime(frequency * 0.65, start + 0.075);
+  gain.gain.setValueAtTime(volume, start);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.08);
+  oscillator.connect(gain).connect(ctx.destination);
+  oscillator.start(start);
+  oscillator.stop(start + 0.09);
+}
+
+function paperSwish(ctx, start) {
+  const duration = 0.18;
+  const buffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * duration), ctx.sampleRate);
+  const samples = buffer.getChannelData(0);
+  for (let i = 0; i < samples.length; i++) samples[i] = Math.random() * 2 - 1;
+  const source = ctx.createBufferSource();
+  const filter = ctx.createBiquadFilter();
+  const gain = ctx.createGain();
+  source.buffer = buffer;
+  filter.type = "bandpass";
+  filter.frequency.setValueAtTime(850, start);
+  filter.frequency.exponentialRampToValueAtTime(1400, start + duration);
+  filter.Q.value = 0.7;
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(0.014, start + 0.045);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+  source.connect(filter).connect(gain).connect(ctx.destination);
+  source.start(start);
+  source.stop(start + duration);
+}
+
 export function playSound(effect, enabled = true) {
   if (!enabled) return;
   try {
@@ -42,14 +76,14 @@ export function playSound(effect, enabled = true) {
       case "loss":
         [392, 330, 262].forEach((frequency, i) => tone(ctx, frequency, now + i * 0.17, 0.23, 0.035));
         break;
-      case "result-row": tone(ctx, 430, now, 0.06, 0.012, "triangle"); break;
-      case "result-card": tone(ctx, 620, now, 0.11, 0.02, "triangle"); break;
+      case "result-row": softTap(ctx, 400, now); break;
+      case "result-card": paperSwish(ctx, now); break;
       case "result-score":
-        tone(ctx, 740, now, 0.13, 0.025);
-        tone(ctx, 980, now + 0.1, 0.2, 0.025);
+        tone(ctx, 523, now, 0.16, 0.014, "triangle");
+        tone(ctx, 659, now + 0.09, 0.23, 0.016, "triangle");
         break;
       case "result-medal":
-        [784, 988, 1175].forEach((frequency, i) => tone(ctx, frequency, now + i * 0.1, 0.22, 0.028));
+        [784, 1047, 1319].forEach((frequency, i) => tone(ctx, frequency, now + i * 0.08, 0.3, 0.014));
         break;
       default: break;
     }

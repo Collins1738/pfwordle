@@ -115,7 +115,7 @@ function EmployeeCardDeck({ employees, accentColor, cueOnce }) {
                 ? { type: "spring", stiffness: 220, damping: 26 }
                 : { type: "spring", stiffness: 180, damping: 24, delay: dealDelay }
             }
-            onAnimationComplete={() => cueOnce(`card-${empIdx}`, "result-card")}
+            onUpdate={latest => { if (latest.opacity > 0.15) cueOnce(`card-${empIdx}`, "result-card"); }}
             onClick={isFront ? cycleCard : undefined}
           >
 
@@ -157,7 +157,7 @@ function getScoreLabel(score) {
   return             { label: "Better luck tomorrow 😬",     color: t.present };
 }
 
-function TileRow({ guess, result, delay = 0, onReveal }) {
+function TileRow({ guess, result, delay = 0, onAppear }) {
   return (
     <HStack gap={1} justify="center">
       {guess.split("").map((letter, i) => {
@@ -171,7 +171,7 @@ function TileRow({ guess, result, delay = 0, onReveal }) {
             initial={{ opacity: 0, scale: 0.7 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: delay + i * 0.06, duration: 0.25, ease: "easeOut" }}
-            onAnimationComplete={i === guess.length - 1 ? onReveal : undefined}
+            onUpdate={i === 0 ? latest => { if (latest.opacity > 0.15) onAppear(); } : undefined}
           >
             <Box
               w="16px" h="16px"
@@ -285,7 +285,7 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
                     transition={{ delay: 0.3 + rowIdx * 0.05 }}
                   >
                     {g ? (
-                      <TileRow guess={g.guess} result={g.result} delay={0.35 + rowIdx * 0.06} onReveal={() => cueOnce(`row-${rowIdx}`, "result-row")} />
+                      <TileRow guess={g.guess} result={g.result} delay={0.35 + rowIdx * 0.06} onAppear={() => cueOnce(`row-${rowIdx}`, "result-row")} />
                     ) : (
                       <HStack gap={1} justify="center">
                         {Array.from({ length: wordLength }, (_, i) => (
@@ -312,7 +312,7 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: won ? 1.2 : 1.0, duration: 0.4 }}
-                    onAnimationComplete={() => cueOnce("card-0", "result-card")}
+                    onUpdate={latest => { if (latest.opacity > 0.15) cueOnce("card-0", "result-card"); }}
                   >
                   <Box w="100%" bg={t.surface} border="1px solid" borderColor={t.border} borderRadius="xl" overflow="hidden" boxShadow={`0 4px 16px ${accentColor}33`}>
                     <Box h="52px" bg={accentColor} position="relative" display="flex" alignItems="flex-end" justifyContent="center">
@@ -355,7 +355,7 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 1.8, type: "spring", stiffness: 200 }}
-              onAnimationComplete={() => cueOnce("score", "result-score")}
+              onUpdate={latest => { if (latest.opacity > 0.15) cueOnce("score", "result-score"); }}
               style={{ textAlign: "center", width: "100%" }}
             >
               <Box
@@ -443,7 +443,7 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
                 initial={{ opacity: 0, scale: 0.85, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 transition={{ delay: 2.4, type: "spring", stiffness: 220, damping: 18 }}
-                onAnimationComplete={() => cueOnce("medal", "result-medal")}
+                onUpdate={latest => { if (latest.opacity > 0.15) cueOnce("medal", "result-medal"); }}
                 style={{ width: "100%" }}
               >
                 <Box
