@@ -42,6 +42,15 @@ export function playSound(effect, enabled = true) {
       case "loss":
         [392, 330, 262].forEach((frequency, i) => tone(ctx, frequency, now + i * 0.17, 0.23, 0.035));
         break;
+      case "result-row": tone(ctx, 430, now, 0.06, 0.012, "triangle"); break;
+      case "result-card": tone(ctx, 620, now, 0.11, 0.02, "triangle"); break;
+      case "result-score":
+        tone(ctx, 740, now, 0.13, 0.025);
+        tone(ctx, 980, now + 0.1, 0.2, 0.025);
+        break;
+      case "result-medal":
+        [784, 988, 1175].forEach((frequency, i) => tone(ctx, frequency, now + i * 0.1, 0.22, 0.028));
+        break;
       default: break;
     }
   } catch {

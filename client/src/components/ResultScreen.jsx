@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import { DiceFive, ChartBar, HouseLine, ArrowClockwise } from "@phosphor-icons/react";
 import { t } from "../theme";
+import { playSound } from "../sounds";
 
 function formatTenure(months) {
   if (!months && months !== 0) return null;
@@ -53,7 +54,7 @@ function EmployeeCardInner({ emp, accentColor }) {
 
 // Renders a stacked deck of cards, each animating in one by one.
 // Clicking the front card cycles it to the back and brings the next one to front.
-function EmployeeCardDeck({ employees, accentColor }) {
+function EmployeeCardDeck({ employees, accentColor, cueOnce }) {
   const n = employees.length;
   const [order, setOrder] = useState(() => employees.map((_, i) => i)); // order[0] = front
   const [dealtIn, setDealtIn] = useState(false); // true once all deal-in animations are done
@@ -114,6 +115,7 @@ function EmployeeCardDeck({ employees, accentColor }) {
                 ? { type: "spring", stiffness: 220, damping: 26 }
                 : { type: "spring", stiffness: 180, damping: 24, delay: dealDelay }
             }
+            onAnimationComplete={() => cueOnce(`card-${empIdx}`, "result-card")}
             onClick={isFront ? cycleCard : undefined}
           >
 
@@ -155,7 +157,7 @@ function getScoreLabel(score) {
   return             { label: "Better luck tomorrow 😬",     color: t.present };
 }
 
-function TileRow({ guess, result, delay = 0 }) {
+function TileRow({ guess, result, delay = 0, onReveal }) {
   return (
     <HStack gap={1} justify="center">
       {guess.split("").map((letter, i) => {
@@ -169,6 +171,7 @@ function TileRow({ guess, result, delay = 0 }) {
             initial={{ opacity: 0, scale: 0.7 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: delay + i * 0.06, duration: 0.25, ease: "easeOut" }}
+            onAnimationComplete={i === guess.length - 1 ? onReveal : undefined}
           >
             <Box
               w="16px" h="16px"
@@ -203,8 +206,14 @@ const MEDAL_CONFIG = {
   bronze: { emoji: "🥉", label: "New #3!",         color: "#cd7f32", bg: "#fdf6ee", border: "#cd7f32" },
 };
 
-export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLength, employee, durationSeconds, score: serverScore, onPlayAgain, onShowStats, onPractice, instant = false, isDaily = false, medalInfo = null }) {
+export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLength, employee, durationSeconds, score: serverScore, onPlayAgain, onShowStats, onPractice, instant = false, isDaily = false, medalInfo = null, soundEnabled = false }) {
   const navigate = useNavigate();
+  const playedCues = useRef(new Set());
+  function cueOnce(key, effect) {
+    if (instant || playedCues.current.has(key)) return;
+    playedCues.current.add(key);
+    playSound(effect, soundEnabled);
+  }
   const accentColor = won ? t.accent : t.present;
   // Use server-computed score if available (authoritative), fall back to client calc
   const score = serverScore != null ? serverScore : calcScore(guesses.length, maxGuesses, won, durationSeconds);
@@ -276,7 +285,7 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
                     transition={{ delay: 0.3 + rowIdx * 0.05 }}
                   >
                     {g ? (
-                      <TileRow guess={g.guess} result={g.result} delay={0.35 + rowIdx * 0.06} />
+                      <TileRow guess={g.guess} result={g.result} delay={0.35 + rowIdx * 0.06} onReveal={() => cueOnce(`row-${rowIdx}`, "result-row")} />
                     ) : (
                       <HStack gap={1} justify="center">
                         {Array.from({ length: wordLength }, (_, i) => (
@@ -303,6 +312,7 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: won ? 1.2 : 1.0, duration: 0.4 }}
+                    onAnimationComplete={() => cueOnce("card-0", "result-card")}
                   >
                   <Box w="100%" bg={t.surface} border="1px solid" borderColor={t.border} borderRadius="xl" overflow="hidden" boxShadow={`0 4px 16px ${accentColor}33`}>
                     <Box h="52px" bg={accentColor} position="relative" display="flex" alignItems="flex-end" justifyContent="center">
@@ -333,7 +343,7 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
                   </Box>
                   </motion.div>
                 ) : (
-                  <EmployeeCardDeck employees={employees} accentColor={accentColor} />
+                  <EmployeeCardDeck employees={employees} accentColor={accentColor} cueOnce={cueOnce} />
                 )}
               </Box>
             )}
@@ -345,6 +355,7 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 1.8, type: "spring", stiffness: 200 }}
+              onAnimationComplete={() => cueOnce("score", "result-score")}
               style={{ textAlign: "center", width: "100%" }}
             >
               <Box
@@ -432,6 +443,7 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
                 initial={{ opacity: 0, scale: 0.85, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 transition={{ delay: 2.4, type: "spring", stiffness: 220, damping: 18 }}
+                onAnimationComplete={() => cueOnce("medal", "result-medal")}
                 style={{ width: "100%" }}
               >
                 <Box
