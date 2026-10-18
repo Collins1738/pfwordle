@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, VStack, Text, Heading, Avatar, HStack } from "@chakra-ui/react";
 import Board from "./components/Board";
-import BonusCountdown from "./components/BonusCountdown";
+import ElapsedTimer from "./components/ElapsedTimer";
 import Keyboard from "./components/Keyboard";
 
 
@@ -626,7 +626,7 @@ export default function App({ mode = "daily" }) {
               </Box>
             );
           })()}
-          {status === "playing" && <BonusCountdown startedAt={startedAt} />}
+          {status === "playing" && <ElapsedTimer startedAt={startedAt} />}
         </Box>
 
         {status === "idle" ? (
