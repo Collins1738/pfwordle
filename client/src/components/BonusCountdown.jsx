@@ -30,7 +30,7 @@ export default function BonusCountdown({ startedAt }) {
   const remaining = tier ? tier.limit - elapsed : 0;
 
   return (
-    <Box w="100%" mb={1} px={1} textAlign="right" aria-label="Time bonus countdown">
+    <Box position="absolute" top="50%" right={1} transform="translateY(-50%)" whiteSpace="nowrap" aria-label="Time bonus countdown">
       <Text as="span" role="timer" aria-live="off" color={t.muted}
         fontFamily="monospace" fontSize="xs" fontVariantNumeric="tabular-nums">
         {tier ? `${clock(remaining)} to +${tier.points}` : "no time bonus"}

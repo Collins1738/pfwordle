@@ -586,7 +586,7 @@ export default function App({ mode = "daily" }) {
       </Box>
 
       <VStack gap={0} w="100%" maxW="520px" px={3}>
-        <Box h="36px" display="flex" alignItems="center" justifyContent="center" mt={1} position="relative">
+        <Box h="36px" w="100%" display="flex" alignItems="center" justifyContent="center" mt={1} position="relative">
           {sessionId && avatarUrl && (() => {
             const isBlacked = guesses.length === 0 && !blurDraining;
             const blurredUrl = `${BASE_URL}/api/avatar/session/${sessionId}?g=${guesses.length}`;
@@ -626,9 +626,8 @@ export default function App({ mode = "daily" }) {
               </Box>
             );
           })()}
+          {status === "playing" && <BonusCountdown startedAt={startedAt} />}
         </Box>
-
-        {status === "playing" && <BonusCountdown startedAt={startedAt} />}
 
         {status === "idle" ? (
           <Box h={`${maxGuesses * 56 + 24}px`} /> /* placeholder matching board height */
