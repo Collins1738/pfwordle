@@ -31,10 +31,6 @@ export default function BonusCountdown({ startedAt }) {
 
   return (
     <Box w="100%" mb={1} px={1} textAlign="right" aria-label="Time bonus countdown">
-      <Text as="span" color={t.muted} fontFamily="monospace" fontSize="xs" fontVariantNumeric="tabular-nums">
-        {clock(elapsed)} elapsed
-      </Text>
-      <Text as="span" color={t.muted} fontSize="xs" mx={1}>·</Text>
       <Text as="span" role="timer" aria-live="off" color={t.muted}
         fontFamily="monospace" fontSize="xs" fontVariantNumeric="tabular-nums">
         {tier ? `${clock(remaining)} to +${tier.points}` : "no time bonus"}
