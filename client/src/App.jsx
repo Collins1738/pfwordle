@@ -12,6 +12,8 @@ import { useAuth } from "./useAuth";
 import { t } from "./theme";
 import { DEV_ACCOUNTS } from "./constants";
 import { playSound, playReveal } from "./sounds";
+import { trackSoundToggle } from "./api";
+import { SpeakerHigh, SpeakerSlash } from "@phosphor-icons/react";
 
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "";
@@ -158,12 +160,13 @@ export default function App({ mode = "daily" }) {
 
 
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem("pfwordle-sound") !== "off");
+  const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem("pfwordle-sound") === "on");
 
   function toggleSound() {
     const next = !soundEnabled;
     setSoundEnabled(next);
     localStorage.setItem("pfwordle-sound", next ? "on" : "off");
+    trackSoundToggle(next, getToken()).catch(() => {}); // Sound preference works even if tracking is unavailable.
     if (next) playSound("key");
   }
   const [sessionId, setSessionId] = useState(null);
@@ -528,7 +531,7 @@ export default function App({ mode = "daily" }) {
               color={soundEnabled ? t.accent : t.muted}
               _hover={{ bg: t.overlay }}
             >
-              {soundEnabled ? "🔊" : "🔇"}
+              {soundEnabled ? <SpeakerHigh size={20} weight="regular" /> : <SpeakerSlash size={20} weight="regular" />}
             </Box>
             {isDevAccount && (
               <Box

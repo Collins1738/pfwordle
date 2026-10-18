@@ -48,6 +48,15 @@ async function migrate() {
       guessed_at TIMESTAMPTZ DEFAULT NOW()
     );
 
+    -- Explicit sound-control changes, including anonymous players.
+    CREATE TABLE IF NOT EXISTS sound_toggle_events (
+      id BIGSERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      enabled BOOLEAN NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS sound_toggle_events_created_at_idx ON sound_toggle_events (created_at);
+
     -- Employee roster: Rippling owns title/tenure/active, roster.csv owns the rest
     CREATE TABLE IF NOT EXISTS employees (
       id SERIAL PRIMARY KEY,
