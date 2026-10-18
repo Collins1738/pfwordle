@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, VStack, Text, Heading, Avatar, HStack } from "@chakra-ui/react";
 import Board from "./components/Board";
+import BonusCountdown from "./components/BonusCountdown";
 import Keyboard from "./components/Keyboard";
 
 
@@ -167,6 +168,7 @@ export default function App({ mode = "daily" }) {
   const [msgVisible, setMsgVisible] = useState(false);
   const [employee, setEmployee] = useState(null);
   const [duration, setDuration] = useState(null);
+  const [startedAt, setStartedAt] = useState(null);
   const [finalScore, setFinalScore] = useState(null);
   const [letterStatuses, setLetterStatuses] = useState({});
   const [wordLength, setWordLength] = useState(5);
@@ -205,6 +207,7 @@ export default function App({ mode = "daily" }) {
       const token = getToken();
       const data = await startGame({ mode, ...options }, token);
       setSessionId(data.sessionId);
+      setStartedAt(data.startedAt ?? null);
       setWordLength(data.wordLength);
       setMaxGuesses(data.maxGuesses);
       setGuesses([]);
@@ -254,6 +257,7 @@ export default function App({ mode = "daily" }) {
             const data = await resumeGame(token);
             if (data.hasGame) {
               setSessionId(data.sessionId);
+              setStartedAt(data.startedAt ?? null);
               setWordLength(data.wordLength);
               setMaxGuesses(data.maxGuesses);
               setGuesses(data.guesses || []);
@@ -281,6 +285,7 @@ export default function App({ mode = "daily" }) {
             console.log("[practice resume] server response:", res);
             if (res && res.status && res.status !== "error") {
               setSessionId(savedSessionId);
+              setStartedAt(res.startedAt ?? null);
               setWordLength(res.wordLength);
               setMaxGuesses(res.maxGuesses);
               setGuesses(res.guesses || []);
@@ -622,6 +627,8 @@ export default function App({ mode = "daily" }) {
             );
           })()}
         </Box>
+
+        {status === "playing" && <BonusCountdown startedAt={startedAt} />}
 
         {status === "idle" ? (
           <Box h={`${maxGuesses * 56 + 24}px`} /> /* placeholder matching board height */
