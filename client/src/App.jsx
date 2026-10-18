@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Box, VStack, Text, Heading, Avatar, HStack } from "@chakra-ui/react";
 import Board from "./components/Board";
 import ElapsedTimer from "./components/ElapsedTimer";
+
+const ENABLE_ELAPSED_TIMER = true;
 import Keyboard from "./components/Keyboard";
 
 
@@ -626,7 +628,7 @@ export default function App({ mode = "daily" }) {
               </Box>
             );
           })()}
-          {status === "playing" && <ElapsedTimer startedAt={startedAt} />}
+          {ENABLE_ELAPSED_TIMER && status === "playing" && <ElapsedTimer startedAt={startedAt} />}
         </Box>
 
         {status === "idle" ? (
