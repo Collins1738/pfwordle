@@ -8,11 +8,11 @@ export default defineConfig({
     allowedHosts: ["collinss-macbook-pro-2.local", "dravon-macbook.tail2c66c1.ts.net"],
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: process.env.PFWORDLE_API_TARGET || 'http://localhost:3001',
         changeOrigin: true,
       },
       '/auth': {
-        target: 'http://localhost:3001',
+        target: process.env.PFWORDLE_API_TARGET || 'http://localhost:3001',
         changeOrigin: true,
       },
     },
