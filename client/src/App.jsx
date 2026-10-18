@@ -451,6 +451,7 @@ export default function App({ mode = "daily" }) {
           instant={resumedComplete.current}
           isDaily={mode === "daily"}
           medalInfo={medalInfo}
+          soundEnabled={soundEnabled}
           onPlayAgain={mode === "practice" ? () => newGame({}) : null}
           onPractice={null}
           onShowStats={null}
