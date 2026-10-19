@@ -201,7 +201,9 @@ export default function App({ mode = "daily" }) {
 
   const [devMode, setDevMode] = useState(false);
 
-  const isDev = !!isDevAccount && devMode;
+  // Production daily answers must never be exposed through dev tools, even to admins.
+  const canUseDevTools = !!isDevAccount && (mode !== "daily" || import.meta.env.DEV);
+  const isDev = canUseDevTools && devMode;
 
   function toggleDevMode() {
     setDevMode(next => !next);
@@ -209,10 +211,10 @@ export default function App({ mode = "daily" }) {
 
   // Fetch debug answer whenever dev mode is toggled on and we have a session
   useEffect(() => {
-    if (devMode && sessionId && !debugAnswer) {
+    if (isDev && sessionId && !debugAnswer) {
       getDebugAnswer(sessionId).then(d => setDebugAnswer(d.answer)).catch(() => {});
     }
-  }, [devMode, sessionId]);
+  }, [isDev, sessionId, debugAnswer]);
 
   const currentRow = guesses.length;
 
@@ -541,7 +543,7 @@ export default function App({ mode = "daily" }) {
             >
               {soundEnabled ? <SpeakerHigh size={20} weight="regular" /> : <SpeakerSlash size={20} weight="regular" />}
             </Box>
-            {isDevAccount && (
+            {canUseDevTools && (
               <Box
                 as="button"
                 onClick={toggleDevMode}
