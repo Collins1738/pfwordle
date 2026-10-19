@@ -11,6 +11,7 @@ const { migrate, pool } = require("./db");
 const { setupAuth, requireAuth } = require("./auth");
 const { getDailyAvailability, isFridayDailyClosed, dailyClosedResponse } = require("./daily-cutoff");
 const { isAdminEmail, requireAdminOrNotFound } = require("./admin-only");
+const { canRevealDebugAnswer } = require("./debug-access");
 
 // In-memory blur cache: key = "url|level" → Buffer
 const blurCache = new Map();
@@ -413,6 +414,9 @@ app.delete("/api/dev/reset-daily", requireAuth, async (req, res) => {
 app.get("/api/game/:sessionId/debug", (req, res) => {
   const session = sessions.get(req.params.sessionId);
   if (!session) return res.status(404).json({ error: "Session not found" });
+  if (!canRevealDebugAnswer(session.mode)) {
+    return res.status(404).json({ error: "Not found" });
+  }
   res.json({ answer: session.word, wordLength: session.wordLength });
 });
 
