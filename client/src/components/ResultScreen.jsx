@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Box, Text, Button, VStack, HStack } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
-import { DiceFive, ChartBar, HouseLine, ArrowClockwise } from "@phosphor-icons/react";
+import { DiceFive, ChartBar, HouseLine, ArrowClockwise, Clock } from "@phosphor-icons/react";
 import { t } from "../theme";
 import { playSound } from "../sounds";
 
@@ -416,9 +416,12 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
                           return (
                             <HStack justify="space-between">
                               <HStack gap={2}>
-                                <Text fontSize="xs" color={t.muted} fontFamily={t.font} whiteSpace="nowrap" aria-label="Time played">
-                                  {formatPlayDuration(durationSeconds)}
-                                </Text>
+                                <HStack gap={1} color={t.accentDark} whiteSpace="nowrap" aria-label={`Time played: ${formatPlayDuration(durationSeconds)}`}>
+                                  <Clock size={13} weight="regular" aria-hidden="true" />
+                                  <Text fontSize="xs" fontFamily={t.font} fontWeight="700">
+                                    {formatPlayDuration(durationSeconds)}
+                                  </Text>
+                                </HStack>
                                 <Box bg={tier.bg} borderRadius="full" px={1.5} py={0.5}>
                                   <Text fontSize="9px" color={tier.color} fontFamily={t.font} fontWeight="700">{tier.label}</Text>
                                 </Box>
