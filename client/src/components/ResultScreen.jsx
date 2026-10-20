@@ -190,6 +190,13 @@ function TileRow({ guess, result, delay = 0, onAppear }) {
   );
 }
 
+function formatPlayDuration(durationSeconds) {
+  const seconds = Math.max(0, Math.floor(durationSeconds));
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return minutes > 0 ? `${minutes}m ${remainingSeconds}s` : `${remainingSeconds}s`;
+}
+
 function timeBonusLabel(durationSeconds) {
   if (durationSeconds == null) return null;
   
@@ -408,9 +415,14 @@ export default function ResultScreen({ won, answer, guesses, maxGuesses, wordLen
                             : { label: "< 30 mins", color: t.muted,  bg: t.bg };
                           return (
                             <HStack justify="space-between">
-                              <Box bg={tier.bg} borderRadius="full" px={1.5} py={0.5}>
-                                <Text fontSize="9px" color={tier.color} fontFamily={t.font} fontWeight="700">{tier.label}</Text>
-                              </Box>
+                              <HStack gap={2}>
+                                <Text fontSize="xs" color={t.muted} fontFamily={t.font} whiteSpace="nowrap" aria-label="Time played">
+                                  {formatPlayDuration(durationSeconds)}
+                                </Text>
+                                <Box bg={tier.bg} borderRadius="full" px={1.5} py={0.5}>
+                                  <Text fontSize="9px" color={tier.color} fontFamily={t.font} fontWeight="700">{tier.label}</Text>
+                                </Box>
+                              </HStack>
                               <Text fontSize="xs" fontWeight="700" color={tier.color}>+{bonusAmt}</Text>
                             </HStack>
                           );
