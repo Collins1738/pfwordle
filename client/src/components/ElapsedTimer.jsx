@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Box, Text } from "@chakra-ui/react";
 import { t } from "../theme";
+import { Clock } from "@phosphor-icons/react";
 
 function clock(seconds) {
   return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
@@ -20,8 +21,10 @@ export default function ElapsedTimer({ startedAt }) {
   const elapsed = Math.max(0, Math.floor((now - startedAt) / 1000));
 
   return (
-    <Box position="absolute" top="50%" right={1} transform="translateY(-50%)" whiteSpace="nowrap" aria-label="Elapsed game time">
-      <Text as="span" role="timer" aria-live="off" color={t.muted}
+    <Box position="absolute" top="50%" right={1} transform="translateY(-50%)" whiteSpace="nowrap"
+      display="flex" alignItems="center" gap={1} color={t.accentDark} aria-label="Elapsed game time">
+      <Clock size={13} weight="regular" aria-hidden="true" />
+      <Text as="span" role="timer" aria-live="off"
         fontFamily="monospace" fontSize="xs" fontVariantNumeric="tabular-nums">
         {clock(elapsed)}
       </Text>
