@@ -37,6 +37,7 @@ function calcScore(guessCount, maxGuesses, durationSeconds) {
 const NFL_HOLIDAYS = [
   "2026-09-07", // Labor Day
   "2026-10-12", // Columbus Day / Indigenous Peoples' Day
+  "2026-11-11", // Veterans Day
 ];
 
 // Feature flag: "first" = first names only, "full" = full names (first + last)
