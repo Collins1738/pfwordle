@@ -2,10 +2,11 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Box, VStack, Text, HStack, Avatar, Spinner, Heading } from "@chakra-ui/react";
 import { motion, AnimatePresence, useMotionValue, animate } from "framer-motion";
-import { Trophy } from "@phosphor-icons/react";
+import { Trophy, Clock } from "@phosphor-icons/react";
 import axios from "axios";
 import { t } from "../theme";
 import { useAuth } from "../useAuth";
+import { formatPlayDuration } from "./formatPlayDuration";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 
@@ -223,9 +224,13 @@ function LeaderboardList({ data, loading, isWeekly, user, hasPlayedToday, shakin
                       {isYou && <Text as="span" color={t.muted} fontWeight="400"> (you)</Text>}
                     </Text>
                   </HStack>
-                  {!isWeekly && row.status === "won" && (
+                  {!isWeekly && row.duration_seconds != null && hasPlayedToday && (
                     <HStack gap={1.5} mt={0.5}>
-                      {row.duration_seconds != null && (() => {
+                      <HStack gap={1} color={t.accentDark} whiteSpace="nowrap" aria-label={`Time played: ${formatPlayDuration(row.duration_seconds)}`}>
+                        <Clock size={12} weight="regular" aria-hidden="true" />
+                        <Text fontSize="xs" fontFamily={t.font} fontWeight="700">{formatPlayDuration(row.duration_seconds)}</Text>
+                      </HStack>
+                      {row.status === "won" && (() => {
                         const d = row.duration_seconds;
                         const tier = d < 60
                           ? { label: "< 1 min", color: t.accent, bg: t.accent + "28" }
