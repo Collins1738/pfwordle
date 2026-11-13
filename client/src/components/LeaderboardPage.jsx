@@ -226,7 +226,7 @@ function LeaderboardList({ data, loading, isWeekly, user, hasPlayedToday, shakin
                   </HStack>
                   {!isWeekly && row.duration_seconds != null && hasPlayedToday && (
                     <HStack gap={1.5} mt={0.5}>
-                      <HStack gap={1} color={t.accentDark} whiteSpace="nowrap" aria-label={`Time played: ${formatPlayDuration(row.duration_seconds)}`}>
+                      <HStack gap={1} color={t.muted} whiteSpace="nowrap" aria-label={`Time played: ${formatPlayDuration(row.duration_seconds)}`}>
                         <Clock size={10} weight="regular" aria-hidden="true" />
                         <Text fontSize="10px" fontFamily={t.font} fontWeight="700">{formatPlayDuration(row.duration_seconds)}</Text>
                       </HStack>
