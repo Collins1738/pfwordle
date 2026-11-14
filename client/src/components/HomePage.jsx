@@ -1,3 +1,4 @@
+import { formatPlayDuration } from "./formatPlayDuration";
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, Heading, Text, VStack, Avatar, HStack, Skeleton, SkeletonCircle } from "@chakra-ui/react";
@@ -466,7 +467,9 @@ export default function HomePage() {
             ))}
           </Box>
         ) : renderLeaderboard(leaderboard, "Today", (row) =>
-          row.status === "won" ? `${row.guess_count} guess${row.guess_count !== 1 ? "es" : ""}` : "❌"
+          row.status === "won"
+            ? `${row.guess_count} guess${row.guess_count !== 1 ? "es" : ""}${row.duration_seconds != null ? ` · ${formatPlayDuration(row.duration_seconds)}` : ""}`
+            : "❌"
         , 1, "/leaderboard/daily")}
 
         {/* Auth strip */}
