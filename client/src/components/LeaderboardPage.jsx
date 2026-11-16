@@ -6,6 +6,7 @@ import { Trophy } from "@phosphor-icons/react";
 import axios from "axios";
 import { t } from "../theme";
 import { useAuth } from "../useAuth";
+import { formatPlayDuration } from "./formatPlayDuration";
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 
@@ -223,9 +224,9 @@ function LeaderboardList({ data, loading, isWeekly, user, hasPlayedToday, shakin
                       {isYou && <Text as="span" color={t.muted} fontWeight="400"> (you)</Text>}
                     </Text>
                   </HStack>
-                  {!isWeekly && row.status === "won" && (
+                  {!isWeekly && row.duration_seconds != null && hasPlayedToday && (
                     <HStack gap={1.5} mt={0.5}>
-                      {row.duration_seconds != null && (() => {
+                      {row.status === "won" && (() => {
                         const d = row.duration_seconds;
                         const tier = d < 60
                           ? { label: "< 1 min", color: t.accent, bg: t.accent + "28" }
@@ -242,6 +243,9 @@ function LeaderboardList({ data, loading, isWeekly, user, hasPlayedToday, shakin
                           </Box>
                         ) : null;
                       })()}
+                      <Text fontSize="10px" color={t.muted} opacity={0.6} fontFamily={t.font} fontWeight="500" whiteSpace="nowrap" aria-label={`Time played: ${formatPlayDuration(row.duration_seconds)}`}>
+                        {formatPlayDuration(row.duration_seconds)}
+                      </Text>
                     </HStack>
                   )}
                 </VStack>

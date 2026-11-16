@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import { DiceFive, ChartBar, HouseLine, ArrowClockwise, Clock } from "@phosphor-icons/react";
 import { t } from "../theme";
 import { playSound } from "../sounds";
+import { formatPlayDuration } from "./formatPlayDuration";
 
 function formatTenure(months) {
   if (!months && months !== 0) return null;
@@ -188,13 +189,6 @@ function TileRow({ guess, result, delay = 0, onAppear }) {
       })}
     </HStack>
   );
-}
-
-function formatPlayDuration(durationSeconds) {
-  const seconds = Math.max(0, Math.floor(durationSeconds));
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-  return minutes > 0 ? `${minutes}m ${remainingSeconds}s` : `${remainingSeconds}s`;
 }
 
 function timeBonusLabel(durationSeconds) {

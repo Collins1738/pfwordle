@@ -466,7 +466,9 @@ export default function HomePage() {
             ))}
           </Box>
         ) : renderLeaderboard(leaderboard, "Today", (row) =>
-          row.status === "won" ? `${row.guess_count} guess${row.guess_count !== 1 ? "es" : ""}` : "❌"
+          row.status === "won"
+            ? `${row.guess_count} guess${row.guess_count !== 1 ? "es" : ""}`
+            : "❌"
         , 1, "/leaderboard/daily")}
 
         {/* Auth strip */}
