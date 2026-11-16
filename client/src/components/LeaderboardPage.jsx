@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Box, VStack, Text, HStack, Avatar, Spinner, Heading } from "@chakra-ui/react";
 import { motion, AnimatePresence, useMotionValue, animate } from "framer-motion";
-import { Trophy, Clock } from "@phosphor-icons/react";
+import { Trophy } from "@phosphor-icons/react";
 import axios from "axios";
 import { t } from "../theme";
 import { useAuth } from "../useAuth";
@@ -226,10 +226,6 @@ function LeaderboardList({ data, loading, isWeekly, user, hasPlayedToday, shakin
                   </HStack>
                   {!isWeekly && row.duration_seconds != null && hasPlayedToday && (
                     <HStack gap={1.5} mt={0.5}>
-                      <HStack gap={1} color={t.muted} whiteSpace="nowrap" aria-label={`Time played: ${formatPlayDuration(row.duration_seconds)}`}>
-                        <Clock size={10} weight="regular" aria-hidden="true" />
-                        <Text fontSize="10px" fontFamily={t.font} fontWeight="700">{formatPlayDuration(row.duration_seconds)}</Text>
-                      </HStack>
                       {row.status === "won" && (() => {
                         const d = row.duration_seconds;
                         const tier = d < 60
@@ -247,6 +243,9 @@ function LeaderboardList({ data, loading, isWeekly, user, hasPlayedToday, shakin
                           </Box>
                         ) : null;
                       })()}
+                      <Text fontSize="10px" color={t.muted} opacity={0.6} fontFamily={t.font} fontWeight="500" whiteSpace="nowrap" aria-label={`Time played: ${formatPlayDuration(row.duration_seconds)}`}>
+                        {formatPlayDuration(row.duration_seconds)}
+                      </Text>
                     </HStack>
                   )}
                 </VStack>
