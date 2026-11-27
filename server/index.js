@@ -38,6 +38,7 @@ const NFL_HOLIDAYS = [
   "2026-09-07", // Labor Day
   "2026-10-12", // Columbus Day / Indigenous Peoples' Day
   "2026-11-11", // Veterans Day
+  "2026-11-26", // Thanksgiving
 ];
 
 // Feature flag: "first" = first names only, "full" = full names (first + last)
